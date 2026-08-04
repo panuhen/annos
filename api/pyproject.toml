@@ -40,4 +40,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Every test gets its own event loop, and conftest disposes the engine pool with
+# it — an asyncpg connection belongs to the loop that opened it.
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]

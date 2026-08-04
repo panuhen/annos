@@ -31,7 +31,11 @@ mcp: FastMCP = FastMCP(
 
 
 async def _caller() -> Caller:
-    headers = get_http_headers()
+    # `include` is load-bearing. get_http_headers() drops `authorization` from
+    # its default result — sensible for a proxy forwarding headers onwards,
+    # wrong for us, since that header *is* the identity. Without this, every
+    # call arrives anonymous and 401s the moment ANNOS_DEV_SUBJECT is unset.
+    headers = get_http_headers(include={"authorization"})
     return await resolve_caller(headers.get("authorization"))
 
 
