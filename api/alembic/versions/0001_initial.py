@@ -26,17 +26,22 @@ depends_on: str | Sequence[str] | None = None
 # creating once by hand as a superuser before this migration runs.
 _TRGM = "CREATE EXTENSION IF NOT EXISTS pg_trgm"
 
-# Provenance values, stored as text with a CHECK rather than a native enum.
-# A native postgresql.ENUM here emitted CREATE TYPE before *every*
-# op.create_table in this migration (Alembic re-attaches an unbound enum to a
-# fresh MetaData per call), which fails on the second. Text + CHECK also makes
-# widening the set a one-line transactional migration.
+# Provenance, as a native Postgres enum.
+#
+# create_type=False stops op.create_table("foods") emitting its own CREATE TYPE;
+# the explicit create() below is the single source of the statement, so the type
+# exists before any table references it. Leaving create_type at its default here
+# AND calling create() produces the type twice and fails with
+# DuplicateObjectError — verify with `alembic upgrade head --sql` if you touch
+# this: exactly one CREATE TYPE should appear.
 FOOD_SOURCES = ("fineli", "verified", "user", "label", "ai_estimate")
-FOOD_SOURCE_CHECK = "source IN ({})".format(", ".join(f"'{s}'" for s in FOOD_SOURCES))
+
+food_source = postgresql.ENUM(*FOOD_SOURCES, name="food_source", create_type=False)
 
 
 def upgrade() -> None:
     op.execute(_TRGM)
+    food_source.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "user_profile",
@@ -79,7 +84,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, primary_key=True),
         sa.Column("name", sa.Text(), nullable=False),
         sa.Column("name_fi", sa.Text(), nullable=True),
-        sa.Column("source", sa.Text(), nullable=False),
+        sa.Column("source", food_source, nullable=False),
         sa.Column("fineli_id", sa.Integer(), nullable=True),
         # NULL = global (Fineli seed, verified entries). Set = private to that user.
         sa.Column("owner_id", sa.Text(), nullable=True),
@@ -98,7 +103,6 @@ def upgrade() -> None:
             "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
         ),
         sa.UniqueConstraint("fineli_id", name="uq_foods_fineli_id"),
-        sa.CheckConstraint(FOOD_SOURCE_CHECK, name="ck_foods_source"),
     )
     op.create_index("ix_foods_owner_id", "foods", ["owner_id"])
     op.create_index(
@@ -134,5 +138,6 @@ def downgrade() -> None:
     op.drop_index("ix_foods_owner_id", table_name="foods")
     op.drop_table("foods")
     op.drop_table("user_profile")
+    food_source.drop(op.get_bind(), checkfirst=True)
     # pg_trgm is left in place: other things may rely on it, and dropping an
     # extension is not this migration's business to undo.

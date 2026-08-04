@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -21,13 +22,11 @@ from annos.db import Base
 # Provenance: every food and estimate records where its numbers came from, so
 # measured and guessed data never blur.
 #
-# Stored as text with a CHECK constraint rather than a native Postgres enum.
-# Two reasons: the value set is expected to grow (it already gained `verified`),
-# and widening a CHECK is a one-line transactional migration where ALTER TYPE
-# ... ADD VALUE is not. It also matches how `sex` and `units` are constrained
-# in the same table.
+# A native Postgres enum. Widening it later needs ALTER TYPE ... ADD VALUE, and
+# the new value cannot be used in the same transaction that adds it — so a
+# migration that adds a value and backfills rows with it must be split in two.
 FOOD_SOURCES = ("fineli", "verified", "user", "label", "ai_estimate")
-_FOOD_SOURCE_CHECK = "source IN ({})".format(", ".join(f"'{s}'" for s in FOOD_SOURCES))
+FoodSource = Enum(*FOOD_SOURCES, name="food_source")
 
 
 class UserProfile(Base):
@@ -94,7 +93,7 @@ class Food(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     name_fi: Mapped[str | None] = mapped_column(Text)
 
-    source: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(FoodSource, nullable=False)
     fineli_id: Mapped[int | None] = mapped_column(Integer)
     owner_id: Mapped[str | None] = mapped_column(Text)
 
@@ -118,7 +117,6 @@ class Food(Base):
 
     __table_args__ = (
         UniqueConstraint("fineli_id", name="uq_foods_fineli_id"),
-        CheckConstraint(_FOOD_SOURCE_CHECK, name="ck_foods_source"),
         # Trigram search over both name columns: handles typos and Finnish
         # inflections ("rahka" -> "maitorahka") without embeddings.
         Index(
