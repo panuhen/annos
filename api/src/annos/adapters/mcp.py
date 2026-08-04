@@ -24,7 +24,9 @@ mcp: FastMCP = FastMCP(
     instructions=(
         "Annos logs meals, training, and bodyweight. Portions are in grams. "
         "Resolve foods with find_food before logging anything, and ask before "
-        "assuming a meal type. Food data from the Finnish Institute for Health "
+        "assuming a meal type. Food names exist in Finnish, Swedish and English; "
+        "search works in all three and results come back in the language set on "
+        "the user's profile. Food data from the Finnish Institute for Health "
         "and Welfare, Fineli (CC-BY 4.0)."
     ),
 )
@@ -41,7 +43,12 @@ async def _caller() -> Caller:
 
 @mcp.tool
 async def find_food(query: str, limit: int = 10) -> dict[str, Any]:
-    """Search foods by name, in Finnish or English.
+    """Search foods by name, in Finnish, Swedish or English.
+
+    All three are searched whatever language the user is speaking, so a query in
+    any of them finds the food. Results come back in the language on this
+    account's profile; `name_language` says which language each name is actually
+    in, since not every food has all three.
 
     Returns candidates with per-100g macros and serving units, so grams can be
     computed before logging. Searches the global Fineli/verified catalogue plus
@@ -49,11 +56,13 @@ async def find_food(query: str, limit: int = 10) -> dict[str, Any]:
     """
     who = await _caller()
     async with SessionLocal() as session:
+        language = await foods_domain.reading_language(session, subject=who.subject)
         candidates = await foods_domain.find_food(
             session, subject=who.subject, query=query, limit=limit
         )
     return {
-        "results": [foods_domain.candidate_payload(c) for c in candidates],
+        "results": [foods_domain.candidate_payload(c, language) for c in candidates],
+        "language": language,
         "server_time": servertime.echo("UTC"),
     }
 
@@ -75,6 +84,7 @@ async def get_profile() -> dict[str, Any]:
             "sex": profile.sex,
             "timezone": profile.timezone,
             "units": profile.units,
+            "language": profile.language,
             "profile_context": {
                 "dietary_prefs": profile.dietary_prefs,
                 "coaching_notes": profile.coaching_notes,

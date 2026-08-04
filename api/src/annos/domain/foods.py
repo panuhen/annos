@@ -6,7 +6,8 @@ from decimal import Decimal
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from annos.models import Food
+from annos.domain import language as language_domain
+from annos.models import LANGUAGES, Food, UserProfile
 
 # pg_trgm's default similarity_threshold. Named here so the value the `%`
 # operator uses is visible rather than an invisible database setting.
@@ -15,8 +16,9 @@ SIMILARITY_THRESHOLD = 0.3
 
 @dataclass(frozen=True)
 class ServingUnitView:
-    name: str
+    code: str
     grams: Decimal
+    names: dict[str, str | None]
 
 
 @dataclass(frozen=True)
@@ -25,38 +27,50 @@ class FoodCandidate:
     out grams before it logs anything."""
 
     id: int
-    name: str
-    name_fi: str | None
+    names: dict[str, str | None]
     source: str
     per_100g: dict[str, Decimal | None]
     serving_units: list[ServingUnitView] = field(default_factory=list)
     owned: bool = False
 
 
-def candidate_payload(c: FoodCandidate) -> dict:
+def candidate_payload(c: FoodCandidate, language: str) -> dict:
     """JSON-safe shape for a candidate, shared by both adapters.
 
     Lives here rather than in each adapter so the two surfaces cannot disagree.
     They did once: REST serialised Decimal as "218.00" while MCP emitted 218.0,
     which is exactly the drift parity is supposed to prevent. Floats are correct
     for both — these are nutrition figures, not money.
+
+    One name goes out, not all three. A search returns ten of these and the MCP
+    client pays for every token; `name_language` tells it what it got, and the
+    full set is a `get_food` away if it ever needs them.
     """
+    name, name_language = language_domain.resolve(c.names, language)
     return {
         "id": c.id,
-        "name": c.name,
-        "name_fi": c.name_fi,
+        "name": name,
+        "name_language": name_language,
         "source": c.source,
         "owned": c.owned,
         "per_100g": {k: (float(v) if v is not None else None) for k, v in c.per_100g.items()},
-        "serving_units": [{"name": u.name, "grams": float(u.grams)} for u in c.serving_units],
+        "serving_units": [
+            {
+                "code": u.code,
+                # An unknown code renders as itself — a food from a label photo
+                # can carry a unit Fineli never defined.
+                "name": language_domain.resolve(u.names, language)[0] or u.code,
+                "grams": float(u.grams),
+            }
+            for u in c.serving_units
+        ],
     }
 
 
 def _to_candidate(food: Food, subject: str) -> FoodCandidate:
     return FoodCandidate(
         id=food.id,
-        name=food.name,
-        name_fi=food.name_fi,
+        names={lang: getattr(food, f"name_{lang}") for lang in LANGUAGES},
         source=food.source,
         per_100g={
             "kcal": food.kcal,
@@ -65,9 +79,32 @@ def _to_candidate(food: Food, subject: str) -> FoodCandidate:
             "fat_g": food.fat_g,
             "fiber_g": food.fiber_g,
         },
-        serving_units=[ServingUnitView(name=u.name, grams=u.grams) for u in food.serving_units],
+        serving_units=[
+            ServingUnitView(
+                code=u.unit_code,
+                grams=u.grams,
+                names=(
+                    {lang: getattr(u.unit_type, f"name_{lang}") for lang in LANGUAGES}
+                    if u.unit_type is not None
+                    else {}
+                ),
+            )
+            for u in food.serving_units
+        ],
         owned=food.owner_id == subject,
     )
+
+
+async def reading_language(session: AsyncSession, *, subject: str) -> str:
+    """The caller's preferred language, or the default if they have no profile.
+
+    Search is reachable before registration, so a missing row is ordinary here
+    rather than an error.
+    """
+    preferred = await session.scalar(
+        select(UserProfile.language).where(UserProfile.subject == subject)
+    )
+    return preferred or language_domain.DEFAULT
 
 
 async def find_food(
@@ -83,26 +120,28 @@ async def find_food(
     user's search. Global rows are the Fineli seed and verified entries
     (owner_id IS NULL).
 
-    Trigram matching handles typos and Finnish inflections ("rahka" ->
-    "maitorahka") without embeddings. The client already supplies the semantic
+    All three languages are searched whatever the caller reads in. Someone with
+    Finnish set still types "banana", and Fineli's Swedish names are sometimes
+    the most descriptive of the three. The client already supplies the semantic
     layer — it knows kvarkki is quark and resolves "something light with protein"
     into concrete queries before calling.
     """
     if not query.strip():
         return []
 
+    name_columns = [getattr(Food, f"name_{lang}") for lang in LANGUAGES]
+
     score = func.greatest(
-        func.similarity(Food.name, query),
-        func.similarity(func.coalesce(Food.name_fi, ""), query),
+        *(func.similarity(func.coalesce(column, ""), query) for column in name_columns)
     ).label("score")
 
     stmt = (
         select(Food)
         .where(
             or_(Food.owner_id.is_(None), Food.owner_id == subject),
-            or_(Food.name.op("%")(query), Food.name_fi.op("%")(query)),
+            or_(*(column.op("%")(query) for column in name_columns)),
         )
-        .order_by(score.desc(), Food.name.asc())
+        .order_by(score.desc(), *(column.asc() for column in name_columns))
         .limit(limit)
     )
 

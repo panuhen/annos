@@ -22,6 +22,7 @@ UPDATABLE = frozenset(
         "activity_baseline",
         "timezone",
         "units",
+        "language",
         "dietary_prefs",
         "coaching_notes",
     }

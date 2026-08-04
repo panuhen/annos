@@ -12,7 +12,7 @@ from annos.db import Base, engine
 from conftest import URL, dsn
 
 INSERT_FOOD = (
-    "INSERT INTO foods (name, source, kcal, protein_g, carbs_g, fat_g) "
+    "INSERT INTO foods (name_fi, source, kcal, protein_g, carbs_g, fat_g) "
     "VALUES (:name, :source, 100, 5, 10, 2)"
 )
 
@@ -46,6 +46,41 @@ async def test_birth_year_must_be_plausible(birth_year):
                     "INSERT INTO user_profile (subject, nickname, birth_year) VALUES (:s, :n, :y)"
                 ),
                 {"s": "s1", "n": "n1", "y": birth_year},
+            )
+
+
+async def test_a_food_must_have_a_name_in_some_language():
+    """All three name columns are nullable so a label photo can produce just
+    one, but a row with none of them is not a food."""
+    async with engine.begin() as conn:
+        with pytest.raises(Exception, match="ck_foods_has_a_name"):
+            await conn.execute(
+                text(
+                    "INSERT INTO foods (source, kcal, protein_g, carbs_g, fat_g) "
+                    "VALUES ('user', 100, 5, 10, 2)"
+                )
+            )
+
+
+@pytest.mark.parametrize("language", ["fi", "sv", "en"])
+async def test_any_single_language_is_enough(language):
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                f"INSERT INTO foods (name_{language}, source, kcal, protein_g, carbs_g, fat_g) "
+                "VALUES ('Something', 'user', 100, 5, 10, 2)"
+            )
+        )
+
+
+async def test_profile_language_is_constrained():
+    async with engine.begin() as conn:
+        with pytest.raises(Exception, match="ck_profile_language"):
+            await conn.execute(
+                text(
+                    "INSERT INTO user_profile (subject, nickname, language) "
+                    "VALUES ('s1', 'n1', 'de')"
+                )
             )
 
 

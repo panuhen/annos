@@ -48,7 +48,7 @@ from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
 from annos.config import settings  # noqa: E402
 from annos.db import Base, SessionLocal, engine  # noqa: E402
-from annos.models import Food, ServingUnit  # noqa: E402  — also registers the metadata
+from annos.models import Food, ServingUnit, ServingUnitType  # noqa: E402  — registers metadata
 
 URL = make_url(settings.database_url)
 
@@ -159,10 +159,14 @@ async def mcp_client() -> AsyncIterator[Client]:
 
 @pytest.fixture
 def make_food(session: AsyncSession) -> Callable[..., Awaitable[Food]]:
+    """Insert a food. Names are keyword-only per language, all optional but at
+    least one required — the same contract the table enforces."""
+
     async def _make(
-        name: str,
         *,
         name_fi: str | None = None,
+        name_sv: str | None = None,
+        name_en: str | None = None,
         source: str = "fineli",
         owner_id: str | None = None,
         kcal: float = 100,
@@ -173,8 +177,9 @@ def make_food(session: AsyncSession) -> Callable[..., Awaitable[Food]]:
         serving_units: tuple[tuple[str, float], ...] = (),
     ) -> Food:
         food = Food(
-            name=name,
             name_fi=name_fi,
+            name_sv=name_sv,
+            name_en=name_en,
             source=source,
             owner_id=owner_id,
             kcal=kcal,
@@ -182,10 +187,23 @@ def make_food(session: AsyncSession) -> Callable[..., Awaitable[Food]]:
             carbs_g=carbs_g,
             fat_g=fat_g,
             fiber_g=fiber_g,
-            serving_units=[ServingUnit(name=unit, grams=grams) for unit, grams in serving_units],
+            serving_units=[
+                ServingUnit(unit_code=code, grams=grams) for code, grams in serving_units
+            ],
         )
         session.add(food)
         await session.commit()
         return food
+
+    return _make
+
+
+@pytest.fixture
+def make_unit_type(session: AsyncSession) -> Callable[..., Awaitable[ServingUnitType]]:
+    async def _make(code: str, **names: str) -> ServingUnitType:
+        unit_type = ServingUnitType(code=code, **names)
+        session.add(unit_type)
+        await session.commit()
+        return unit_type
 
     return _make

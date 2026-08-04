@@ -28,6 +28,12 @@ from annos.db import Base
 FOOD_SOURCES = ("fineli", "verified", "user", "label", "ai_estimate")
 FoodSource = Enum(*FOOD_SOURCES, name="food_source")
 
+# Finnish, Swedish, English — the three Fineli ships, complete, for every food.
+# No language is the "real" one that the others translate: each name column is
+# equal, each is searched, and presentation resolves against the user's
+# preference. See annos.domain.language.
+LANGUAGES = ("fi", "sv", "en")
+
 
 class UserProfile(Base):
     """One row per user. `subject` is the Better Auth user id.
@@ -56,6 +62,10 @@ class UserProfile(Base):
     timezone: Mapped[str] = mapped_column(Text, nullable=False, server_default="Europe/Helsinki")
     units: Mapped[str] = mapped_column(String(8), nullable=False, server_default="metric")
 
+    # Which of the three names a food is presented under. Search always covers
+    # all three regardless — a Finnish speaker still types "banana" sometimes.
+    language: Mapped[str] = mapped_column(String(2), nullable=False, server_default="fi")
+
     dietary_prefs: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'"))
 
     # Free text in the user's own words. Stored and returned verbatim; the server
@@ -76,6 +86,7 @@ class UserProfile(Base):
             "birth_year IS NULL OR (birth_year BETWEEN 1900 AND 2100)",
             name="ck_profile_birth_year",
         ),
+        CheckConstraint("language IN ('fi', 'sv', 'en')", name="ck_profile_language"),
     )
 
 
@@ -90,8 +101,13 @@ class Food(Base):
     __tablename__ = "foods"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
+
+    # Three peers, all nullable, at least one required. A Fineli row has all
+    # three; a food a user photographed the label of has whichever language the
+    # label was printed in, and inventing the other two would be fabrication.
     name_fi: Mapped[str | None] = mapped_column(Text)
+    name_sv: Mapped[str | None] = mapped_column(Text)
+    name_en: Mapped[str | None] = mapped_column(Text)
 
     source: Mapped[str] = mapped_column(FoodSource, nullable=False)
     fineli_id: Mapped[int | None] = mapped_column(Integer)
@@ -117,34 +133,77 @@ class Food(Base):
 
     __table_args__ = (
         UniqueConstraint("fineli_id", name="uq_foods_fineli_id"),
-        # Trigram search over both name columns: handles typos and Finnish
-        # inflections ("rahka" -> "maitorahka") without embeddings.
-        Index(
-            "ix_foods_name_trgm",
-            "name",
-            postgresql_using="gin",
-            postgresql_ops={"name": "gin_trgm_ops"},
-        ),
-        Index(
-            "ix_foods_name_fi_trgm",
-            "name_fi",
-            postgresql_using="gin",
-            postgresql_ops={"name_fi": "gin_trgm_ops"},
+        CheckConstraint("num_nonnulls(name_fi, name_sv, name_en) > 0", name="ck_foods_has_a_name"),
+        # One trigram index per language. Trigram matching handles typos and
+        # Finnish inflections ("rahka" -> "maitorahka") without embeddings, and
+        # pg_trgm lowercases, so casing never affects a match.
+        *(
+            Index(
+                f"ix_foods_name_{lang}_trgm",
+                f"name_{lang}",
+                postgresql_using="gin",
+                postgresql_ops={f"name_{lang}": "gin_trgm_ops"},
+            )
+            for lang in LANGUAGES
         ),
         Index("ix_foods_owner_id", "owner_id"),
     )
 
 
 class ServingUnit(Base):
-    """Natural logging units for a food ("slice", "kpl", "dl")."""
+    """How much a natural portion of this food weighs.
+
+    `unit_code` is Fineli's own code (KPL_S, DL, RKL) rather than a word, so the
+    row carries no language. `serving_unit_types` renders it. A food created
+    from a label photo can carry a code Fineli never defined — hence no foreign
+    key, and a missing type is displayed as the code itself.
+    """
 
     __tablename__ = "serving_units"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     food_id: Mapped[int] = mapped_column(ForeignKey("foods.id", ondelete="CASCADE"), nullable=False)
-    name: Mapped[str] = mapped_column(Text, nullable=False)
+    unit_code: Mapped[str] = mapped_column(Text, nullable=False)
     grams: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
 
     food: Mapped[Food] = relationship(back_populates="serving_units")
+    unit_type: Mapped["ServingUnitType | None"] = relationship(
+        primaryjoin="foreign(ServingUnit.unit_code) == ServingUnitType.code",
+        lazy="selectin",
+        viewonly=True,
+    )
 
-    __table_args__ = (UniqueConstraint("food_id", "name", name="uq_serving_units_food_name"),)
+    __table_args__ = (UniqueConstraint("food_id", "unit_code", name="uq_serving_units_food_unit"),)
+
+
+class ServingUnitType(Base):
+    """Fineli's unit thesaurus: KPL_S -> "pieni (kpl)" / "litet st." / "small piece".
+
+    Ten codes are actually used by the seed, fifteen defined. Small enough that
+    it is loaded alongside every search without noticing.
+    """
+
+    __tablename__ = "serving_unit_types"
+
+    code: Mapped[str] = mapped_column(Text, primary_key=True)
+    name_fi: Mapped[str | None] = mapped_column(Text)
+    name_sv: Mapped[str | None] = mapped_column(Text)
+    name_en: Mapped[str | None] = mapped_column(Text)
+
+
+class NutrientComponent(Base):
+    """What the keys in `foods.micros` mean, and in which unit.
+
+    The 74 components come free with the Fineli seed and are stored now, but
+    nothing surfaces them yet. Without this table they are unlabelled numbers,
+    and a µg read as a mg is the kind of error that looks plausible.
+    """
+
+    __tablename__ = "nutrient_components"
+
+    code: Mapped[str] = mapped_column(Text, primary_key=True)
+    unit: Mapped[str] = mapped_column(Text, nullable=False)
+    class_code: Mapped[str | None] = mapped_column(Text)
+    name_fi: Mapped[str | None] = mapped_column(Text)
+    name_sv: Mapped[str | None] = mapped_column(Text)
+    name_en: Mapped[str | None] = mapped_column(Text)

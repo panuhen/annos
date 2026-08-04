@@ -8,7 +8,9 @@
 GRANT SELECT, INSERT, UPDATE, DELETE ON
     user_profile,
     foods,
-    serving_units
+    serving_units,
+    serving_unit_types,
+    nutrient_components
 TO annos_api;
 
 GRANT USAGE, SELECT ON

@@ -53,6 +53,7 @@ def _profile_payload(profile) -> dict:
         "activity_baseline": profile.activity_baseline,
         "timezone": profile.timezone,
         "units": profile.units,
+        "language": profile.language,
         "dietary_prefs": profile.dietary_prefs,
         "coaching_notes": profile.coaching_notes,
         "server_time": servertime.echo(profile.timezone),
@@ -66,9 +67,11 @@ async def search_foods(
     q: Annotated[str, Query(min_length=1)],
     limit: Annotated[int, Query(ge=1, le=50)] = 10,
 ) -> dict:
+    language = await foods_domain.reading_language(session, subject=who.subject)
     candidates = await foods_domain.find_food(session, subject=who.subject, query=q, limit=limit)
     return {
-        "results": [foods_domain.candidate_payload(c) for c in candidates],
+        "results": [foods_domain.candidate_payload(c, language) for c in candidates],
+        "language": language,
         # Echoed on every response so the client is never guessing the date.
         "server_time": servertime.echo("UTC"),
     }

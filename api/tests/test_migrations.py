@@ -17,7 +17,13 @@ from conftest import API_DIR, URL, dsn
 SCRATCH = f"{URL.database}_migrations"
 SCRATCH_URL = URL.set(database=SCRATCH).render_as_string(hide_password=False)
 
-TABLES = ("user_profile", "foods", "serving_units")
+TABLES = (
+    "user_profile",
+    "foods",
+    "serving_units",
+    "serving_unit_types",
+    "nutrient_components",
+)
 
 TABLE_EXISTS = (
     "SELECT count(*) FROM information_schema.tables "
