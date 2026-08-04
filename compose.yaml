@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: annos
+      POSTGRES_PASSWORD: annos
+      POSTGRES_DB: annos
+    ports:
+      - "5433:5432"
+    volumes:
+      - annos-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U annos -d annos"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./api
+    environment:
+      ANNOS_DATABASE_URL: postgresql+asyncpg://annos:annos@db:5432/annos
+      # Phase 0 only: stand-in for the OAuth-resolved caller. See api/src/annos/identity.py
+      ANNOS_DEV_USER_ID: "00000000-0000-0000-0000-000000000001"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  annos-pgdata:
