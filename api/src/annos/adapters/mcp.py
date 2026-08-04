@@ -20,6 +20,7 @@ from annos import servertime
 from annos.config import settings
 from annos.db import SessionLocal
 from annos.domain import foods as foods_domain
+from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
 from annos.identity import AuthError, Caller, resolve_caller
 
@@ -143,3 +144,55 @@ async def update_profile(changes: dict[str, Any]) -> dict[str, Any]:
             "updated": sorted(changes),
             "server_time": servertime.echo(profile.timezone),
         }
+
+
+@mcp.tool
+async def log_meal(
+    items: list[dict[str, Any]],
+    meal: str | None = None,
+    ts: str | None = None,
+    input_mode: str = "text",
+    notes: str | None = None,
+) -> dict[str, Any]:
+    """Log one eating event. Items are {food_id, grams} — resolve foods with
+    find_food and compute grams first.
+
+    Omit ts unless the user stated a time; the server's clock is authoritative
+    and "I just ate" needs no timestamp. Backdating takes ISO 8601; a timestamp
+    without an offset is read in the user's own timezone. meal is
+    breakfast/lunch/dinner/snack — ask rather than assume, or leave it out.
+    input_mode "plan" records an intention, counted in no totals until
+    revise_log confirms it with {"planned": false}.
+
+    The response carries the updated day totals, so no follow-up call is needed
+    to react to the new state of the day.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await meals_domain.log_meal(
+            session,
+            subject=who.subject,
+            items=items,
+            meal=meal,
+            ts=ts,
+            input_mode=input_mode,
+            notes=notes,
+        )
+
+
+@mcp.tool
+async def revise_log(log_id: int, changes: dict[str, Any]) -> dict[str, Any]:
+    """Correct an existing meal log: "that was 250 g, not 400".
+
+    changes may carry ts, meal, planned, notes, and/or items. items replaces
+    the whole list — restate everything eaten, not just the changed row.
+    {"planned": false} confirms a planned meal as eaten. There is no delete:
+    a log that shouldn't exist gets its items corrected instead.
+
+    Returns the revised log with that day's updated totals.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await meals_domain.revise_log(
+            session, subject=who.subject, log_id=log_id, changes=changes
+        )

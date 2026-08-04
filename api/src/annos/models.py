@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     Enum,
@@ -33,6 +34,12 @@ FoodSource = Enum(*FOOD_SOURCES, name="food_source")
 # equal, each is searched, and presentation resolves against the user's
 # preference. See annos.domain.language.
 LANGUAGES = ("fi", "sv", "en")
+
+MEALS = ("breakfast", "lunch", "dinner", "snack")
+MealType = Enum(*MEALS, name="meal_type")
+
+INPUT_MODES = ("text", "photo", "plan")
+InputMode = Enum(*INPUT_MODES, name="input_mode")
 
 
 class UserProfile(Base):
@@ -174,6 +181,83 @@ class ServingUnit(Base):
     )
 
     __table_args__ = (UniqueConstraint("food_id", "unit_code", name="uq_serving_units_food_unit"),)
+
+
+class MealLog(Base):
+    """One eating event. Scoped by `subject` — never queried without it.
+
+    `ts` is the moment the meal happened, UTC. The server defaults it to now();
+    a client supplies it only when the user stated a time ("yesterday's lunch").
+    Which calendar day it counts toward is decided at read time by the profile
+    timezone, not stored here.
+
+    `planned` is a planner entry not yet eaten: created true when input_mode is
+    "plan", flipped false through revise_log when the user confirms.
+    """
+
+    __tablename__ = "meal_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+
+    ts: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    # Nullable: the client is told to ask rather than assume a meal type, and
+    # "the user didn't say" is representable.
+    meal: Mapped[str | None] = mapped_column(MealType)
+    input_mode: Mapped[str] = mapped_column(InputMode, nullable=False, server_default="text")
+    planned: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+
+    # User-dictated data, stored and returned verbatim — never instructions to
+    # the server.
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    items: Mapped[list["MealLogItem"]] = relationship(
+        back_populates="log", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+    __table_args__ = (
+        # The day view: everything a subject ate within a timestamp window.
+        Index("ix_meal_logs_subject_ts", "subject", "ts"),
+    )
+
+
+class MealLogItem(Base):
+    """One food in one meal, with the macros snapshotted at log time.
+
+    The snapshot is per-100g, same convention as `foods` — the portion's macros
+    are grams * value / 100 at read time. Copied because food definitions
+    change and history must not; kept per-100g so a grams-only revision can
+    rescale without touching the (possibly since-edited) food row.
+    """
+
+    __tablename__ = "meal_log_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    log_id: Mapped[int] = mapped_column(
+        ForeignKey("meal_logs.id", ondelete="CASCADE"), nullable=False
+    )
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"), nullable=False)
+    grams: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
+
+    kcal: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
+    protein_g: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
+    carbs_g: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
+    fat_g: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
+    fiber_g: Mapped[float | None] = mapped_column(Numeric(8, 2))
+
+    log: Mapped[MealLog] = relationship(back_populates="items")
+    food: Mapped[Food] = relationship(lazy="selectin")
+
+    __table_args__ = (
+        CheckConstraint("grams > 0", name="ck_meal_log_items_grams_positive"),
+        Index("ix_meal_log_items_log_id", "log_id"),
+    )
 
 
 class ServingUnitType(Base):

@@ -9,7 +9,7 @@ emitted 218.0, from a single domain call.
 from annos.domain import profile as profile_domain
 from conftest import SUBJECT
 
-EXPECTED_TOOLS = {"find_food", "get_profile", "update_profile"}
+EXPECTED_TOOLS = {"find_food", "get_profile", "update_profile", "log_meal", "revise_log"}
 
 
 async def mcp_call(client, name: str, arguments: dict | None = None) -> dict:

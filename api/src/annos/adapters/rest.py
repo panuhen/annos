@@ -15,6 +15,7 @@ from annos import nickname as nickname_mod
 from annos import servertime
 from annos.db import get_session
 from annos.domain import foods as foods_domain
+from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
 from annos.identity import AuthError, Caller, resolve_caller
 
@@ -114,3 +115,58 @@ async def update_profile(session: SessionDep, who: CallerDep, body: ProfileUpdat
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
     return _profile_payload(profile)
+
+
+class MealItem(BaseModel):
+    food_id: int
+    grams: float = Field(gt=0)
+
+
+class MealLogCreate(BaseModel):
+    items: list[MealItem] = Field(min_length=1)
+    meal: str | None = None
+    ts: str | None = Field(
+        default=None,
+        description="Only when the user stated a time. Omitted means server now(). "
+        "Naive timestamps are read in the profile timezone.",
+    )
+    input_mode: str = "text"
+    notes: str | None = None
+
+
+class MealLogRevise(BaseModel):
+    changes: dict[str, Any]
+
+
+@router.post("/logs/meals", status_code=201)
+async def log_meal(session: SessionDep, who: CallerDep, body: MealLogCreate) -> dict:
+    try:
+        return await meals_domain.log_meal(
+            session,
+            subject=who.subject,
+            items=[item.model_dump() for item in body.items],
+            meal=body.meal,
+            ts=body.ts,
+            input_mode=body.input_mode,
+            notes=body.notes,
+        )
+    except meals_domain.InvalidLog as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except meals_domain.UnknownFood as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+@router.patch("/logs/meals/{log_id}")
+async def revise_log(session: SessionDep, who: CallerDep, log_id: int, body: MealLogRevise) -> dict:
+    try:
+        return await meals_domain.revise_log(
+            session, subject=who.subject, log_id=log_id, changes=body.changes
+        )
+    except meals_domain.InvalidLog as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except (meals_domain.UnknownFood, meals_domain.LogNotFound) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
