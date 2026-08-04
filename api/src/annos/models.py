@@ -3,7 +3,6 @@ from datetime import datetime
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
-    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -21,15 +20,14 @@ from annos.db import Base
 
 # Provenance: every food and estimate records where its numbers came from, so
 # measured and guessed data never blur.
-FoodSource = Enum(
-    "fineli",
-    "verified",
-    "user",
-    "label",
-    "ai_estimate",
-    name="food_source",
-    create_type=True,
-)
+#
+# Stored as text with a CHECK constraint rather than a native Postgres enum.
+# Two reasons: the value set is expected to grow (it already gained `verified`),
+# and widening a CHECK is a one-line transactional migration where ALTER TYPE
+# ... ADD VALUE is not. It also matches how `sex` and `units` are constrained
+# in the same table.
+FOOD_SOURCES = ("fineli", "verified", "user", "label", "ai_estimate")
+_FOOD_SOURCE_CHECK = "source IN ({})".format(", ".join(f"'{s}'" for s in FOOD_SOURCES))
 
 
 class UserProfile(Base):
@@ -96,7 +94,7 @@ class Food(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     name_fi: Mapped[str | None] = mapped_column(Text)
 
-    source: Mapped[str] = mapped_column(FoodSource, nullable=False)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
     fineli_id: Mapped[int | None] = mapped_column(Integer)
     owner_id: Mapped[str | None] = mapped_column(Text)
 
@@ -120,12 +118,21 @@ class Food(Base):
 
     __table_args__ = (
         UniqueConstraint("fineli_id", name="uq_foods_fineli_id"),
+        CheckConstraint(_FOOD_SOURCE_CHECK, name="ck_foods_source"),
         # Trigram search over both name columns: handles typos and Finnish
         # inflections ("rahka" -> "maitorahka") without embeddings.
-        Index("ix_foods_name_trgm", "name", postgresql_using="gin",
-              postgresql_ops={"name": "gin_trgm_ops"}),
-        Index("ix_foods_name_fi_trgm", "name_fi", postgresql_using="gin",
-              postgresql_ops={"name_fi": "gin_trgm_ops"}),
+        Index(
+            "ix_foods_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_foods_name_fi_trgm",
+            "name_fi",
+            postgresql_using="gin",
+            postgresql_ops={"name_fi": "gin_trgm_ops"},
+        ),
         Index("ix_foods_owner_id", "owner_id"),
     )
 
@@ -136,14 +143,10 @@ class ServingUnit(Base):
     __tablename__ = "serving_units"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    food_id: Mapped[int] = mapped_column(
-        ForeignKey("foods.id", ondelete="CASCADE"), nullable=False
-    )
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
     grams: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
 
     food: Mapped[Food] = relationship(back_populates="serving_units")
 
-    __table_args__ = (
-        UniqueConstraint("food_id", "name", name="uq_serving_units_food_name"),
-    )
+    __table_args__ = (UniqueConstraint("food_id", "name", name="uq_serving_units_food_name"),)

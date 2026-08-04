@@ -6,26 +6,50 @@ services:
       POSTGRES_PASSWORD: annos
       POSTGRES_DB: annos
     ports:
+      # 5433, not 5432, so a Postgres already running on the host doesn't clash.
       - "5433:5432"
     volumes:
       - annos-pgdata:/var/lib/postgresql/data
+      # Runs once on first start: creates the restricted annos_api role.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U annos -d annos"]
       interval: 2s
       timeout: 3s
       retries: 20
 
+  # One-shot: migrations run as the owner, since annos_api cannot create tables.
+  # Shares the api image explicitly — without a pinned `image:` compose builds a
+  # separate annos-migrate, and `docker compose build api` then leaves this one
+  # stale, so migrations silently run old code.
+  migrate:
+    build: ./api
+    image: annos-api:latest
+    command: ["uv", "run", "alembic", "upgrade", "head"]
+    environment:
+      ANNOS_MIGRATION_DATABASE_URL: postgresql+asyncpg://annos:annos@db:5432/annos
+      ANNOS_DATABASE_URL: postgresql+asyncpg://annos:annos@db:5432/annos
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     build: ./api
+    image: annos-api:latest
     environment:
-      ANNOS_DATABASE_URL: postgresql+asyncpg://annos:annos@db:5432/annos
-      # Phase 0 only: stand-in for the OAuth-resolved caller. See api/src/annos/identity.py
-      ANNOS_DEV_USER_ID: "00000000-0000-0000-0000-000000000001"
+      # Runtime role: no access to Better Auth's tables. That grant is the
+      # email quarantine — see db/init/01-roles.sql.
+      ANNOS_DATABASE_URL: postgresql+asyncpg://annos_api:annos@db:5432/annos
+      ANNOS_AUTH_BASE_URL: http://host.docker.internal:3000/api/auth
+      # Phase 0 only: bypasses token validation. Must be unset in production.
+      ANNOS_DEV_SUBJECT: "dev-subject-0001"
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   annos-pgdata:

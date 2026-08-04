@@ -6,7 +6,17 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="ANNOS_", env_file=".env", extra="ignore")
 
+    # Runtime connection: the annos_api role, which has no access to Better
+    # Auth's tables. See db/init/01-roles.sql.
     database_url: str = "postgresql+asyncpg://annos_api:annos@localhost:5433/annos"
+
+    # Migrations need the owner role, since annos_api cannot create tables.
+    # Falls back to database_url when unset (fine for a single-role dev setup).
+    migration_database_url: str | None = None
+
+    @property
+    def alembic_url(self) -> str:
+        return self.migration_database_url or self.database_url
 
     # Better Auth lives in the Next.js app and is the OAuth 2.1 authorization
     # server. The API is only a resource server: it validates bearer tokens
