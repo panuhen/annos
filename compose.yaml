@@ -46,6 +46,9 @@ services:
       # derived.
       ANNOS_AUTH_JWT_ISSUER: http://localhost:3000
       ANNOS_AUTH_JWT_AUDIENCE: http://localhost:3000
+      # This API's public origin, advertised in the OAuth discovery handshake
+      # (401 → WWW-Authenticate → /.well-known/oauth-protected-resource/mcp/).
+      ANNOS_PUBLIC_BASE_URL: http://localhost:8000
     ports:
       - "8000:8000"
     depends_on:

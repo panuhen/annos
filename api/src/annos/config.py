@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # against these endpoints and never touches the auth tables directly.
     auth_base_url: str = "http://localhost:3000/api/auth"
 
+    # This API's own public origin — what MCP clients see. Advertised as the
+    # protected-resource identity in the OAuth discovery handshake.
+    public_base_url: str = "http://localhost:8000"
+
     # What Better Auth stamps into web-UI JWTs: its browser-facing origin —
     # NOT necessarily the URL this API fetches it by (in compose the API
     # reaches it as http://web:3000). Must match BETTER_AUTH_URL in web/.

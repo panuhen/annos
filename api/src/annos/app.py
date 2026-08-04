@@ -10,6 +10,8 @@ import logging
 
 import structlog
 from fastapi import FastAPI
+from mcp.server.auth.routes import create_protected_resource_routes
+from pydantic import AnyHttpUrl
 
 from annos.adapters.mcp import mcp
 from annos.adapters.rest import router as rest_router
@@ -33,6 +35,18 @@ app = FastAPI(
 
 app.include_router(rest_router, prefix="/api")
 app.mount("/mcp", mcp_app)
+
+# RFC 9728: the metadata for the resource {public_base_url}/mcp/ lives at
+# /.well-known/oauth-protected-resource/mcp/ on the ORIGIN. Registered on the
+# outer app — inside the /mcp mount it would serve at the wrong path, and the
+# URL here must be exactly the one the 401's WWW-Authenticate advertises.
+app.router.routes.extend(
+    create_protected_resource_routes(
+        resource_url=AnyHttpUrl(f"{settings.public_base_url}/mcp/"),
+        authorization_servers=[AnyHttpUrl(settings.auth_jwt_issuer)],
+        resource_name="annos",
+    )
+)
 
 
 @app.get("/health")

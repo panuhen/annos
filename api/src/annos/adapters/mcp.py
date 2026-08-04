@@ -11,16 +11,53 @@ so a confused client cannot reach another user's data.
 from typing import Any
 
 from fastmcp import FastMCP
+from fastmcp.server.auth import RemoteAuthProvider, TokenVerifier
+from fastmcp.server.auth.auth import AccessToken
 from fastmcp.server.dependencies import get_http_headers
+from pydantic import AnyHttpUrl
 
 from annos import servertime
+from annos.config import settings
 from annos.db import SessionLocal
 from annos.domain import foods as foods_domain
 from annos.domain import profile as profile_domain
-from annos.identity import Caller, resolve_caller
+from annos.identity import AuthError, Caller, resolve_caller
+
+
+class IdentityTokenVerifier(TokenVerifier):
+    """Adapts resolve_caller() to FastMCP's auth middleware.
+
+    When this returns None, the middleware answers HTTP 401 with a
+    WWW-Authenticate header naming the protected-resource metadata — the
+    handshake a remote MCP client uses to discover Better Auth and start the
+    OAuth flow. Without it, a bad token would surface as a JSON-RPC tool error
+    over HTTP 200 and no client would ever reach the login page.
+
+    Identity still lives in annos.identity; validating here warms the same
+    cache the tools read through, so a request costs one upstream call, not two.
+    """
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        try:
+            caller = await resolve_caller(f"Bearer {token}")
+        except AuthError:
+            return None
+        return AccessToken(token=token, client_id=caller.subject, subject=caller.subject, scopes=[])
+
+
+auth_provider = RemoteAuthProvider(
+    token_verifier=IdentityTokenVerifier(),
+    # The authorization server's browser-facing origin: RFC 8414 discovery for
+    # it lives at {origin}/.well-known/oauth-authorization-server, which the
+    # Next.js app serves.
+    authorization_servers=[AnyHttpUrl(settings.auth_jwt_issuer)],
+    base_url=f"{settings.public_base_url}/mcp",
+    resource_name="annos",
+)
 
 mcp: FastMCP = FastMCP(
     name="annos",
+    auth=auth_provider,
     instructions=(
         "Annos logs meals, training, and bodyweight. Portions are in grams. "
         "Resolve foods with find_food before logging anything, and ask before "
