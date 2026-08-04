@@ -40,9 +40,12 @@ services:
       # Runtime role: no access to Better Auth's tables. That grant is the
       # email quarantine — see db/init/01-roles.sql.
       ANNOS_DATABASE_URL: postgresql+asyncpg://annos_api:annos@db:5432/annos
-      ANNOS_AUTH_BASE_URL: http://host.docker.internal:3000/api/auth
-      # Phase 0 only: bypasses token validation. Must be unset in production.
-      ANNOS_DEV_SUBJECT: "dev-subject-0001"
+      ANNOS_AUTH_BASE_URL: http://web:3000/api/auth
+      # The issuer/audience Better Auth stamps into JWTs is its browser-facing
+      # origin, not the URL the API fetches it by — so it is configured, not
+      # derived.
+      ANNOS_AUTH_JWT_ISSUER: http://localhost:3000
+      ANNOS_AUTH_JWT_AUDIENCE: http://localhost:3000
     ports:
       - "8000:8000"
     depends_on:
@@ -50,6 +53,23 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+
+  # Better Auth lives here: identity system and OAuth 2.1 authorization server.
+  # If this is down, MCP clients can neither authenticate nor call tools.
+  web:
+    build: ./web
+    image: annos-web:latest
+    environment:
+      BETTER_AUTH_SECRET: dev-only-secret-change-in-production-0000
+      BETTER_AUTH_URL: http://localhost:3000
+      # Owner role: Better Auth migrates and owns its tables; annos_api has
+      # no SELECT on them — that grant is the email quarantine.
+      DATABASE_URL: postgres://annos:annos@db:5432/annos
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   annos-pgdata:

@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     # against these endpoints and never touches the auth tables directly.
     auth_base_url: str = "http://localhost:3000/api/auth"
 
+    # What Better Auth stamps into web-UI JWTs: its browser-facing origin —
+    # NOT necessarily the URL this API fetches it by (in compose the API
+    # reaches it as http://web:3000). Must match BETTER_AUTH_URL in web/.
+    auth_jwt_issuer: str = "http://localhost:3000"
+    auth_jwt_audience: str = "http://localhost:3000"
+
+    # Seconds to cache the JWKS. Rotation is handled by refetching once on an
+    # unknown kid, so this can be generous.
+    jwks_cache_ttl_seconds: int = 300
+
     # Phase 0 only. When set, resolve_caller() skips token validation and
     # returns this subject. Must be unset in production — see identity.py.
     dev_subject: str | None = None

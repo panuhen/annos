@@ -13,6 +13,7 @@ dependencies = [
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
     "httpx>=0.28",
+    "pyjwt[crypto]>=2.10",
     "structlog>=24.4",
     "coolname>=2.2",
 ]
