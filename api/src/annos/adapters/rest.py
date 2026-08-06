@@ -237,6 +237,14 @@ class GoalHistoryResponse(BaseModel):
     server_time: ServerTime
 
 
+class GoalPhaseDeletedResponse(BaseModel):
+    deleted_phase_id: int
+    kind: str
+    start_date: str
+    end_date: str | None
+    server_time: ServerTime
+
+
 class ProfileCreate(BaseModel):
     nickname: str | None = Field(
         default=None,
@@ -503,6 +511,18 @@ async def revise_goal_phase(
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
 
+@router.delete("/goals/phase/{phase_id}")
+async def delete_goal_phase(
+    session: SessionDep, who: CallerDep, phase_id: int
+) -> GoalPhaseDeletedResponse:
+    try:
+        return await body_domain.delete_goal_phase(session, subject=who.subject, phase_id=phase_id)
+    except body_domain.PhaseNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
 @router.get("/goals/phases")
 async def list_goal_phases(session: SessionDep, who: CallerDep) -> GoalHistoryResponse:
     try:
@@ -576,7 +596,7 @@ class TemplateListItemOut(BaseModel):
     food_id: int
     name: str | None
     grams: float
-    kcal_per_100g: float | None
+    per_100g: Per100g
     kcal: float | None
 
 

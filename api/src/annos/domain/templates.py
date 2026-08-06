@@ -217,11 +217,24 @@ async def list_templates(session: AsyncSession, *, subject: str) -> dict:
             else None
         )
         kcal_per_100g = float(food.kcal) if food is not None and food.kcal is not None else None
+
+        def _per_100g(column: str) -> float | None:
+            value = getattr(food, column, None) if food is not None else None
+            return float(value) if value is not None else None
+
         return {
             "food_id": item.food_id,
             "name": name,
             "grams": float(item.grams),
-            "kcal_per_100g": kcal_per_100g,
+            # Current definition, same shape as a search candidate — the web
+            # plate scales these live as the grams change.
+            "per_100g": {
+                "kcal": kcal_per_100g,
+                "protein_g": _per_100g("protein_g"),
+                "carbs_g": _per_100g("carbs_g"),
+                "fat_g": _per_100g("fat_g"),
+                "fiber_g": _per_100g("fiber_g"),
+            },
             "kcal": (
                 round(kcal_per_100g * float(item.grams) / 100, 2)
                 if kcal_per_100g is not None

@@ -34,6 +34,10 @@ class NoOpenPhase(Exception):
     """Nothing to revise: every phase is closed (or none exists)."""
 
 
+class PhaseNotFound(Exception):
+    """No phase with this id belongs to this subject."""
+
+
 def _parse_date(value: str | date_type | None, tz: str) -> date_type:
     """A stated calendar date, or today in the profile timezone."""
     if value is None:
@@ -320,3 +324,36 @@ async def revise_goal_phase(session: AsyncSession, *, subject: str, changes: dic
     await session.commit()
     await session.refresh(phase)
     return phase_payload(phase, tz)
+
+
+async def delete_goal_phase(session: AsyncSession, *, subject: str, phase_id: int) -> dict:
+    """Erase a phase that should never have existed — a test entry, a
+    double-open.
+
+    The same narrowing delete_log made to the "no deletes" rule: closed
+    phases stay untouchable as *history*, but a phase that was never true is
+    not history — it is a mistake with nothing to correct *to*, and left in
+    place it blocks the open phase's start date (no two phases may share a
+    start). Deletion never rewrites the neighbours: the days the deleted
+    phase claimed simply fall back to no target, exactly like days before
+    any phase existed. "Wrong targets" on the open phase is still
+    revise_goal_phase.
+    """
+    phase = await session.scalar(
+        select(GoalPhase).where(GoalPhase.id == phase_id, GoalPhase.subject == subject)
+    )
+    if phase is None:
+        raise PhaseNotFound(phase_id)
+
+    profile = await profile_domain.get_profile(session, subject=subject)
+    deleted = _phase_fields(phase)
+    await session.delete(phase)
+    await session.commit()
+
+    return {
+        "deleted_phase_id": phase_id,
+        "kind": deleted["kind"],
+        "start_date": deleted["start_date"],
+        "end_date": deleted["end_date"],
+        "server_time": servertime.echo(profile.timezone),
+    }

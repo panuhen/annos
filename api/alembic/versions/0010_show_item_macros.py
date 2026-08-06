@@ -25,9 +25,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "user_profile",
-        sa.Column(
-            "show_item_macros", sa.Boolean(), server_default=sa.text("true"), nullable=False
-        ),
+        sa.Column("show_item_macros", sa.Boolean(), server_default=sa.text("true"), nullable=False),
     )
 
 

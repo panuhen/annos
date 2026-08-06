@@ -25,6 +25,7 @@ EXPECTED_TOOLS = {
     "set_day_type",
     "set_goal_phase",
     "revise_goal_phase",
+    "delete_goal_phase",
     "goal_history",
     "daily_summary",
 }

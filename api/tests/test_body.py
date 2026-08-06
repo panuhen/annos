@@ -404,6 +404,120 @@ async def test_rest_answers_404_when_nothing_is_open(api, profile):
     assert response.status_code == 404
 
 
+# --- delete_goal_phase -------------------------------------------------------
+
+
+async def test_deleting_a_closed_mistake_unblocks_the_open_phases_start(session, profile):
+    """The case that earned the tool: a junk closed phase blocks the open
+    phase from starting on its date. Delete it and the revision goes through;
+    the deleted phase's days fall back to no target, neighbours untouched."""
+    junk = await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="deficit",
+        kcal_training=2400,
+        kcal_rest=2100,
+        protein_training=160,
+        protein_rest=160,
+        start_date="2026-08-06",
+    )
+    await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="surplus",
+        kcal_training=3000,
+        kcal_rest=2800,
+        protein_training=180,
+        protein_rest=170,
+        rate_target=0.25,
+        start_date="2026-08-07",
+    )
+
+    with pytest.raises(body_domain.InvalidPhase, match="must start after"):
+        await body_domain.revise_goal_phase(
+            session, subject=SUBJECT, changes={"start_date": "2026-08-06"}
+        )
+
+    payload = await body_domain.delete_goal_phase(
+        session, subject=SUBJECT, phase_id=junk["phase_id"]
+    )
+    assert payload["deleted_phase_id"] == junk["phase_id"]
+
+    revised = await body_domain.revise_goal_phase(
+        session, subject=SUBJECT, changes={"start_date": "2026-08-06"}
+    )
+    assert revised["start_date"] == "2026-08-06"
+    assert await body_domain.active_phase(session, subject=SUBJECT, on=date(2026, 8, 5)) is None
+
+
+async def test_deleting_the_open_phase_does_not_reopen_the_previous(session, profile):
+    """Deletion never rewrites neighbours: the closed phase stays closed and
+    no phase is active afterwards."""
+    first = await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="deficit",
+        kcal_training=2400,
+        kcal_rest=2100,
+        protein_training=160,
+        protein_rest=160,
+        start_date="2026-07-01",
+    )
+    second = await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="maintenance",
+        kcal_training=2800,
+        kcal_rest=2500,
+        protein_training=150,
+        protein_rest=150,
+        start_date="2026-08-01",
+    )
+
+    await body_domain.delete_goal_phase(session, subject=SUBJECT, phase_id=second["phase_id"])
+
+    still_closed = await session.get(GoalPhase, first["phase_id"])
+    assert still_closed.end_date == date(2026, 7, 31)
+    assert await body_domain.active_phase(session, subject=SUBJECT, on=date(2026, 8, 15)) is None
+
+
+async def test_deleting_another_subjects_phase_is_refused(session, profile):
+    await profile_domain.create_profile(session, subject=OTHER_SUBJECT)
+    theirs = await body_domain.set_goal_phase(
+        session,
+        subject=OTHER_SUBJECT,
+        kind="deficit",
+        kcal_training=2400,
+        kcal_rest=2100,
+        protein_training=160,
+        protein_rest=160,
+    )
+
+    with pytest.raises(body_domain.PhaseNotFound):
+        await body_domain.delete_goal_phase(session, subject=SUBJECT, phase_id=theirs["phase_id"])
+
+
+async def test_rest_deletes_a_phase_and_404s_the_second_time(api, profile):
+    created = (
+        await api.post(
+            "/api/goals/phase",
+            json={
+                "kind": "deficit",
+                "kcal_training": 2400,
+                "kcal_rest": 2100,
+                "protein_training": 160,
+                "protein_rest": 160,
+            },
+        )
+    ).json()
+
+    response = await api.delete(f"/api/goals/phase/{created['phase_id']}")
+    assert response.status_code == 200
+    assert response.json()["deleted_phase_id"] == created["phase_id"]
+
+    assert (await api.delete(f"/api/goals/phase/{created['phase_id']}")).status_code == 404
+
+
 # --- list_goal_phases --------------------------------------------------------
 
 

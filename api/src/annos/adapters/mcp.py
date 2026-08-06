@@ -302,6 +302,23 @@ async def revise_goal_phase(changes: dict[str, Any]) -> dict[str, Any]:
 
 
 @mcp.tool
+async def delete_goal_phase(phase_id: int) -> dict[str, Any]:
+    """Erase a goal phase that should never have existed — a test entry, a
+    phase opened by mistake.
+
+    This is deletion, not correction, and it works on closed phases too:
+    a mistake is not history, and left in place it blocks the open phase's
+    start date. The days it claimed fall back to no target; neighbouring
+    phases are never rewritten. "The targets are wrong" on the open phase is
+    still revise_goal_phase. Only call this when the user explicitly says the
+    phase should not exist; phase_ids come from goal_history.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await body_domain.delete_goal_phase(session, subject=who.subject, phase_id=phase_id)
+
+
+@mcp.tool
 async def coaching_history() -> dict[str, Any]:
     """Every version the user's coaching notes have been, newest first.
 
