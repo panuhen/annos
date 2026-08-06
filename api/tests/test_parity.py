@@ -17,6 +17,7 @@ EXPECTED_TOOLS = {
     "revise_log",
     "log_weight",
     "set_goal_phase",
+    "goal_history",
     "daily_summary",
 }
 
@@ -110,6 +111,27 @@ async def test_a_write_on_one_surface_is_visible_on_the_other(api, mcp_client, s
     assert updated["updated"] == ["height_cm"]
 
     assert (await api.get("/api/profile")).json()["height_cm"] == 181
+
+
+async def test_goal_history_is_byte_identical_across_surfaces(api, mcp_client, session):
+    await profile_domain.create_profile(session, subject=SUBJECT)
+    for start, kind in (("2026-07-01", "deficit"), ("2026-08-01", "maintenance")):
+        await api.post(
+            "/api/goals/phase",
+            json={
+                "kind": kind,
+                "kcal_training": 2400,
+                "kcal_rest": 2100,
+                "protein_g": 160,
+                "start_date": start,
+            },
+        )
+
+    rest = (await api.get("/api/goals/phases")).json()
+    mcp = await mcp_call(mcp_client, "goal_history")
+
+    assert rest["phases"] == mcp["phases"]
+    assert [phase["kind"] for phase in rest["phases"]] == ["maintenance", "deficit"]
 
 
 async def test_mcp_scoping_matches_rest_scoping(api, mcp_client, make_food):

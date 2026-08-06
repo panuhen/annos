@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/lib/api/client";
 import { $api } from "@/lib/api/hooks";
-import { localeFor, sheetDate } from "@/lib/format";
+import { localeFor, rateFigure, sheetDate } from "@/lib/format";
 
 const KINDS = ["deficit", "maintenance", "surplus"] as const;
 
@@ -30,6 +30,8 @@ export default function GoalPage() {
 
   const summary = $api.useQuery("get", "/api/summary/daily", { params: { query: {} } });
   const target = summary.data?.target;
+  const history = $api.useQuery("get", "/api/goals/phases");
+  const phases = history.data?.phases ?? [];
 
   const [kind, setKind] = useState("deficit");
   const [kcalTraining, setKcalTraining] = useState("");
@@ -61,6 +63,7 @@ export default function GoalPage() {
       if (error || !data) throw error ?? new Error("no response");
       setOpened({ start_date: data.start_date });
       await queryClient.invalidateQueries({ queryKey: ["get", "/api/summary/daily"] });
+      await queryClient.invalidateQueries({ queryKey: ["get", "/api/goals/phases"] });
     } catch (err) {
       const detail =
         typeof err === "object" && err !== null && "detail" in err
@@ -88,7 +91,7 @@ export default function GoalPage() {
             <p className="tnum mt-1 font-mono text-sm">
               {t("targetLine", { kcal: target.kcal, protein: target.protein_g })}
               {target.rate_kg_per_week != null &&
-                t("rateSuffix", { rate: target.rate_kg_per_week })}
+                t("rateSuffix", { rate: rateFigure(target.rate_kg_per_week, locale) })}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {t("targetToday", {
@@ -194,6 +197,38 @@ export default function GoalPage() {
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">{t("restNote")}</p>
+
+      {/* The ledger: phases append and close, so this list is the goal
+       * history — the open one on top, everything below it what the
+       * targets were and when they changed. */}
+      {phases.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-bold">{t("history")}</h2>
+          <ul className="mt-1">
+            {phases.map((phase) => (
+              <li key={phase.phase_id} className="border-b border-border py-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm font-bold">{kindLabel(phase.kind)}</span>
+                  <span className="tnum font-mono text-xs text-muted-foreground">
+                    {sheetDate(phase.start_date, locale)}
+                    {" – "}
+                    {phase.end_date ? sheetDate(phase.end_date, locale) : t("ongoing")}
+                  </span>
+                </div>
+                <p className="tnum mt-1 font-mono text-xs text-muted-foreground">
+                  {t("phaseTargets", {
+                    kcalRest: phase.kcal_target_rest,
+                    kcalTraining: phase.kcal_target_training,
+                    protein: phase.protein_target_g,
+                  })}
+                  {phase.rate_target_kg_per_week != null &&
+                    t("rateSuffix", { rate: rateFigure(phase.rate_target_kg_per_week, locale) })}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="sticky bottom-[4.5rem] lg:bottom-4 mt-6 bg-background pb-1">
         <button

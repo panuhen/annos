@@ -259,6 +259,21 @@ async def set_goal_phase(
 
 
 @mcp.tool
+async def goal_history() -> dict[str, Any]:
+    """Every goal phase ever set, newest first: what the targets were and when
+    they changed.
+
+    The open phase has end_date null; closed phases keep the targets they had,
+    so the list reads as the user's goal progression. Past days are always
+    judged against the phase in force then — daily_summary already does that,
+    this is for reviewing the sequence itself.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await body_domain.list_goal_phases(session, subject=who.subject)
+
+
+@mcp.tool
 async def revise_log(log_id: int, changes: dict[str, Any]) -> dict[str, Any]:
     """Correct an existing meal log: "that was 250 g, not 400".
 

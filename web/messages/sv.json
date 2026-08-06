@@ -127,7 +127,10 @@
     "restNote": "Tills träningsloggning finns använder varje dag vilodagens mål — och bladet säger det.",
     "submit": "Öppna fas",
     "opening": "Öppnar…",
-    "failed": "Fasen kunde inte öppnas"
+    "failed": "Fasen kunde inte öppnas",
+    "history": "Faser",
+    "ongoing": "pågår",
+    "phaseTargets": "vila {kcalRest} · träning {kcalTraining} kcal · {protein} g protein"
   },
   "profile": {
     "title": "Profil",

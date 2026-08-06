@@ -128,6 +128,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goals/phases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Goal Phases */
+        get: operations["list_goal_phases_api_goals_phases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/logs/meals/{log_id}": {
         parameters: {
             query?: never;
@@ -228,6 +245,12 @@ export interface components {
             language: string;
             server_time: components["schemas"]["ServerTime"];
         };
+        /** GoalHistoryResponse */
+        GoalHistoryResponse: {
+            /** Phases */
+            phases: components["schemas"]["GoalPhaseOut"][];
+            server_time: components["schemas"]["ServerTime"];
+        };
         /** GoalPhaseCreate */
         GoalPhaseCreate: {
             /** Kind */
@@ -242,6 +265,25 @@ export interface components {
             rate_target?: number | null;
             /** Start Date */
             start_date?: string | null;
+        };
+        /** GoalPhaseOut */
+        GoalPhaseOut: {
+            /** Phase Id */
+            phase_id: number;
+            /** Kind */
+            kind: string;
+            /** Start Date */
+            start_date: string;
+            /** End Date */
+            end_date: string | null;
+            /** Kcal Target Training */
+            kcal_target_training: number;
+            /** Kcal Target Rest */
+            kcal_target_rest: number;
+            /** Protein Target G */
+            protein_target_g: number;
+            /** Rate Target Kg Per Week */
+            rate_target_kg_per_week: number | null;
         };
         /** GoalPhaseResponse */
         GoalPhaseResponse: {
@@ -813,6 +855,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GoalPhaseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_goal_phases_api_goals_phases_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalHistoryResponse"];
                 };
             };
             /** @description Validation Error */

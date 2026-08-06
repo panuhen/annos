@@ -70,6 +70,11 @@ export function signed(value: number): string {
   return value < 0 ? `−${Math.abs(Math.round(value))}` : String(Math.round(value));
 }
 
+/** A rate like −0.4, in the reader's locale with a true minus sign. */
+export function rateFigure(value: number, locale: string): string {
+  return new Intl.NumberFormat(locale).format(value).replace("-", "−");
+}
+
 /** Provenance rides in parentheses after a dish name, the way allergen
  * codes do on the printed menu. Measured sources go unmarked; the codes
  * flag what is estimated or user-entered. */

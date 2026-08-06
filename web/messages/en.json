@@ -127,7 +127,10 @@
     "restNote": "Until exercise logging exists every day uses the rest-day target, and the sheet says so.",
     "submit": "Open phase",
     "opening": "Opening…",
-    "failed": "Could not open the phase"
+    "failed": "Could not open the phase",
+    "history": "Phases",
+    "ongoing": "ongoing",
+    "phaseTargets": "rest {kcalRest} · training {kcalTraining} kcal · {protein} g protein"
   },
   "profile": {
     "title": "Profile",

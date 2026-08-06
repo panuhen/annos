@@ -127,7 +127,10 @@
     "restNote": "Kunnes liikuntakirjaus on olemassa, joka päivä käyttää lepopäivän tavoitetta — ja lista sanoo sen.",
     "submit": "Avaa jakso",
     "opening": "Avataan…",
-    "failed": "Jaksoa ei voitu avata"
+    "failed": "Jaksoa ei voitu avata",
+    "history": "Jaksot",
+    "ongoing": "käynnissä",
+    "phaseTargets": "lepo {kcalRest} · treeni {kcalTraining} kcal · {protein} g proteiinia"
   },
   "profile": {
     "title": "Profiili",

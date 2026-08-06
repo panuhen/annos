@@ -98,7 +98,7 @@ async def log_weight(
     return metric_payload(metric, tz)
 
 
-def phase_payload(phase: GoalPhase, tz: str) -> dict:
+def _phase_fields(phase: GoalPhase) -> dict:
     return {
         "phase_id": phase.id,
         "kind": phase.kind,
@@ -112,8 +112,11 @@ def phase_payload(phase: GoalPhase, tz: str) -> dict:
             if phase.rate_target_kg_per_week is not None
             else None
         ),
-        "server_time": servertime.echo(tz),
     }
+
+
+def phase_payload(phase: GoalPhase, tz: str) -> dict:
+    return {**_phase_fields(phase), "server_time": servertime.echo(tz)}
 
 
 async def active_phase(session: AsyncSession, *, subject: str, on: date_type) -> GoalPhase | None:
@@ -128,6 +131,23 @@ async def active_phase(session: AsyncSession, *, subject: str, on: date_type) ->
         .order_by(GoalPhase.start_date.desc())
         .limit(1)
     )
+
+
+async def list_goal_phases(session: AsyncSession, *, subject: str) -> dict:
+    """Every phase ever set, newest first — the progression, not just today's target.
+
+    Phases append and close (see `set_goal_phase`), so this list *is* the goal
+    history: the open phase has `end_date` null, everything below it reads as
+    what the targets were and when they changed.
+    """
+    profile = await profile_domain.get_profile(session, subject=subject)
+    phases = await session.scalars(
+        select(GoalPhase).where(GoalPhase.subject == subject).order_by(GoalPhase.start_date.desc())
+    )
+    return {
+        "phases": [_phase_fields(phase) for phase in phases],
+        "server_time": servertime.echo(profile.timezone),
+    }
 
 
 async def set_goal_phase(

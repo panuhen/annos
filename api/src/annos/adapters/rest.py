@@ -201,6 +201,22 @@ class GoalPhaseResponse(BaseModel):
     closed_previous: ClosedPhaseOut | None = None
 
 
+class GoalPhaseOut(BaseModel):
+    phase_id: int
+    kind: str
+    start_date: str
+    end_date: str | None
+    kcal_target_training: int
+    kcal_target_rest: int
+    protein_target_g: int
+    rate_target_kg_per_week: float | None
+
+
+class GoalHistoryResponse(BaseModel):
+    phases: list[GoalPhaseOut]
+    server_time: ServerTime
+
+
 class ProfileCreate(BaseModel):
     nickname: str | None = Field(
         default=None,
@@ -397,6 +413,14 @@ async def set_goal_phase(
         )
     except body_domain.InvalidPhase as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+@router.get("/goals/phases")
+async def list_goal_phases(session: SessionDep, who: CallerDep) -> GoalHistoryResponse:
+    try:
+        return await body_domain.list_goal_phases(session, subject=who.subject)
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 

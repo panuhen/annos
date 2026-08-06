@@ -210,6 +210,63 @@ async def test_phases_are_scoped_by_subject(session, profile):
     assert still_open.end_date is None
 
 
+# --- list_goal_phases --------------------------------------------------------
+
+
+async def test_goal_history_lists_phases_newest_first(session, profile):
+    await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="deficit",
+        kcal_training=2400,
+        kcal_rest=2100,
+        protein_g=160,
+        rate_target=-0.4,
+        start_date="2026-07-01",
+    )
+    await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="maintenance",
+        kcal_training=2800,
+        kcal_rest=2500,
+        protein_g=150,
+        start_date="2026-08-01",
+    )
+
+    payload = await body_domain.list_goal_phases(session, subject=SUBJECT)
+
+    assert [phase["kind"] for phase in payload["phases"]] == ["maintenance", "deficit"]
+    current, closed = payload["phases"]
+    assert current["end_date"] is None
+    assert closed["end_date"] == "2026-07-31"
+    assert closed["kcal_target_training"] == 2400
+    assert closed["rate_target_kg_per_week"] == -0.4
+
+
+async def test_goal_history_is_empty_before_any_phase(session, profile):
+    payload = await body_domain.list_goal_phases(session, subject=SUBJECT)
+
+    assert payload["phases"] == []
+    assert "server_time" in payload
+
+
+async def test_goal_history_is_scoped_by_subject(session, profile):
+    await profile_domain.create_profile(session, subject=OTHER_SUBJECT)
+    await body_domain.set_goal_phase(
+        session,
+        subject=OTHER_SUBJECT,
+        kind="surplus",
+        kcal_training=3200,
+        kcal_rest=2900,
+        protein_g=140,
+    )
+
+    payload = await body_domain.list_goal_phases(session, subject=SUBJECT)
+
+    assert payload["phases"] == []
+
+
 # --- the two surfaces --------------------------------------------------------
 
 
@@ -237,3 +294,25 @@ async def test_rest_sets_a_goal_phase(api, profile):
     )
     assert response.status_code == 201
     assert response.json()["end_date"] is None
+
+
+async def test_rest_lists_the_goal_history(api, profile):
+    for start, kind in (("2026-07-01", "deficit"), ("2026-08-01", "maintenance")):
+        await api.post(
+            "/api/goals/phase",
+            json={
+                "kind": kind,
+                "kcal_training": 2400,
+                "kcal_rest": 2100,
+                "protein_g": 160,
+                "start_date": start,
+            },
+        )
+
+    response = await api.get("/api/goals/phases")
+
+    assert response.status_code == 200
+    phases = response.json()["phases"]
+    assert [phase["kind"] for phase in phases] == ["maintenance", "deficit"]
+    assert phases[0]["end_date"] is None
+    assert phases[1]["end_date"] == "2026-07-31"
