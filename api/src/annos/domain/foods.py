@@ -125,21 +125,38 @@ async def find_food(
     the most descriptive of the three. The client already supplies the semantic
     layer — it knows kvarkki is quark and resolves "something light with protein"
     into concrete queries before calling.
+
+    Matching is substring OR trigram: whole-string similarity alone scores a
+    short query too low against Fineli's long compound names ("melon" against
+    "Meloni, verkkomeloni/cantaloupemeloni, kuorittu" never clears the
+    threshold), so a plain substring hit always qualifies — the same GIN
+    trigram index serves both. The trigram arm stays for typos and missing
+    umlauts, which a substring can't forgive. Ranking is *word* similarity,
+    so mid-typing the finished word outranks the compounds it starts:
+    "hunaja" lists Hunaja above Hunajameloni.
     """
-    if not query.strip():
+    query = query.strip()
+    if not query:
         return []
 
     name_columns = [getattr(Food, f"name_{lang}") for lang in LANGUAGES]
 
+    # A literal % or _ in the query stays literal inside the LIKE pattern.
+    escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    like_pattern = f"%{escaped}%"
+
     score = func.greatest(
-        *(func.similarity(func.coalesce(column, ""), query) for column in name_columns)
+        *(func.word_similarity(query, func.coalesce(column, "")) for column in name_columns)
     ).label("score")
 
     stmt = (
         select(Food)
         .where(
             or_(Food.owner_id.is_(None), Food.owner_id == subject),
-            or_(*(column.op("%")(query) for column in name_columns)),
+            or_(
+                *(column.ilike(like_pattern, escape="\\") for column in name_columns),
+                *(column.op("%")(query) for column in name_columns),
+            ),
         )
         .order_by(score.desc(), *(column.asc() for column in name_columns))
         .limit(limit)

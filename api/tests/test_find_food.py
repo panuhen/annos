@@ -60,6 +60,28 @@ async def test_a_finnish_reader_can_search_in_english(session, make_food):
     assert len(hits) == 1
 
 
+async def test_a_word_fragment_finds_the_compounds(session, make_food):
+    """ "melon" finds every melon: the substring arm qualifies what whole-string
+    similarity scores too low against Fineli's long compound names."""
+    await make_food(name_fi="Vesimeloni, kuorittu", name_en="Watermelon, Without Skin")
+    await make_food(name_fi="Hunajameloni, kuorittu", name_en="Honeydew Melon, Without Skin")
+
+    hits = await foods_domain.find_food(session, subject=SUBJECT, query="melon")
+
+    assert len(hits) == 2
+
+
+async def test_the_finished_word_outranks_the_compounds_it_starts(session, make_food):
+    """Mid-typing order: "hunaja" lists Hunaja first, Hunajameloni after —
+    word similarity, not whole-string, decides the ranking."""
+    await make_food(name_fi="Hunajameloni, kuorittu")
+    await make_food(name_fi="Hunaja")
+
+    hits = await foods_domain.find_food(session, subject=SUBJECT, query="hunaja")
+
+    assert [hit.names["fi"] for hit in hits] == ["Hunaja", "Hunajameloni, kuorittu"]
+
+
 async def test_empty_query_returns_nothing(session, make_food):
     """A blank query must not become "everything" — it short-circuits before
     the database sees it."""
