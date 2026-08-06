@@ -3,6 +3,13 @@
 Mirrors the MCP tool surface, plus the three endpoints that exist only here:
 nickname rolling, profile creation, and account deletion. Those are UI-only so
 that a hallucinating client cannot create or destroy an account.
+
+Every route declares a response model: the web client is generated from the
+OpenAPI schema (`openapi-typescript`), so an untyped response would turn
+contract drift back into a runtime bug — the exact failure codegen exists to
+prevent. The models mirror the domain payloads field for field; a field added
+in the domain without being added here disappears from REST responses, which
+the route tests and the cross-surface parity tests then catch.
 """
 
 from typing import Annotated, Any
@@ -33,6 +40,164 @@ async def caller(authorization: Annotated[str | None, Header()] = None) -> Calle
 
 CallerDep = Annotated[Caller, Depends(caller)]
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
+
+
+class ServerTime(BaseModel):
+    utc: str
+    timezone: str
+    local_date: str
+
+
+class ServingUnitOut(BaseModel):
+    code: str
+    name: str
+    grams: float
+
+
+class Per100g(BaseModel):
+    kcal: float | None
+    protein_g: float | None
+    carbs_g: float | None
+    fat_g: float | None
+    fiber_g: float | None
+
+
+class FoodCandidateOut(BaseModel):
+    id: int
+    name: str
+    name_language: str
+    source: str
+    owned: bool
+    per_100g: Per100g
+    serving_units: list[ServingUnitOut]
+
+
+class FoodSearchResponse(BaseModel):
+    results: list[FoodCandidateOut]
+    language: str
+    server_time: ServerTime
+
+
+class NicknameRollResponse(BaseModel):
+    nickname: str
+
+
+class ProfileResponse(BaseModel):
+    nickname: str
+    birth_year: int | None
+    height_cm: int | None
+    sex: str | None
+    activity_baseline: str | None
+    timezone: str
+    units: str
+    language: str
+    dietary_prefs: dict[str, Any]
+    coaching_notes: str | None
+    server_time: ServerTime
+
+
+class LoggedItemOut(BaseModel):
+    food_id: int
+    grams: float
+    kcal: float | None
+    protein_g: float | None
+    carbs_g: float | None
+    fat_g: float | None
+    fiber_g: float | None
+
+
+class DayTotals(BaseModel):
+    local_date: str
+    items_logged: int
+    kcal: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+    fiber_g: float
+
+
+class MealLogResponse(BaseModel):
+    log_id: int
+    ts: str
+    meal: str | None
+    input_mode: str
+    planned: bool
+    notes: str | None
+    items: list[LoggedItemOut]
+    day_totals: DayTotals
+    server_time: ServerTime
+
+
+class SummaryItemOut(BaseModel):
+    food_id: int
+    name: str | None
+    source: str | None
+    grams: float
+    kcal: float | None
+
+
+class SummaryMealOut(BaseModel):
+    log_id: int
+    ts: str
+    meal: str | None
+    planned: bool
+    notes: str | None
+    kcal: float
+    items: list[SummaryItemOut]
+
+
+class TargetOut(BaseModel):
+    kind: str
+    kcal: int
+    protein_g: int
+    rate_kg_per_week: float | None
+
+
+class RemainingOut(BaseModel):
+    kcal: float
+    protein_g: float
+
+
+class ProfileContextOut(BaseModel):
+    dietary_prefs: dict[str, Any]
+    coaching_notes: str | None
+
+
+class DailySummaryResponse(BaseModel):
+    date: str
+    day_type: str
+    totals: DayTotals
+    target: TargetOut | None
+    remaining: RemainingOut | None
+    meals: list[SummaryMealOut]
+    profile_context: ProfileContextOut
+    server_time: ServerTime
+
+
+class WeightLogResponse(BaseModel):
+    date: str
+    weight_kg: float | None
+    waist_cm: float | None
+    notes: str | None
+    server_time: ServerTime
+
+
+class ClosedPhaseOut(BaseModel):
+    phase_id: int
+    end_date: str
+
+
+class GoalPhaseResponse(BaseModel):
+    phase_id: int
+    kind: str
+    start_date: str
+    end_date: str | None
+    kcal_target_training: int
+    kcal_target_rest: int
+    protein_target_g: int
+    rate_target_kg_per_week: float | None
+    server_time: ServerTime
+    closed_previous: ClosedPhaseOut | None = None
 
 
 class ProfileCreate(BaseModel):
@@ -69,7 +234,7 @@ async def search_foods(
     who: CallerDep,
     q: Annotated[str, Query(min_length=1)],
     limit: Annotated[int, Query(ge=1, le=50)] = 10,
-) -> dict:
+) -> FoodSearchResponse:
     language = await foods_domain.reading_language(session, subject=who.subject)
     candidates = await foods_domain.find_food(session, subject=who.subject, query=q, limit=limit)
     return {
@@ -81,13 +246,15 @@ async def search_foods(
 
 
 @router.post("/profile/nickname/roll")
-async def roll_nickname(who: CallerDep) -> dict:
+async def roll_nickname(who: CallerDep) -> NicknameRollResponse:
     """One candidate. Called repeatedly during registration; commits nothing."""
     return {"nickname": nickname_mod.roll()}
 
 
 @router.post("/profile", status_code=201)
-async def create_profile(session: SessionDep, who: CallerDep, body: ProfileCreate) -> dict:
+async def create_profile(
+    session: SessionDep, who: CallerDep, body: ProfileCreate
+) -> ProfileResponse:
     try:
         profile = await profile_domain.create_profile(
             session, subject=who.subject, nickname=body.nickname
@@ -98,7 +265,7 @@ async def create_profile(session: SessionDep, who: CallerDep, body: ProfileCreat
 
 
 @router.get("/profile")
-async def get_profile(session: SessionDep, who: CallerDep) -> dict:
+async def get_profile(session: SessionDep, who: CallerDep) -> ProfileResponse:
     try:
         profile = await profile_domain.get_profile(session, subject=who.subject)
     except profile_domain.ProfileNotFound as exc:
@@ -107,7 +274,9 @@ async def get_profile(session: SessionDep, who: CallerDep) -> dict:
 
 
 @router.patch("/profile")
-async def update_profile(session: SessionDep, who: CallerDep, body: ProfileUpdate) -> dict:
+async def update_profile(
+    session: SessionDep, who: CallerDep, body: ProfileUpdate
+) -> ProfileResponse:
     try:
         profile = await profile_domain.update_profile(
             session, subject=who.subject, changes=body.changes
@@ -141,7 +310,7 @@ class MealLogRevise(BaseModel):
 
 
 @router.post("/logs/meals", status_code=201)
-async def log_meal(session: SessionDep, who: CallerDep, body: MealLogCreate) -> dict:
+async def log_meal(session: SessionDep, who: CallerDep, body: MealLogCreate) -> MealLogResponse:
     try:
         return await meals_domain.log_meal(
             session,
@@ -163,7 +332,7 @@ async def log_meal(session: SessionDep, who: CallerDep, body: MealLogCreate) -> 
 @router.get("/summary/daily")
 async def daily_summary(
     session: SessionDep, who: CallerDep, date: Annotated[str | None, Query()] = None
-) -> dict:
+) -> DailySummaryResponse:
     try:
         return await summary_domain.daily_summary(session, subject=who.subject, date=date)
     except meals_domain.InvalidLog as exc:
@@ -191,7 +360,9 @@ class GoalPhaseCreate(BaseModel):
 
 
 @router.post("/logs/weight", status_code=201)
-async def log_weight(session: SessionDep, who: CallerDep, body: WeightLogCreate) -> dict:
+async def log_weight(
+    session: SessionDep, who: CallerDep, body: WeightLogCreate
+) -> WeightLogResponse:
     try:
         return await body_domain.log_weight(
             session,
@@ -208,7 +379,9 @@ async def log_weight(session: SessionDep, who: CallerDep, body: WeightLogCreate)
 
 
 @router.post("/goals/phase", status_code=201)
-async def set_goal_phase(session: SessionDep, who: CallerDep, body: GoalPhaseCreate) -> dict:
+async def set_goal_phase(
+    session: SessionDep, who: CallerDep, body: GoalPhaseCreate
+) -> GoalPhaseResponse:
     try:
         return await body_domain.set_goal_phase(
             session,
@@ -227,7 +400,9 @@ async def set_goal_phase(session: SessionDep, who: CallerDep, body: GoalPhaseCre
 
 
 @router.patch("/logs/meals/{log_id}")
-async def revise_log(session: SessionDep, who: CallerDep, log_id: int, body: MealLogRevise) -> dict:
+async def revise_log(
+    session: SessionDep, who: CallerDep, log_id: int, body: MealLogRevise
+) -> MealLogResponse:
     try:
         return await meals_domain.revise_log(
             session, subject=who.subject, log_id=log_id, changes=body.changes

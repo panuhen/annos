@@ -68,8 +68,16 @@ async def test_totals_target_and_remaining_line_up(session, deficit_phase, make_
     (meal,) = summary["meals"]
     assert meal["meal"] == "lunch"
     assert meal["kcal"] == pytest.approx(550.0)
-    assert meal["items"] == 1
     assert meal["log_id"]  # enough to hand straight to revise_log
+
+    # Items ride along: the day view lists what was eaten, and a client
+    # revising a log it didn't create sees its current contents.
+    (item,) = meal["items"]
+    assert item["food_id"] == food.id
+    assert item["name"] == "lunch bowl"
+    assert item["source"] == "fineli"
+    assert item["grams"] == pytest.approx(100.0)
+    assert item["kcal"] == pytest.approx(550.0)
 
 
 async def test_going_over_target_goes_negative_not_clamped(session, deficit_phase, make_food):

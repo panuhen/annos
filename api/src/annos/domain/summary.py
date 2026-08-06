@@ -17,9 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from annos import servertime
 from annos.domain import body as body_domain
+from annos.domain import language as language_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
-from annos.models import MealLog
+from annos.models import LANGUAGES, Food, MealLog
 
 
 def _parse_date(value: str | date_type | None, tz: str) -> date_type:
@@ -38,8 +39,9 @@ async def daily_summary(
 ) -> dict:
     """One call, the whole day: totals, target, remaining, and the day's logs.
 
-    The `meals` list is compact on purpose — enough for the client to name a
-    log ("your 12:40 lunch") and revise it by id without another lookup.
+    Each meal carries its items (name, source, grams, kcal): the day view has
+    to list what was eaten, and a client revising a log needs to see its
+    current contents without having logged it in the same conversation.
     Planned entries appear in the list but count toward no totals.
     """
     profile = await profile_domain.get_profile(session, subject=subject)
@@ -62,6 +64,33 @@ async def daily_summary(
         .scalars()
         .all()
     )
+
+    # Names resolve at read time in the reader's language; macros come from
+    # the log-time snapshot. A food row is never deleted, but a missing one
+    # degrades to a null name rather than a failed summary.
+    food_ids = {item.food_id for log in logs for item in log.items}
+    foods = {}
+    if food_ids:
+        rows = await session.execute(select(Food).where(Food.id.in_(food_ids)))
+        foods = {food.id: food for food in rows.scalars()}
+    language = profile.language or language_domain.DEFAULT
+
+    def _item_payload(item) -> dict:
+        food = foods.get(item.food_id)
+        name = (
+            language_domain.resolve(
+                {lang: getattr(food, f"name_{lang}") for lang in LANGUAGES}, language
+            )[0]
+            if food is not None
+            else None
+        )
+        return {
+            "food_id": item.food_id,
+            "name": name,
+            "source": food.source if food is not None else None,
+            "grams": float(item.grams),
+            "kcal": meals_domain._portion(item.kcal, item.grams),
+        }
 
     phase = await body_domain.active_phase(session, subject=subject, on=day)
 
@@ -103,6 +132,7 @@ async def daily_summary(
                 "ts": log.ts.isoformat(),
                 "meal": log.meal,
                 "planned": log.planned,
+                "notes": log.notes,
                 "kcal": round(
                     sum(
                         float(item.kcal) * float(item.grams) / 100
@@ -111,7 +141,7 @@ async def daily_summary(
                     ),
                     2,
                 ),
-                "items": len(log.items),
+                "items": [_item_payload(item) for item in log.items],
             }
             for log in logs
         ],
