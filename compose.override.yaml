@@ -1,0 +1,29 @@
+# Local development overrides — `docker compose up` merges this file
+# automatically. Production (Coolify) must run `docker compose -f compose.yaml`
+# explicitly so these never reach a deploy.
+#
+# web runs `next dev` with the source bind-mounted for hot refresh.
+# node_modules and .next live in named volumes: the image's are alpine/musl
+# builds that must not mix with anything built on the (glibc) host, and
+# `npm install` on start keeps the volume in sync when package.json changes.
+services:
+  web:
+    image: annos-web:dev
+    build:
+      context: ./web
+      target: deps
+    # --webpack: host-side edits don't deliver inotify through Docker
+    # Desktop's VM, and Turbopack has no polling fallback — webpack honors
+    # WATCHPACK_POLLING, so hot refresh works on the bind mount.
+    command: sh -c "npm install && exec npm run dev -- --webpack"
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./web:/app
+      - annos-web-node-modules:/app/node_modules
+      - annos-web-next:/app/.next
+
+volumes:
+  annos-web-node-modules:
+  annos-web-next:

@@ -1,0 +1,269 @@
+"use client";
+
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+import { Skeleton } from "@/components/ui/skeleton";
+import { $api } from "@/lib/api/hooks";
+import {
+  MEAL_LABELS,
+  addDays,
+  clockTime,
+  grams,
+  isoWeek,
+  kcal,
+  localeFor,
+  sheetDate,
+  signed,
+  sourceCode,
+  weekday,
+} from "@/lib/format";
+import { useProfile } from "@/lib/profile";
+import { cn } from "@/lib/utils";
+
+export default function DayPage() {
+  return (
+    <Suspense fallback={<SheetSkeleton />}>
+      <DaySheet />
+    </Suspense>
+  );
+}
+
+function SheetSkeleton() {
+  return (
+    <div className="pt-6">
+      <Skeleton className="mb-4 h-5 w-32" />
+      <Skeleton className="mb-6 h-9 w-56" />
+      <Skeleton className="mb-2 h-4 w-full" />
+      <Skeleton className="mb-2 h-4 w-full" />
+      <Skeleton className="h-4 w-2/3" />
+    </div>
+  );
+}
+
+function DaySheet() {
+  const profile = useProfile();
+  const params = useSearchParams();
+  const date = params.get("date") ?? undefined;
+  const stamped = params.get("stamp");
+  const locale = localeFor(profile.language);
+
+  const summary = $api.useQuery("get", "/api/summary/daily", {
+    params: { query: date ? { date } : {} },
+  });
+
+  if (summary.isPending) return <SheetSkeleton />;
+  if (summary.error || !summary.data) {
+    return (
+      <div className="pt-10">
+        <h1 className="text-lg font-bold">This day would not load</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The API could not be reached. Reload to try again.
+        </p>
+      </div>
+    );
+  }
+
+  const day = summary.data;
+  const today = day.server_time.local_date;
+  const isToday = day.date === today;
+
+  return (
+    <>
+      <header className="flex items-baseline justify-between pt-5 pb-2">
+        <span className="text-sm font-bold tracking-tight">Annos</span>
+        <span className="font-mono text-xs text-muted-foreground uppercase">
+          Viikko {isoWeek(day.date)}
+        </span>
+      </header>
+
+      <div className="border-t-2 border-foreground" />
+
+      {/* The day line: the sheet is always one day, paged like the menu week */}
+      <div className="flex items-center justify-between py-3">
+        <Link
+          href={`/?date=${addDays(day.date, -1)}`}
+          aria-label="Previous day"
+          className="-ml-2 flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft aria-hidden className="size-5" />
+        </Link>
+        <div className="text-center">
+          <h1
+            lang={profile.language}
+            className={cn(
+              "text-2xl font-bold uppercase tracking-tight text-balance",
+              isToday && "text-primary",
+            )}
+          >
+            {weekday(day.date, locale)}
+          </h1>
+          <p className="font-mono text-sm text-muted-foreground">
+            {sheetDate(day.date, locale)}
+            {!isToday && (
+              <>
+                {" · "}
+                <Link href="/" className="text-primary underline underline-offset-2">
+                  today
+                </Link>
+              </>
+            )}
+          </p>
+        </div>
+        <Link
+          href={`/?date=${addDays(day.date, 1)}`}
+          aria-label="Next day"
+          className="-mr-2 flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
+        >
+          <ChevronRight aria-hidden className="size-5" />
+        </Link>
+      </div>
+
+      {day.meals.length === 0 ? (
+        <div className="border-t border-border py-10 text-center">
+          <p className="font-medium">Nothing on the menu {isToday ? "yet" : "this day"}.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {isToday
+              ? "Log a meal below, or just tell your AI what you ate."
+              : "Meals logged for this day will be listed here."}
+          </p>
+        </div>
+      ) : (
+        <ul>
+          {day.meals.map((meal) => (
+            <li
+              key={meal.log_id}
+              className={cn(
+                "border-t border-border",
+                String(meal.log_id) === stamped && "stamp-in",
+              )}
+            >
+              <Link
+                href={`/log/${meal.log_id}`}
+                className="block py-3 hover:bg-secondary focus-visible:bg-secondary"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {meal.meal ? MEAL_LABELS[meal.meal] : "Meal"}
+                    {meal.planned && (
+                      <span className="ml-1.5 font-mono font-normal normal-case text-muted-foreground">
+                        (planned)
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {clockTime(meal.ts, locale, profile.timezone)}
+                  </span>
+                </div>
+                <ul className="mt-1.5 space-y-1">
+                  {meal.items.map((item, i) => (
+                    <li key={i} className="flex items-baseline gap-3">
+                      <span className={cn("min-w-0 flex-1 truncate", meal.planned && "italic")}>
+                        {item.name ?? `Food #${item.food_id}`}
+                        {sourceCode(item.source) && (
+                          <span className="ml-1.5 font-mono text-xs text-muted-foreground">
+                            ({sourceCode(item.source)})
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-mono text-xs text-muted-foreground tnum">
+                        {grams(item.grams)}&#8239;g
+                      </span>
+                      <span className="tnum w-12 text-right font-mono text-sm">
+                        {kcal(item.kcal)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {meal.notes && (
+                  <p className="mt-1 text-xs text-muted-foreground italic">{meal.notes}</p>
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* The foot of the sheet: the day ruled off against its target */}
+      <div className="mt-2 border-t-2 border-foreground pt-3">
+        <TotalRow
+          label="Energy"
+          value={Math.round(day.totals.kcal)}
+          target={day.target?.kcal}
+          unit="kcal"
+        />
+        <TotalRow
+          label="Protein"
+          value={Math.round(day.totals.protein_g)}
+          target={day.target?.protein_g}
+          unit="g"
+        />
+        <p className="mt-1.5 font-mono text-xs text-muted-foreground tnum">
+          carbs {Math.round(day.totals.carbs_g)} g · fat {Math.round(day.totals.fat_g)} g · fiber{" "}
+          {Math.round(day.totals.fiber_g)} g
+        </p>
+
+        {day.remaining ? (
+          <p className="mt-3 text-sm">
+            <span className="font-bold">Remaining</span>{" "}
+            <span className="tnum font-mono">{signed(day.remaining.kcal)}</span> kcal ·{" "}
+            <span className="tnum font-mono">{signed(day.remaining.protein_g)}</span> g protein
+          </p>
+        ) : null}
+
+        <p className="mt-1 text-xs text-muted-foreground">
+          {day.target ? (
+            <>
+              {day.day_type === "rest" ? "Rest-day target" : "Training-day target"} ·{" "}
+              {day.target.kind}
+              {day.target.rate_kg_per_week != null && (
+                <> · {day.target.rate_kg_per_week} kg/week</>
+              )}
+            </>
+          ) : (
+            <>
+              No goal phase set — totals only.{" "}
+              <Link href="/goal" className="text-primary underline underline-offset-2">
+                Set one
+              </Link>
+            </>
+          )}
+        </p>
+      </div>
+
+      <div className="sticky bottom-[4.5rem] lg:bottom-4 mt-6 bg-background pb-1">
+        <Link
+          href={isToday ? "/log" : `/log?date=${day.date}`}
+          className="flex min-h-12 w-full items-center justify-center gap-2 bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <Plus aria-hidden className="size-5" strokeWidth={2.5} />
+          Log a meal
+        </Link>
+      </div>
+    </>
+  );
+}
+
+function TotalRow({
+  label,
+  value,
+  target,
+  unit,
+}: {
+  label: string;
+  value: number;
+  target: number | undefined;
+  unit: string;
+}) {
+  return (
+    <div className="flex items-baseline justify-between">
+      <span className="text-sm font-bold">{label}</span>
+      <span className="tnum font-mono text-sm">
+        {value}
+        {target != null && <span className="text-muted-foreground"> / {target}</span>} {unit}
+      </span>
+    </div>
+  );
+}

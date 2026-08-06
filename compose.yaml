@@ -65,6 +65,9 @@ services:
     environment:
       BETTER_AUTH_SECRET: dev-only-secret-change-in-production-0000
       BETTER_AUTH_URL: http://localhost:3000
+      # Where the /annos/* rewrite proxies API calls — the browser itself
+      # only ever talks to this origin.
+      ANNOS_API_URL: http://api:8000
       # Owner role: Better Auth migrates and owns its tables; annos_api has
       # no SELECT on them — that grant is the email quarantine.
       DATABASE_URL: postgres://annos:annos@db:5432/annos

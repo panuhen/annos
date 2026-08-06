@@ -1,9 +1,12 @@
 "use client";
 
-import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
+import { AuthSheet } from "@/components/auth-sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
 /**
@@ -40,53 +43,61 @@ function SignInForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Sign in to Annos</h1>
+    <AuthSheet title="Sign in">
       {oauthFlow && (
-        <p className="text-sm text-neutral-500">
-          An application is asking to access your Annos data. Sign in to
-          continue.
+        <p className="mb-4 border border-border px-3 py-2 text-sm">
+          An application is asking to access your Annos data. Sign in to continue.
         </p>
       )}
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Email
-          <input
+        <div>
+          <Label htmlFor="email" className="mb-1.5 font-mono text-xs uppercase">
+            Email
+          </Label>
+          <Input
+            id="email"
             type="email"
             required
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+            className="h-12 text-base"
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Password
-          <input
+        </div>
+        <div>
+          <Label htmlFor="password" className="mb-1.5 font-mono text-xs uppercase">
+            Password
+          </Label>
+          <Input
+            id="password"
             type="password"
             required
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+            className="h-12 text-base"
           />
-        </label>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+        {error && (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-neutral-900 px-3 py-2 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          className="mt-1 flex min-h-12 items-center justify-center bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
           {pending ? "Signing in…" : "Sign in"}
         </button>
       </form>
-      <p className="text-sm text-neutral-500">
+      <p className="mt-5 text-sm text-muted-foreground">
         No account?{" "}
-        <Link href="/sign-up" className="underline">
+        <Link href="/sign-up" className="text-primary underline underline-offset-2">
           Sign up
         </Link>
       </p>
-    </main>
+    </AuthSheet>
   );
 }
 

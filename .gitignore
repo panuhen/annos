@@ -27,3 +27,7 @@ out/
 
 # Local agent guidance — not shared
 CLAUDE.md
+.claude/
+.impeccable/
+PRODUCT.md
+DESIGN.md

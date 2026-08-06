@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
+import { AuthSheet } from "@/components/auth-sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
 /**
  * Registration is UI-only by design — a hallucinating MCP client must not be
  * able to create an account. Better Auth owns the credential; the Annos
- * profile (with its generated nickname) is created against the API afterwards.
+ * profile (with its generated nickname) is created at /welcome afterwards.
  *
  * No name is collected: Better Auth's `name` field is deliberately left empty.
  * The only human-readable identifier Annos ever uses is its own generated
@@ -36,51 +39,65 @@ export default function SignUpPage() {
       setPending(false);
       return;
     }
-    router.push("/");
+    router.push("/welcome");
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Create an Annos account</h1>
+    <AuthSheet title="Create an account">
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Email
-          <input
+        <div>
+          <Label htmlFor="email" className="mb-1.5 font-mono text-xs uppercase">
+            Email
+          </Label>
+          <Input
+            id="email"
             type="email"
             required
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+            className="h-12 text-base"
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Password
-          <input
+        </div>
+        <div>
+          <Label htmlFor="password" className="mb-1.5 font-mono text-xs uppercase">
+            Password
+          </Label>
+          <Input
+            id="password"
             type="password"
             required
             minLength={8}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+            className="h-12 text-base"
           />
-        </label>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Your email stays with the sign-in system — the tracker itself never
+          sees it. Inside Annos you are only your nickname, drawn on the next
+          page.
+        </p>
+        {error && (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-neutral-900 px-3 py-2 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          className="mt-1 flex min-h-12 items-center justify-center bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
           {pending ? "Creating account…" : "Sign up"}
         </button>
       </form>
-      <p className="text-sm text-neutral-500">
+      <p className="mt-5 text-sm text-muted-foreground">
         Already registered?{" "}
-        <Link href="/sign-in" className="underline">
+        <Link href="/sign-in" className="text-primary underline underline-offset-2">
           Sign in
         </Link>
       </p>
-    </main>
+    </AuthSheet>
   );
 }
