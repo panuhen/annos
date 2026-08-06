@@ -612,6 +612,12 @@ export interface components {
             grams: number;
             /** Kcal */
             kcal: number | null;
+            /** Protein G */
+            protein_g: number | null;
+            /** Carbs G */
+            carbs_g: number | null;
+            /** Fat G */
+            fat_g: number | null;
         };
         /** SummaryMealOut */
         SummaryMealOut: {

@@ -1,6 +1,12 @@
 "use client";
 
-import { CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
+import {
+  CaretLeft,
+  CaretRight,
+  PersonSimple,
+  PersonSimpleRun,
+  Plus,
+} from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
@@ -84,12 +90,13 @@ function DaySheet() {
 
   // The mark is the user's say and wins over any derivation, in both
   // directions; it applies to the sheet's own date, a day the user is
-  // looking at and therefore stating.
-  async function markDay() {
+  // looking at and therefore stating. Marking the already-active type is
+  // not a no-op: it turns an assumed rest day into a stated one.
+  async function markDay(dayType: "training" | "rest") {
     setMarking(true);
     try {
       const { error } = await api.PUT("/api/days/type", {
-        body: { day_type: day.day_type === "rest" ? "training" : "rest", date: day.date },
+        body: { day_type: dayType, date: day.date },
       });
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["get", "/api/summary/daily"] });
@@ -174,8 +181,8 @@ function DaySheet() {
                 href={`/log/${meal.log_id}?date=${day.date}`}
                 className="block py-3 hover:bg-secondary focus-visible:bg-secondary"
               >
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-xs font-bold uppercase tracking-wider">
+                <div className="flex items-baseline gap-3">
+                  <span className="min-w-0 flex-1 text-xs font-bold uppercase tracking-wider">
                     {meal.meal ? tMeals(meal.meal) : t("meal")}
                     {meal.planned && (
                       <span className="ml-1.5 font-mono font-normal normal-case text-muted-foreground">
@@ -186,24 +193,39 @@ function DaySheet() {
                   <span className="font-mono text-xs text-muted-foreground">
                     {clockTime(meal.ts, locale, profile.timezone)}
                   </span>
+                  {/* Heads the price column: the bare figures below are kcal */}
+                  <span className="w-12 text-right font-mono text-xs text-muted-foreground">
+                    {t("kcalUnit")}
+                  </span>
                 </div>
                 <ul className="mt-1.5 space-y-1">
                   {meal.items.map((item, i) => (
-                    <li key={i} className="flex items-baseline gap-3">
-                      <span className={cn("min-w-0 flex-1 truncate", meal.planned && "italic")}>
-                        {item.name ?? `#${item.food_id}`}
-                        {sourceCode(item.source) && (
-                          <span className="ml-1.5 font-mono text-xs text-muted-foreground">
-                            ({sourceCode(item.source)})
-                          </span>
-                        )}
-                      </span>
-                      <span className="font-mono text-xs text-muted-foreground tnum">
-                        {grams(item.grams)}&#8239;g
-                      </span>
-                      <span className="tnum w-12 text-right font-mono text-sm">
-                        {kcal(item.kcal)}
-                      </span>
+                    <li key={i}>
+                      <div className="flex items-baseline gap-3">
+                        <span className={cn("min-w-0 flex-1 truncate", meal.planned && "italic")}>
+                          {item.name ?? `#${item.food_id}`}
+                          {sourceCode(item.source) && (
+                            <span className="ml-1.5 font-mono text-xs text-muted-foreground">
+                              ({sourceCode(item.source)})
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground tnum">
+                          {grams(item.grams)}&#8239;g
+                        </span>
+                        <span className="tnum w-12 text-right font-mono text-sm">
+                          {kcal(item.kcal)}
+                        </span>
+                      </div>
+                      {item.protein_g != null && item.carbs_g != null && item.fat_g != null && (
+                        <p className="tnum font-mono text-xs text-muted-foreground">
+                          {t("itemMacros", {
+                            protein: Math.round(item.protein_g),
+                            carbs: Math.round(item.carbs_g),
+                            fat: Math.round(item.fat_g),
+                          })}
+                        </p>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -275,14 +297,35 @@ function DaySheet() {
           )}
         </p>
         {day.target && (
-          <button
-            type="button"
-            disabled={marking}
-            onClick={markDay}
-            className="mt-1 flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {day.day_type === "rest" ? t("markTraining") : t("markRest")}
-          </button>
+          <div role="group" aria-label={t("dayType")} className="mt-1 flex items-center gap-4">
+            {(["rest", "training"] as const).map((type) => {
+              const active = day.day_type === type;
+              const Figure = type === "training" ? PersonSimpleRun : PersonSimple;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  disabled={marking}
+                  aria-pressed={active}
+                  onClick={() => markDay(type)}
+                  className={cn(
+                    "flex min-h-11 items-center font-mono text-xs uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-40",
+                    active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 border-b-2 pb-px",
+                      active ? "border-foreground" : "border-transparent",
+                    )}
+                  >
+                    <Figure aria-hidden weight={active ? "bold" : "regular"} className="size-4" />
+                    {t(type)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 

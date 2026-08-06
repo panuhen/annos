@@ -38,6 +38,7 @@
     "energy": "Energy",
     "protein": "Protein",
     "macroLine": "carbs {carbs} g · fat {fat} g · fiber {fiber} g",
+    "itemMacros": "protein {protein} g · carbs {carbs} g · fat {fat} g",
     "remaining": "Remaining",
     "kcalUnit": "kcal",
     "gProtein": "g protein",
@@ -50,9 +51,10 @@
     "loadFailTitle": "This day would not load",
     "loadFailBody": "The API could not be reached. Reload to try again.",
     "assumed": "assumed",
-    "markTraining": "Mark as training day",
-    "markRest": "Mark as rest day",
-    "markFailed": "Could not mark the day"
+    "markFailed": "Could not mark the day",
+    "rest": "Rest",
+    "training": "Training",
+    "dayType": "Day type"
   },
   "logPage": {
     "title": "Log a meal",

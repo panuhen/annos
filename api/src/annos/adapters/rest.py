@@ -137,6 +137,9 @@ class SummaryItemOut(BaseModel):
     source: str | None
     grams: float
     kcal: float | None
+    protein_g: float | None
+    carbs_g: float | None
+    fat_g: float | None
 
 
 class SummaryMealOut(BaseModel):

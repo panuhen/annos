@@ -38,6 +38,7 @@
     "energy": "Energia",
     "protein": "Proteiini",
     "macroLine": "hiilihydraatit {carbs} g · rasva {fat} g · kuitu {fiber} g",
+    "itemMacros": "proteiini {protein} g · hiilihydraatit {carbs} g · rasva {fat} g",
     "remaining": "Jäljellä",
     "kcalUnit": "kcal",
     "gProtein": "g proteiinia",
@@ -50,9 +51,10 @@
     "loadFailTitle": "Päivä ei latautunut",
     "loadFailBody": "API-palvelimeen ei saatu yhteyttä. Yritä ladata sivu uudelleen.",
     "assumed": "oletus",
-    "markTraining": "Merkitse treenipäiväksi",
-    "markRest": "Merkitse lepopäiväksi",
-    "markFailed": "Päivää ei voitu merkitä"
+    "markFailed": "Päivää ei voitu merkitä",
+    "rest": "Lepo",
+    "training": "Treeni",
+    "dayType": "Päivän tyyppi"
   },
   "logPage": {
     "title": "Kirjaa ateria",

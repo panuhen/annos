@@ -81,6 +81,11 @@ async def test_totals_target_and_remaining_line_up(session, deficit_phase, make_
     assert item["source"] == "fineli"
     assert item["grams"] == pytest.approx(100.0)
     assert item["kcal"] == pytest.approx(550.0)
+    # The macros ride per item, portion-scaled from the log-time snapshot,
+    # so the day view can print them without a second call.
+    assert item["protein_g"] == pytest.approx(35.0)
+    assert item["carbs_g"] == pytest.approx(50.0)
+    assert item["fat_g"] == pytest.approx(20.0)
 
 
 async def test_a_training_mark_switches_both_targets(session, deficit_phase, make_food):

@@ -92,6 +92,9 @@ async def daily_summary(
             "source": food.source if food is not None else None,
             "grams": float(item.grams),
             "kcal": meals_domain._portion(item.kcal, item.grams),
+            "protein_g": meals_domain._portion(item.protein_g, item.grams),
+            "carbs_g": meals_domain._portion(item.carbs_g, item.grams),
+            "fat_g": meals_domain._portion(item.fat_g, item.grams),
         }
 
     phase = await body_domain.active_phase(session, subject=subject, on=day)
