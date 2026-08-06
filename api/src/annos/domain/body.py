@@ -154,6 +154,19 @@ async def list_goal_phases(session: AsyncSession, *, subject: str) -> dict:
     }
 
 
+def _check_rate(kind: str, rate: float | None) -> None:
+    """The rate's sign is the kind's meaning, so a mismatch is a data error,
+    not a preference: a deficit loses, a surplus gains, maintenance holds."""
+    if rate is None:
+        return
+    if kind == "maintenance":
+        raise InvalidPhase("maintenance holds weight; omit rate_target")
+    if kind == "deficit" and rate >= 0:
+        raise InvalidPhase("a deficit loses weight: rate_target must be negative")
+    if kind == "surplus" and rate <= 0:
+        raise InvalidPhase("a surplus gains weight: rate_target must be positive")
+
+
 async def set_goal_phase(
     session: AsyncSession,
     *,
@@ -170,6 +183,7 @@ async def set_goal_phase(
         raise InvalidPhase(f"kind must be one of {', '.join(GOAL_KINDS)}")
     if min(kcal_training, kcal_rest, protein_g) <= 0:
         raise InvalidPhase("targets must be positive")
+    _check_rate(kind, rate_target)
 
     profile = await profile_domain.get_profile(session, subject=subject)
     tz = profile.timezone
@@ -252,6 +266,13 @@ async def revise_goal_phase(session: AsyncSession, *, subject: str, changes: dic
     protein_g = changes.get("protein_g", phase.protein_target_g)
     if min(kcal_training, kcal_rest, protein_g) <= 0:
         raise InvalidPhase("targets must be positive")
+    # The *merged* result must be consistent: switching kind to maintenance
+    # while a rate survives is refused rather than silently cleared.
+    merged_rate = changes.get(
+        "rate_target",
+        float(phase.rate_target_kg_per_week) if phase.rate_target_kg_per_week is not None else None,
+    )
+    _check_rate(kind, merged_rate)
 
     if "start_date" in changes:
         try:

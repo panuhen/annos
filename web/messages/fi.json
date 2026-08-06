@@ -150,7 +150,9 @@
     "cancelRevise": "Peruuta",
     "revised": "Jakso muokattu — alkaa {date}.",
     "saveRevision": "Tallenna muutos",
-    "startsKeep": "Alkaa — jätä ennalleen säilyttääksesi"
+    "startsKeep": "Alkaa — jätä ennalleen säilyttääksesi",
+    "rateLoss": "Pudotus, kg/vk",
+    "rateGain": "Nousu, kg/vk"
   },
   "profile": {
     "title": "Profiili",

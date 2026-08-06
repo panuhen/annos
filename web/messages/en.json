@@ -150,7 +150,9 @@
     "cancelRevise": "Cancel",
     "revised": "Phase revised — starts {date}.",
     "saveRevision": "Save revision",
-    "startsKeep": "Starts — leave as is to keep"
+    "startsKeep": "Starts — leave as is to keep",
+    "rateLoss": "Loss, kg/week",
+    "rateGain": "Gain, kg/week"
   },
   "profile": {
     "title": "Profile",

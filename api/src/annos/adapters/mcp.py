@@ -240,10 +240,11 @@ async def set_goal_phase(
     """Start a new goal phase: deficit, maintenance, or surplus.
 
     kcal targets are per day type (training vs rest); protein_g is the daily
-    protein target. rate_target is the intended weight change in kg/week,
-    negative for loss. start_date defaults to today; the currently open phase
-    is closed automatically the day before the new one starts. Past days keep
-    being judged against the phase that was active then.
+    protein target. rate_target is the intended weight change in kg/week and
+    its sign must match the kind — negative for a deficit, positive for a
+    surplus, omitted for maintenance. start_date defaults to today; the
+    currently open phase is closed automatically the day before the new one
+    starts. Past days keep being judged against the phase that was active then.
     """
     who = await _caller()
     async with SessionLocal() as session:

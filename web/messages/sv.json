@@ -150,7 +150,9 @@
     "cancelRevise": "Avbryt",
     "revised": "Fasen ändrad — börjar {date}.",
     "saveRevision": "Spara ändringen",
-    "startsKeep": "Börjar — lämna som den är för att behålla"
+    "startsKeep": "Börjar — lämna som den är för att behålla",
+    "rateLoss": "Minskning, kg/vecka",
+    "rateGain": "Ökning, kg/vecka"
   },
   "profile": {
     "title": "Profil",

@@ -67,7 +67,10 @@ export default function GoalPage() {
     setKcalTraining(String(open.kcal_target_training));
     setKcalRest(String(open.kcal_target_rest));
     setProtein(String(open.protein_target_g));
-    setRate(open.rate_target_kg_per_week != null ? String(open.rate_target_kg_per_week) : "");
+    // The field holds the magnitude; the sign is drawn from the kind.
+    setRate(
+      open.rate_target_kg_per_week != null ? String(Math.abs(open.rate_target_kg_per_week)) : "",
+    );
     setStartDate(open.start_date);
     setNotice(null);
     setRevising(true);
@@ -86,12 +89,20 @@ export default function GoalPage() {
   async function submit() {
     setSubmitting(true);
     try {
+      // The user enters a magnitude; the sign is the kind's meaning
+      // (deficit loses, surplus gains) and maintenance carries no rate.
+      const magnitude = Math.abs(parseFloat(rate));
       const payload = {
         kind,
         kcal_training: parseInt(kcalTraining),
         kcal_rest: parseInt(kcalRest),
         protein_g: parseInt(protein),
-        rate_target: rate.trim() === "" ? null : parseFloat(rate),
+        rate_target:
+          kind === "maintenance" || rate.trim() === "" || !(magnitude > 0)
+            ? null
+            : kind === "deficit"
+              ? -magnitude
+              : magnitude,
       };
       const { data, error } = revising
         ? await api.PATCH("/api/goals/phase", {
@@ -231,19 +242,31 @@ export default function GoalPage() {
             className="tnum h-11 text-right font-mono"
           />
         </div>
-        <div>
-          <Label htmlFor="rate-target" className="mb-1.5 font-mono text-xs uppercase">
-            {t("rate")}
-          </Label>
-          <Input
-            id="rate-target"
-            inputMode="decimal"
-            value={rate}
-            onChange={(e) => setRate(e.target.value)}
-            placeholder={t("optional")}
-            className="tnum h-11 text-right font-mono"
-          />
-        </div>
+        {/* Maintenance holds weight: no rate to state. For the others the
+         * user enters a magnitude and the sign is printed by the kind. */}
+        {kind !== "maintenance" && (
+          <div>
+            <Label htmlFor="rate-target" className="mb-1.5 font-mono text-xs uppercase">
+              {t(kind === "deficit" ? "rateLoss" : "rateGain")}
+            </Label>
+            <div className="relative">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 font-mono text-sm text-muted-foreground"
+              >
+                {kind === "deficit" ? "−" : "+"}
+              </span>
+              <Input
+                id="rate-target"
+                inputMode="decimal"
+                value={rate}
+                onChange={(e) => setRate(e.target.value.replace(/[+\-−]/g, ""))}
+                placeholder={t("optional")}
+                className="tnum h-11 pl-7 text-right font-mono"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-3">

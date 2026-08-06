@@ -174,6 +174,47 @@ async def test_a_phase_cannot_start_before_the_current_one(session, profile):
         )
 
 
+@pytest.mark.parametrize(
+    ("kind", "rate"),
+    [("deficit", 0.4), ("surplus", -0.4), ("maintenance", 0.2), ("deficit", 0)],
+)
+async def test_a_rate_contradicting_the_kind_is_refused(session, profile, kind, rate):
+    """The sign is the kind's meaning: a deficit loses, a surplus gains,
+    maintenance holds — a mismatch is a data error, not a preference."""
+    with pytest.raises(body_domain.InvalidPhase, match="rate_target"):
+        await body_domain.set_goal_phase(
+            session,
+            subject=SUBJECT,
+            kind=kind,
+            kcal_training=2400,
+            kcal_rest=2100,
+            protein_g=160,
+            rate_target=rate,
+        )
+
+
+async def test_revising_to_maintenance_requires_clearing_the_rate(session, profile):
+    await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="deficit",
+        kcal_training=2400,
+        kcal_rest=2100,
+        protein_g=160,
+        rate_target=-0.4,
+    )
+
+    with pytest.raises(body_domain.InvalidPhase, match="maintenance"):
+        await body_domain.revise_goal_phase(
+            session, subject=SUBJECT, changes={"kind": "maintenance"}
+        )
+
+    revised = await body_domain.revise_goal_phase(
+        session, subject=SUBJECT, changes={"kind": "maintenance", "rate_target": None}
+    )
+    assert revised["rate_target_kg_per_week"] is None
+
+
 async def test_nonsense_targets_are_refused(session, profile):
     with pytest.raises(body_domain.InvalidPhase, match="positive"):
         await body_domain.set_goal_phase(
