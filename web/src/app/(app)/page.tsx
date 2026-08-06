@@ -73,6 +73,7 @@ function DaySheet() {
   });
   const queryClient = useQueryClient();
   const [marking, setMarking] = useState(false);
+  const [savingPref, setSavingPref] = useState(false);
 
   if (summary.isPending) return <SheetSkeleton />;
   if (summary.error || !summary.data) {
@@ -104,6 +105,23 @@ function DaySheet() {
       toast.error(t("markFailed"));
     } finally {
       setMarking(false);
+    }
+  }
+
+  // A reading preference, not a per-view state: it lives on the profile
+  // beside the language choices, so it follows the user to any device.
+  async function toggleMacros() {
+    setSavingPref(true);
+    try {
+      const { error } = await api.PATCH("/api/profile", {
+        body: { changes: { show_item_macros: !profile.show_item_macros } },
+      });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+    } catch {
+      toast.error(t("prefFailed"));
+    } finally {
+      setSavingPref(false);
     }
   }
 
@@ -159,6 +177,19 @@ function DaySheet() {
           <CaretRight aria-hidden className="size-5" />
         </Link>
       </div>
+
+      {day.meals.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            disabled={savingPref}
+            onClick={toggleMacros}
+            className="-my-1.5 flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {t(profile.show_item_macros ? "hideMacros" : "showMacros")}
+          </button>
+        </div>
+      )}
 
       {day.meals.length === 0 ? (
         <div className="border-t border-border py-10 text-center">
@@ -217,15 +248,20 @@ function DaySheet() {
                           {kcal(item.kcal)}
                         </span>
                       </div>
-                      {item.protein_g != null && item.carbs_g != null && item.fat_g != null && (
-                        <p className="tnum font-mono text-xs text-muted-foreground">
-                          {t("itemMacros", {
-                            protein: Math.round(item.protein_g),
-                            carbs: Math.round(item.carbs_g),
-                            fat: Math.round(item.fat_g),
-                          })}
-                        </p>
-                      )}
+                      {profile.show_item_macros &&
+                        item.protein_g != null &&
+                        item.carbs_g != null &&
+                        item.fat_g != null && (
+                          <p className="tnum font-mono text-xs text-muted-foreground">
+                            {t("itemMacros", {
+                              protein: Math.round(item.protein_g),
+                              carbs: Math.round(item.carbs_g),
+                              fat: Math.round(item.fat_g),
+                            })}
+                            {item.fiber_g != null &&
+                              t("itemFiber", { fiber: Math.round(item.fiber_g) })}
+                          </p>
+                        )}
                     </li>
                   ))}
                 </ul>

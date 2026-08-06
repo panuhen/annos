@@ -121,6 +121,7 @@ async def test_update_before_registration_raises(session):
         {"birth_year": "1985"},
         {"height_cm": 30},
         {"height_cm": 400},
+        {"show_item_macros": "yes"},
     ],
 )
 async def test_impossible_profile_values_are_refused(session, changes):
@@ -130,6 +131,18 @@ async def test_impossible_profile_values_are_refused(session, changes):
 
     with pytest.raises(profile_domain.InvalidValue):
         await profile_domain.update_profile(session, subject=SUBJECT, changes=changes)
+
+
+async def test_item_macros_default_on_and_toggle_off(session):
+    """A reading preference like the language choices: stored on the profile,
+    updatable from both surfaces, presentation-only."""
+    profile = await profile_domain.create_profile(session, subject=SUBJECT)
+    assert profile.show_item_macros is True
+
+    profile = await profile_domain.update_profile(
+        session, subject=SUBJECT, changes={"show_item_macros": False}
+    )
+    assert profile.show_item_macros is False
 
 
 async def test_a_real_timezone_is_accepted(session):

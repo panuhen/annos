@@ -94,6 +94,7 @@ class ProfileResponse(BaseModel):
     units: str
     language: str
     ui_language: str | None
+    show_item_macros: bool
     dietary_prefs: dict[str, Any]
     coaching_notes: str | None
     server_time: ServerTime
@@ -140,6 +141,7 @@ class SummaryItemOut(BaseModel):
     protein_g: float | None
     carbs_g: float | None
     fat_g: float | None
+    fiber_g: float | None
 
 
 class SummaryMealOut(BaseModel):
@@ -258,6 +260,7 @@ def _profile_payload(profile) -> dict:
         "units": profile.units,
         "language": profile.language,
         "ui_language": profile.ui_language,
+        "show_item_macros": profile.show_item_macros,
         "dietary_prefs": profile.dietary_prefs,
         "coaching_notes": profile.coaching_notes,
         "server_time": servertime.echo(profile.timezone),

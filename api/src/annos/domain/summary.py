@@ -95,6 +95,9 @@ async def daily_summary(
             "protein_g": meals_domain._portion(item.protein_g, item.grams),
             "carbs_g": meals_domain._portion(item.carbs_g, item.grams),
             "fat_g": meals_domain._portion(item.fat_g, item.grams),
+            # Nullable like the snapshot: a food without a stated fiber value
+            # prints nothing rather than a fabricated zero.
+            "fiber_g": meals_domain._portion(item.fiber_g, item.grams),
         }
 
     phase = await body_domain.active_phase(session, subject=subject, on=day)

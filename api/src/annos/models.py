@@ -86,6 +86,12 @@ class UserProfile(Base):
     # NULL means "never chosen": the web negotiates from Accept-Language.
     ui_language: Mapped[str | None] = mapped_column(String(2))
 
+    # Whether the day sheet prints each food's macro line. Presentation only:
+    # the summary payload always carries the numbers.
+    show_item_macros: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+
     dietary_prefs: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'"))
 
     # Free text in the user's own words. Stored and returned verbatim; the server

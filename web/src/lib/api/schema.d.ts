@@ -560,6 +560,8 @@ export interface components {
             language: string;
             /** Ui Language */
             ui_language: string | null;
+            /** Show Item Macros */
+            show_item_macros: boolean;
             /** Dietary Prefs */
             dietary_prefs: {
                 [key: string]: unknown;
@@ -618,6 +620,8 @@ export interface components {
             carbs_g: number | null;
             /** Fat G */
             fat_g: number | null;
+            /** Fiber G */
+            fiber_g: number | null;
         };
         /** SummaryMealOut */
         SummaryMealOut: {

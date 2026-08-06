@@ -28,6 +28,7 @@ UPDATABLE = frozenset(
         "units",
         "language",
         "ui_language",
+        "show_item_macros",
         "dietary_prefs",
         "coaching_notes",
     }
@@ -73,6 +74,9 @@ def _validate(changes: dict) -> None:
     height = changes.get("height_cm")
     if height is not None and not (isinstance(height, int) and 50 <= height <= 300):
         raise InvalidValue("height_cm must be between 50 and 300")
+    show_macros = changes.get("show_item_macros")
+    if show_macros is not None and not isinstance(show_macros, bool):
+        raise InvalidValue("show_item_macros must be true or false")
 
 
 async def get_profile(session: AsyncSession, *, subject: str) -> UserProfile:

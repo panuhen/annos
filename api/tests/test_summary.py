@@ -45,7 +45,9 @@ async def test_no_arguments_means_today(session, profile):
 
 
 async def test_totals_target_and_remaining_line_up(session, deficit_phase, make_food):
-    food = await make_food(name_en="lunch bowl", kcal=550, protein_g=35, carbs_g=50, fat_g=20)
+    food = await make_food(
+        name_en="lunch bowl", kcal=550, protein_g=35, carbs_g=50, fat_g=20, fiber_g=6
+    )
     await meals_domain.log_meal(
         session,
         subject=SUBJECT,
@@ -86,6 +88,7 @@ async def test_totals_target_and_remaining_line_up(session, deficit_phase, make_
     assert item["protein_g"] == pytest.approx(35.0)
     assert item["carbs_g"] == pytest.approx(50.0)
     assert item["fat_g"] == pytest.approx(20.0)
+    assert item["fiber_g"] == pytest.approx(6.0)
 
 
 async def test_a_training_mark_switches_both_targets(session, deficit_phase, make_food):
