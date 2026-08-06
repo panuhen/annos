@@ -1,8 +1,10 @@
+from datetime import date as date_type
 from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -40,6 +42,9 @@ MealType = Enum(*MEALS, name="meal_type")
 
 INPUT_MODES = ("text", "photo", "plan")
 InputMode = Enum(*INPUT_MODES, name="input_mode")
+
+GOAL_KINDS = ("deficit", "maintenance", "surplus")
+GoalKind = Enum(*GOAL_KINDS, name="goal_kind")
 
 
 class UserProfile(Base):
@@ -257,6 +262,88 @@ class MealLogItem(Base):
     __table_args__ = (
         CheckConstraint("grams > 0", name="ck_meal_log_items_grams_positive"),
         Index("ix_meal_log_items_log_id", "log_id"),
+    )
+
+
+class BodyMetric(Base):
+    """One row per subject per day, upserted — logging weight twice on a day
+    replaces, never duplicates. The smoothed trend is computed at read time
+    and never stored; the raw daily value is the only fact here.
+
+    `date` is a calendar date in the subject's own timezone, decided by the
+    domain layer at write time — the row itself carries no timezone.
+    """
+
+    __tablename__ = "body_metrics"
+
+    subject: Mapped[str] = mapped_column(Text, primary_key=True)
+    date: Mapped[date_type] = mapped_column(Date, primary_key=True)
+
+    weight_kg: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    waist_cm: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "weight_kg IS NULL OR (weight_kg > 0 AND weight_kg < 500)",
+            name="ck_body_metrics_weight_sane",
+        ),
+        CheckConstraint(
+            "waist_cm IS NULL OR (waist_cm > 0 AND waist_cm < 500)",
+            name="ck_body_metrics_waist_sane",
+        ),
+        # A row must say something: all-NULL measurements is a no-op, not data.
+        CheckConstraint(
+            "num_nonnulls(weight_kg, waist_cm, notes) > 0", name="ck_body_metrics_not_empty"
+        ),
+    )
+
+
+class GoalPhase(Base):
+    """Targets have a lifespan, not a single flat number.
+
+    `end_date` NULL marks the current phase; setting a new phase closes the
+    previous one the day before the new one starts. History always evaluates
+    a day against the phase that was in force *then* — phases are appended
+    and closed, never rewritten.
+    """
+
+    __tablename__ = "goal_phases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+
+    kind: Mapped[str] = mapped_column(GoalKind, nullable=False)
+    start_date: Mapped[date_type] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date_type | None] = mapped_column(Date)
+
+    # Different targets per day type: training days earn more food.
+    kcal_target_training: Mapped[int] = mapped_column(Integer, nullable=False)
+    kcal_target_rest: Mapped[int] = mapped_column(Integer, nullable=False)
+    protein_target_g: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # What the phase is trying to achieve; the adaptive TDEE method evaluates
+    # actuals against this. Negative = losing.
+    rate_target_kg_per_week: Mapped[float | None] = mapped_column(Numeric(4, 2))
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "kcal_target_training > 0 AND kcal_target_rest > 0 AND protein_target_g > 0",
+            name="ck_goal_phases_targets_positive",
+        ),
+        CheckConstraint("end_date IS NULL OR end_date >= start_date", name="ck_goal_phases_dates"),
+        Index("ix_goal_phases_subject_start", "subject", "start_date"),
     )
 
 

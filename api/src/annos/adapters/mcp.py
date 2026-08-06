@@ -19,6 +19,7 @@ from pydantic import AnyHttpUrl
 from annos import servertime
 from annos.config import settings
 from annos.db import SessionLocal
+from annos.domain import body as body_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -177,6 +178,64 @@ async def log_meal(
             ts=ts,
             input_mode=input_mode,
             notes=notes,
+        )
+
+
+@mcp.tool
+async def log_weight(
+    weight_kg: float | None = None,
+    date: str | None = None,
+    waist_cm: float | None = None,
+    notes: str | None = None,
+) -> dict[str, Any]:
+    """Record bodyweight (kg) and/or waist (cm) for a day.
+
+    One row per day: logging again the same day replaces the fields given and
+    keeps the rest, so a morning weight and an evening waist coexist. Omit
+    date unless the user stated one ("last Friday"); it defaults to today in
+    their timezone. Daily fluctuation is noise — interpreting the trend is
+    your job, not a reason to withhold a measurement.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await body_domain.log_weight(
+            session,
+            subject=who.subject,
+            weight_kg=weight_kg,
+            date=date,
+            waist_cm=waist_cm,
+            notes=notes,
+        )
+
+
+@mcp.tool
+async def set_goal_phase(
+    kind: str,
+    kcal_training: int,
+    kcal_rest: int,
+    protein_g: int,
+    rate_target: float | None = None,
+    start_date: str | None = None,
+) -> dict[str, Any]:
+    """Start a new goal phase: deficit, maintenance, or surplus.
+
+    kcal targets are per day type (training vs rest); protein_g is the daily
+    protein target. rate_target is the intended weight change in kg/week,
+    negative for loss. start_date defaults to today; the currently open phase
+    is closed automatically the day before the new one starts. Past days keep
+    being judged against the phase that was active then.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await body_domain.set_goal_phase(
+            session,
+            subject=who.subject,
+            kind=kind,
+            kcal_training=kcal_training,
+            kcal_rest=kcal_rest,
+            protein_g=protein_g,
+            rate_target=rate_target,
+            start_date=start_date,
         )
 
 

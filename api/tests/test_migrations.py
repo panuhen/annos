@@ -94,8 +94,9 @@ def test_the_enum_type_is_created_exactly_once():
     This is the check from the tracker, automated."""
     sql = alembic("upgrade", "head", "--sql").stdout
 
-    # One per enum: food_source (0001), meal_type and input_mode (0003).
-    assert sql.count("CREATE TYPE") == 3
+    # One per enum: food_source (0001), meal_type and input_mode (0003),
+    # goal_kind (0004).
+    assert sql.count("CREATE TYPE") == 4
 
 
 def test_autogenerate_neither_drops_better_auths_tables_nor_finds_drift():

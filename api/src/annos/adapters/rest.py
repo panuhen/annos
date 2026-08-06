@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from annos import nickname as nickname_mod
 from annos import servertime
 from annos.db import get_session
+from annos.domain import body as body_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -154,6 +155,60 @@ async def log_meal(session: SessionDep, who: CallerDep, body: MealLogCreate) -> 
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except meals_domain.UnknownFood as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class WeightLogCreate(BaseModel):
+    weight_kg: float | None = None
+    date: str | None = Field(
+        default=None, description="Only when the user stated a day; defaults to today."
+    )
+    waist_cm: float | None = None
+    notes: str | None = None
+
+
+class GoalPhaseCreate(BaseModel):
+    kind: str
+    kcal_training: int
+    kcal_rest: int
+    protein_g: int
+    rate_target: float | None = None
+    start_date: str | None = None
+
+
+@router.post("/logs/weight", status_code=201)
+async def log_weight(session: SessionDep, who: CallerDep, body: WeightLogCreate) -> dict:
+    try:
+        return await body_domain.log_weight(
+            session,
+            subject=who.subject,
+            weight_kg=body.weight_kg,
+            date=body.date,
+            waist_cm=body.waist_cm,
+            notes=body.notes,
+        )
+    except body_domain.InvalidMetric as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+@router.post("/goals/phase", status_code=201)
+async def set_goal_phase(session: SessionDep, who: CallerDep, body: GoalPhaseCreate) -> dict:
+    try:
+        return await body_domain.set_goal_phase(
+            session,
+            subject=who.subject,
+            kind=body.kind,
+            kcal_training=body.kcal_training,
+            kcal_rest=body.kcal_rest,
+            protein_g=body.protein_g,
+            rate_target=body.rate_target,
+            start_date=body.start_date,
+        )
+    except body_domain.InvalidPhase as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
