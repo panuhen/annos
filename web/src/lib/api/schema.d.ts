@@ -650,6 +650,10 @@ export interface components {
             total_grams: number | null;
             /** Kcal */
             kcal: number | null;
+            /** Use Count */
+            use_count: number;
+            /** Last Used At */
+            last_used_at: string | null;
             /** Items */
             items: components["schemas"]["TemplateListItemOut"][];
         };

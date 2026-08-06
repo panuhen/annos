@@ -113,6 +113,10 @@ async def _expand_templates(
             {"food_id": row.food_id, "grams": float(Decimal(row.grams) * scale)}
             for row in template.items
         )
+        # Usage rides on the template so "the usual" can be offered first.
+        # Committed with the log itself; a failed log bumps nothing.
+        template.use_count += 1
+        template.last_used_at = servertime.now()
     return expanded
 
 

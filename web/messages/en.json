@@ -101,7 +101,9 @@
     "templateSaved": "Template “{name}” saved.",
     "templateReplaced": "Template “{name}” updated.",
     "templateFailed": "Could not save the template",
-    "manageTemplates": "Manage"
+    "manageTemplates": "Manage",
+    "moreTemplates": "+{count} more",
+    "fewerTemplates": "Show fewer"
   },
   "weight": {
     "title": "Weight",

@@ -101,7 +101,9 @@
     "templateSaved": "Mallen ”{name}” sparad.",
     "templateReplaced": "Mallen ”{name}” uppdaterad.",
     "templateFailed": "Mallen kunde inte sparas",
-    "manageTemplates": "Hantera"
+    "manageTemplates": "Hantera",
+    "moreTemplates": "+{count} till",
+    "fewerTemplates": "Visa färre"
   },
   "weight": {
     "title": "Vikt",

@@ -92,6 +92,7 @@ export function MealForm(props: Props) {
   const [tplOpen, setTplOpen] = useState(false);
   const [tplName, setTplName] = useState("");
   const [tplSaving, setTplSaving] = useState(false);
+  const [allChips, setAllChips] = useState(false);
 
   const debounced = useDebounced(query.trim(), 250);
   const search = useQuery({
@@ -301,7 +302,8 @@ export function MealForm(props: Props) {
         )}
       </div>
 
-      {/* Saved templates: one tap puts the usual on the plate */}
+      {/* Saved templates: one tap puts the usual on the plate. Most-used
+       * first, capped at six — this is a shortcut strip, not the catalog. */}
       {(templates.data?.templates.length ?? 0) > 0 && (
         <div>
           <p className="mb-1.5 flex items-baseline justify-between font-mono text-xs uppercase tracking-wider text-muted-foreground">
@@ -311,21 +313,52 @@ export function MealForm(props: Props) {
             </Link>
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {templates.data!.templates.map((template) => (
-              <button
-                key={template.template_id}
-                type="button"
-                onClick={() => addTemplate(template)}
-                className="inline-flex min-h-11 items-center border border-input px-3 font-mono text-xs hover:bg-secondary"
-              >
-                +{template.name}
-                {template.kcal != null && (
-                  <span className="tnum ml-1.5 text-muted-foreground">
-                    {Math.round(template.kcal)}&#8239;kcal
-                  </span>
-                )}
-              </button>
-            ))}
+            {(() => {
+              const sorted = [...templates.data!.templates].sort(
+                (a, b) => b.use_count - a.use_count || a.name.localeCompare(b.name),
+              );
+              const shown = allChips ? sorted : sorted.slice(0, 6);
+              const hidden = sorted.length - shown.length;
+              return (
+                <>
+                  {shown.map((template) => (
+                    <button
+                      key={template.template_id}
+                      type="button"
+                      onClick={() => addTemplate(template)}
+                      className="inline-flex min-h-11 items-center border border-input px-3 font-mono text-xs hover:bg-secondary"
+                    >
+                      +{template.name}
+                      {template.kcal != null && (
+                        <span className="tnum ml-1.5 text-muted-foreground">
+                          {Math.round(template.kcal)}&#8239;kcal
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  {hidden > 0 && (
+                    <button
+                      type="button"
+                      aria-expanded={false}
+                      onClick={() => setAllChips(true)}
+                      className="inline-flex min-h-11 items-center px-2 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                    >
+                      {t("moreTemplates", { count: hidden })}
+                    </button>
+                  )}
+                  {allChips && sorted.length > 6 && (
+                    <button
+                      type="button"
+                      aria-expanded={true}
+                      onClick={() => setAllChips(false)}
+                      className="inline-flex min-h-11 items-center px-2 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                    >
+                      {t("fewerTemplates")}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

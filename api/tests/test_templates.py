@@ -254,6 +254,21 @@ async def test_grams_without_a_yield_is_refused(session, breakfast):
         )
 
 
+async def test_logging_a_template_counts_as_a_use(session, breakfast):
+    await meals_domain.log_meal(
+        session, subject=SUBJECT, items=[{"template_id": breakfast["saved"]["template_id"]}]
+    )
+    await meals_domain.log_meal(
+        session, subject=SUBJECT, items=[{"template_id": breakfast["saved"]["template_id"]}]
+    )
+
+    listed = await templates_domain.list_templates(session, subject=SUBJECT)
+
+    (template,) = listed["templates"]
+    assert template["use_count"] == 2
+    assert template["last_used_at"] is not None
+
+
 async def test_templates_mix_with_plain_items(session, breakfast, make_food):
     apple = await make_food(name_fi="omena", kcal=52, protein_g=0.3, carbs_g=12, fat_g=0.2)
 

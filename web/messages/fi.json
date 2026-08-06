@@ -101,7 +101,9 @@
     "templateSaved": "Pohja ”{name}” tallennettu.",
     "templateReplaced": "Pohja ”{name}” päivitetty.",
     "templateFailed": "Pohjaa ei voitu tallentaa",
-    "manageTemplates": "Hallinnoi"
+    "manageTemplates": "Hallinnoi",
+    "moreTemplates": "+{count} lisää",
+    "fewerTemplates": "Näytä vähemmän"
   },
   "weight": {
     "title": "Paino",

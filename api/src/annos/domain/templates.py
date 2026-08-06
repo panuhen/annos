@@ -239,6 +239,10 @@ async def list_templates(session: AsyncSession, *, subject: str) -> dict:
                 float(template.total_grams) if template.total_grams is not None else None
             ),
             "kcal": round(sum(kcal_values), 2) if kcal_values else None,
+            "use_count": template.use_count,
+            "last_used_at": (
+                template.last_used_at.isoformat() if template.last_used_at is not None else None
+            ),
             "items": items,
         }
 

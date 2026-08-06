@@ -548,6 +548,8 @@ class TemplateOut(BaseModel):
     name: str
     total_grams: float | None
     kcal: float | None
+    use_count: int
+    last_used_at: str | None
     items: list[TemplateListItemOut]
 
 

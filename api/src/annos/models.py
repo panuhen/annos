@@ -315,6 +315,13 @@ class MealTemplate(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     total_grams: Mapped[float | None] = mapped_column(Numeric(8, 2))
 
+    # Bumped whenever the template is expanded into a log — "the usual" should
+    # surface first wherever templates are offered. Metadata about the
+    # template, never about any log: deleting the template loses it, logs
+    # never reference it.
+    use_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
