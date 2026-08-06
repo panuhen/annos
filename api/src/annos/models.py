@@ -111,6 +111,29 @@ class UserProfile(Base):
     )
 
 
+class CoachingNoteRevision(Base):
+    """What the coaching notes became, every time they changed.
+
+    Appended by `update_profile` whenever `coaching_notes` actually changes
+    (a rewrite to the same text is not a revision). The current value lives on
+    `user_profile` and every default read stays there — this table is only for
+    the explicit "how have my instructions changed" question, so history never
+    rides along uninvited. `notes` is nullable because clearing the notes is
+    itself a revision worth remembering.
+    """
+
+    __tablename__ = "coaching_note_revisions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (Index("ix_coaching_note_revisions_subject_created", "subject", "created_at"),)
+
+
 class Food(Base):
     """One row per distinct food. Per-100g is the base convention.
 

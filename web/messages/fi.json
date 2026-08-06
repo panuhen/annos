@@ -128,9 +128,11 @@
     "submit": "Avaa jakso",
     "opening": "Avataan…",
     "failed": "Jaksoa ei voitu avata",
-    "history": "Jaksot",
     "ongoing": "käynnissä",
-    "phaseTargets": "lepo {kcalRest} · treeni {kcalTraining} kcal · {protein} g proteiinia"
+    "phaseTargets": "lepo {kcalRest} · treeni {kcalTraining} kcal · {protein} g proteiinia",
+    "showPhases": "Näytä aiemmat jaksot",
+    "hidePhases": "Piilota aiemmat jaksot",
+    "noPhases": "Ei vielä jaksoja."
   },
   "profile": {
     "title": "Profiili",
@@ -159,7 +161,12 @@
     "nothingChanged": "Ei muutoksia.",
     "saved": "Tallennettu.",
     "saveFailed": "Tallennus epäonnistui",
-    "apiNoAnswer": "API ei vastannut. Yritä uudelleen."
+    "apiNoAnswer": "API ei vastannut. Yritä uudelleen.",
+    "showNotesHistory": "Näytä aiemmat muistiinpanot",
+    "hideNotesHistory": "Piilota aiemmat muistiinpanot",
+    "historyReading": "Luetaan…",
+    "historyEmpty": "Ei vielä muutoksia.",
+    "notesCleared": "(tyhjennetty)"
   },
   "welcome": {
     "title": "Yksi nimi, arvottu sinulle",

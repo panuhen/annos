@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Monitor, Moon, Sun } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, Monitor, Moon, Sun } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -20,8 +20,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { LOCALE_COOKIE, LOCALES } from "@/i18n/config";
 import { api } from "@/lib/api/client";
+import { $api } from "@/lib/api/hooks";
 import { clearApiToken } from "@/lib/api/token";
 import { authClient } from "@/lib/auth-client";
+import { clockTime, localeFor, sheetDate } from "@/lib/format";
 import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
@@ -230,6 +232,7 @@ export default function ProfilePage() {
           rows={3}
           placeholder={t("coachingPlaceholder")}
         />
+        <CoachingHistory />
       </div>
 
       <button
@@ -249,6 +252,64 @@ export default function ProfilePage() {
         {t("signOut")}
       </button>
     </>
+  );
+}
+
+/** The notes' past versions, fetched only when asked for — history never
+ * rides along with the profile by default, on either surface. */
+function CoachingHistory() {
+  const profile = useProfile();
+  const t = useTranslations("profile");
+  const locale = localeFor(useLocale());
+  const [open, setOpen] = useState(false);
+
+  const history = $api.useQuery(
+    "get",
+    "/api/profile/coaching-history",
+    {},
+    { enabled: open },
+  );
+
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex min-h-11 items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+      >
+        {open ? (
+          <CaretDown aria-hidden className="size-3.5" />
+        ) : (
+          <CaretRight aria-hidden className="size-3.5" />
+        )}
+        {open ? t("hideNotesHistory") : t("showNotesHistory")}
+      </button>
+      {open &&
+        (history.isPending ? (
+          <p className="pb-2 text-sm text-muted-foreground">{t("historyReading")}</p>
+        ) : history.data && history.data.revisions.length > 0 ? (
+          <ul>
+            {history.data.revisions.map((revision, i) => (
+              <li key={i} className="border-t border-border py-2">
+                <p className="font-mono text-xs text-muted-foreground tnum">
+                  {sheetDate(revision.set_at.slice(0, 10), locale)}{" "}
+                  {clockTime(revision.set_at, locale, profile.timezone)}
+                </p>
+                {revision.notes ? (
+                  <p className="mt-0.5 text-sm">{revision.notes}</p>
+                ) : (
+                  <p className="mt-0.5 text-sm italic text-muted-foreground">
+                    {t("notesCleared")}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="pb-2 text-sm text-muted-foreground">{t("historyEmpty")}</p>
+        ))}
+    </div>
   );
 }
 

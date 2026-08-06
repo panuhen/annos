@@ -60,6 +60,23 @@ export interface paths {
         patch: operations["update_profile_api_profile_patch"];
         trace?: never;
     };
+    "/api/profile/coaching-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Coaching History */
+        get: operations["coaching_history_api_profile_coaching_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/logs/meals": {
         parameters: {
             query?: never;
@@ -189,6 +206,19 @@ export interface components {
             phase_id: number;
             /** End Date */
             end_date: string;
+        };
+        /** CoachingHistoryResponse */
+        CoachingHistoryResponse: {
+            /** Revisions */
+            revisions: components["schemas"]["CoachingRevisionOut"][];
+            server_time: components["schemas"]["ServerTime"];
+        };
+        /** CoachingRevisionOut */
+        CoachingRevisionOut: {
+            /** Notes */
+            notes: string | null;
+            /** Set At */
+            set_at: string;
         };
         /** DailySummaryResponse */
         DailySummaryResponse: {
@@ -717,6 +747,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    coaching_history_api_profile_coaching_history_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachingHistoryResponse"];
                 };
             };
             /** @description Validation Error */

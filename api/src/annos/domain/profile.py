@@ -10,7 +10,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from annos import nickname as nickname_mod
-from annos.models import UserProfile
+from annos import servertime
+from annos.models import CoachingNoteRevision, UserProfile
 
 # Fields a caller may change. `nickname` and `subject` are absent on purpose:
 # there is no rename surface anywhere in the product, and identity comes from
@@ -97,8 +98,35 @@ async def update_profile(session: AsyncSession, *, subject: str, changes: dict) 
         raise UnknownField(unknown)
 
     profile = await get_profile(session, subject=subject)
+    # Coaching notes keep their history: every actual change appends what the
+    # notes *became*. A rewrite to the same text is not a revision, and the
+    # history is read only by coaching_notes_history — never by default.
+    if "coaching_notes" in changes and changes["coaching_notes"] != profile.coaching_notes:
+        session.add(CoachingNoteRevision(subject=subject, notes=changes["coaching_notes"]))
     for name, value in changes.items():
         setattr(profile, name, value)
     await session.commit()
     await session.refresh(profile)
     return profile
+
+
+async def coaching_notes_history(session: AsyncSession, *, subject: str) -> dict:
+    """Every version the coaching notes have been, newest first.
+
+    The current value lives on the profile and rides along in every default
+    payload; this exists only for the explicit "how have my instructions
+    changed" question. A null `notes` records the notes being cleared.
+    """
+    profile = await get_profile(session, subject=subject)
+    revisions = await session.scalars(
+        select(CoachingNoteRevision)
+        .where(CoachingNoteRevision.subject == subject)
+        .order_by(CoachingNoteRevision.created_at.desc(), CoachingNoteRevision.id.desc())
+    )
+    return {
+        "revisions": [
+            {"notes": revision.notes, "set_at": revision.created_at.isoformat()}
+            for revision in revisions
+        ],
+        "server_time": servertime.echo(profile.timezone),
+    }

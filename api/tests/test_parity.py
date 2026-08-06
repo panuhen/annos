@@ -13,6 +13,7 @@ EXPECTED_TOOLS = {
     "find_food",
     "get_profile",
     "update_profile",
+    "coaching_history",
     "log_meal",
     "revise_log",
     "log_weight",
@@ -111,6 +112,20 @@ async def test_a_write_on_one_surface_is_visible_on_the_other(api, mcp_client, s
     assert updated["updated"] == ["height_cm"]
 
     assert (await api.get("/api/profile")).json()["height_cm"] == 181
+
+
+async def test_coaching_history_is_byte_identical_across_surfaces(api, mcp_client, session):
+    await profile_domain.create_profile(session, subject=SUBJECT)
+    for notes in ("be blunt", "be gentle"):
+        await profile_domain.update_profile(
+            session, subject=SUBJECT, changes={"coaching_notes": notes}
+        )
+
+    rest = (await api.get("/api/profile/coaching-history")).json()
+    mcp = await mcp_call(mcp_client, "coaching_history")
+
+    assert rest["revisions"] == mcp["revisions"]
+    assert [r["notes"] for r in rest["revisions"]] == ["be gentle", "be blunt"]
 
 
 async def test_goal_history_is_byte_identical_across_surfaces(api, mcp_client, session):

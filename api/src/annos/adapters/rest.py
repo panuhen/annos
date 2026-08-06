@@ -201,6 +201,16 @@ class GoalPhaseResponse(BaseModel):
     closed_previous: ClosedPhaseOut | None = None
 
 
+class CoachingRevisionOut(BaseModel):
+    notes: str | None
+    set_at: str
+
+
+class CoachingHistoryResponse(BaseModel):
+    revisions: list[CoachingRevisionOut]
+    server_time: ServerTime
+
+
 class GoalPhaseOut(BaseModel):
     phase_id: int
     kind: str
@@ -306,6 +316,14 @@ async def update_profile(
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
     return _profile_payload(profile)
+
+
+@router.get("/profile/coaching-history")
+async def coaching_history(session: SessionDep, who: CallerDep) -> CoachingHistoryResponse:
+    try:
+        return await profile_domain.coaching_notes_history(session, subject=who.subject)
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
 
 class MealItem(BaseModel):

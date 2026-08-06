@@ -1,5 +1,6 @@
 "use client";
 
+import { CaretDown, CaretRight } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
@@ -30,8 +31,13 @@ export default function GoalPage() {
 
   const summary = $api.useQuery("get", "/api/summary/daily", { params: { query: {} } });
   const target = summary.data?.target;
-  const history = $api.useQuery("get", "/api/goals/phases");
-  const phases = history.data?.phases ?? [];
+  // Past phases stay off the sheet until asked for — the active target above
+  // is the goal; the ledger is for the "how did I get here" question.
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const history = $api.useQuery("get", "/api/goals/phases", {}, { enabled: historyOpen });
+  // Only closed phases hide behind the chevron — the active phase is the
+  // target block above, always on the sheet.
+  const phases = (history.data?.phases ?? []).filter((phase) => phase.end_date != null);
 
   const [kind, setKind] = useState("deficit");
   const [kcalTraining, setKcalTraining] = useState("");
@@ -199,36 +205,54 @@ export default function GoalPage() {
       <p className="mt-3 text-xs text-muted-foreground">{t("restNote")}</p>
 
       {/* The ledger: phases append and close, so this list is the goal
-       * history — the open one on top, everything below it what the
-       * targets were and when they changed. */}
-      {phases.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-sm font-bold">{t("history")}</h2>
-          <ul className="mt-1">
-            {phases.map((phase) => (
-              <li key={phase.phase_id} className="border-b border-border py-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-bold">{kindLabel(phase.kind)}</span>
-                  <span className="tnum font-mono text-xs text-muted-foreground">
-                    {sheetDate(phase.start_date, locale)}
-                    {" – "}
-                    {phase.end_date ? sheetDate(phase.end_date, locale) : t("ongoing")}
-                  </span>
-                </div>
-                <p className="tnum mt-1 font-mono text-xs text-muted-foreground">
-                  {t("phaseTargets", {
-                    kcalRest: phase.kcal_target_rest,
-                    kcalTraining: phase.kcal_target_training,
-                    protein: phase.protein_target_g,
-                  })}
-                  {phase.rate_target_kg_per_week != null &&
-                    t("rateSuffix", { rate: rateFigure(phase.rate_target_kg_per_week, locale) })}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+       * history — kept off the sheet until asked for. */}
+      <section className="mt-6">
+        <button
+          type="button"
+          aria-expanded={historyOpen}
+          onClick={() => setHistoryOpen(!historyOpen)}
+          className="flex min-h-11 items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+        >
+          {historyOpen ? (
+            <CaretDown aria-hidden className="size-3.5" />
+          ) : (
+            <CaretRight aria-hidden className="size-3.5" />
+          )}
+          {historyOpen ? t("hidePhases") : t("showPhases")}
+        </button>
+        {historyOpen &&
+          (history.isPending ? (
+            <p className="pb-2 text-sm text-muted-foreground">{t("reading")}</p>
+          ) : phases.length > 0 ? (
+            <ul>
+              {phases.map((phase) => (
+                <li key={phase.phase_id} className="border-t border-border py-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm font-bold">{kindLabel(phase.kind)}</span>
+                    <span className="tnum font-mono text-xs text-muted-foreground">
+                      {sheetDate(phase.start_date, locale)}
+                      {" – "}
+                      {phase.end_date ? sheetDate(phase.end_date, locale) : t("ongoing")}
+                    </span>
+                  </div>
+                  <p className="tnum mt-1 font-mono text-xs text-muted-foreground">
+                    {t("phaseTargets", {
+                      kcalRest: phase.kcal_target_rest,
+                      kcalTraining: phase.kcal_target_training,
+                      protein: phase.protein_target_g,
+                    })}
+                    {phase.rate_target_kg_per_week != null &&
+                      t("rateSuffix", {
+                        rate: rateFigure(phase.rate_target_kg_per_week, locale),
+                      })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="pb-2 text-sm text-muted-foreground">{t("noPhases")}</p>
+          ))}
+      </section>
 
       <div className="sticky bottom-[4.5rem] lg:bottom-4 mt-6 bg-background pb-1">
         <button

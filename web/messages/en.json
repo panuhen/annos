@@ -128,9 +128,11 @@
     "submit": "Open phase",
     "opening": "Opening…",
     "failed": "Could not open the phase",
-    "history": "Phases",
     "ongoing": "ongoing",
-    "phaseTargets": "rest {kcalRest} · training {kcalTraining} kcal · {protein} g protein"
+    "phaseTargets": "rest {kcalRest} · training {kcalTraining} kcal · {protein} g protein",
+    "showPhases": "Show earlier phases",
+    "hidePhases": "Hide earlier phases",
+    "noPhases": "No phases yet."
   },
   "profile": {
     "title": "Profile",
@@ -159,7 +161,12 @@
     "nothingChanged": "Nothing changed.",
     "saved": "Saved.",
     "saveFailed": "Could not save",
-    "apiNoAnswer": "The API did not answer. Try again."
+    "apiNoAnswer": "The API did not answer. Try again.",
+    "showNotesHistory": "Show earlier notes",
+    "hideNotesHistory": "Hide earlier notes",
+    "historyReading": "Reading…",
+    "historyEmpty": "No changes yet.",
+    "notesCleared": "(cleared)"
   },
   "welcome": {
     "title": "One name, drawn for you",

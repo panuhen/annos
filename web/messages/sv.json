@@ -128,9 +128,11 @@
     "submit": "Öppna fas",
     "opening": "Öppnar…",
     "failed": "Fasen kunde inte öppnas",
-    "history": "Faser",
     "ongoing": "pågår",
-    "phaseTargets": "vila {kcalRest} · träning {kcalTraining} kcal · {protein} g protein"
+    "phaseTargets": "vila {kcalRest} · träning {kcalTraining} kcal · {protein} g protein",
+    "showPhases": "Visa tidigare faser",
+    "hidePhases": "Dölj tidigare faser",
+    "noPhases": "Inga faser ännu."
   },
   "profile": {
     "title": "Profil",
@@ -159,7 +161,12 @@
     "nothingChanged": "Inga ändringar.",
     "saved": "Sparat.",
     "saveFailed": "Kunde inte spara",
-    "apiNoAnswer": "API:t svarade inte. Försök igen."
+    "apiNoAnswer": "API:t svarade inte. Försök igen.",
+    "showNotesHistory": "Visa tidigare anteckningar",
+    "hideNotesHistory": "Dölj tidigare anteckningar",
+    "historyReading": "Läser…",
+    "historyEmpty": "Inga ändringar ännu.",
+    "notesCleared": "(rensat)"
   },
   "welcome": {
     "title": "Ett namn, draget åt dig",

@@ -259,6 +259,20 @@ async def set_goal_phase(
 
 
 @mcp.tool
+async def coaching_history() -> dict[str, Any]:
+    """Every version the user's coaching notes have been, newest first.
+
+    Only for when the user asks how their coaching instructions have changed
+    over time — the current notes already arrive in get_profile and in every
+    profile_context block, so ordinary coaching never needs this call. A null
+    notes entry records the notes being cleared at that moment.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await profile_domain.coaching_notes_history(session, subject=who.subject)
+
+
+@mcp.tool
 async def goal_history() -> dict[str, Any]:
     """Every goal phase ever set, newest first: what the targets were and when
     they changed.

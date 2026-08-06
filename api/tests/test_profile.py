@@ -113,6 +113,55 @@ async def test_update_before_registration_raises(session):
 # --- REST surface -----------------------------------------------------------
 
 
+async def test_coaching_notes_changes_append_to_the_history(session):
+    await profile_domain.create_profile(session, subject=SUBJECT)
+    await profile_domain.update_profile(
+        session, subject=SUBJECT, changes={"coaching_notes": "be blunt"}
+    )
+    await profile_domain.update_profile(
+        session, subject=SUBJECT, changes={"coaching_notes": "be gentle"}
+    )
+
+    history = await profile_domain.coaching_notes_history(session, subject=SUBJECT)
+
+    assert [revision["notes"] for revision in history["revisions"]] == ["be gentle", "be blunt"]
+
+
+async def test_rewriting_the_same_notes_is_not_a_revision(session):
+    await profile_domain.create_profile(session, subject=SUBJECT)
+    await profile_domain.update_profile(
+        session, subject=SUBJECT, changes={"coaching_notes": "be blunt"}
+    )
+    await profile_domain.update_profile(
+        session, subject=SUBJECT, changes={"coaching_notes": "be blunt", "height_cm": 181}
+    )
+
+    history = await profile_domain.coaching_notes_history(session, subject=SUBJECT)
+
+    assert len(history["revisions"]) == 1
+
+
+async def test_clearing_the_notes_is_a_revision(session):
+    await profile_domain.create_profile(session, subject=SUBJECT)
+    await profile_domain.update_profile(
+        session, subject=SUBJECT, changes={"coaching_notes": "be blunt"}
+    )
+    await profile_domain.update_profile(session, subject=SUBJECT, changes={"coaching_notes": None})
+
+    history = await profile_domain.coaching_notes_history(session, subject=SUBJECT)
+
+    assert [revision["notes"] for revision in history["revisions"]] == [None, "be blunt"]
+
+
+async def test_other_profile_changes_leave_the_history_alone(session):
+    await profile_domain.create_profile(session, subject=SUBJECT)
+    await profile_domain.update_profile(session, subject=SUBJECT, changes={"height_cm": 181})
+
+    history = await profile_domain.coaching_notes_history(session, subject=SUBJECT)
+
+    assert history["revisions"] == []
+
+
 async def test_rest_get_profile_is_404_before_registration(api):
     response = await api.get("/api/profile")
 
@@ -149,6 +198,16 @@ async def test_rest_rolling_a_nickname_commits_nothing(api):
     await api.post("/api/profile/nickname/roll")
 
     assert (await api.get("/api/profile")).status_code == 404
+
+
+async def test_rest_serves_the_coaching_history(api):
+    await api.post("/api/profile", json={})
+    await api.patch("/api/profile", json={"changes": {"coaching_notes": "be blunt"}})
+
+    response = await api.get("/api/profile/coaching-history")
+
+    assert response.status_code == 200
+    assert [r["notes"] for r in response.json()["revisions"]] == ["be blunt"]
 
 
 async def test_rest_patch_rejects_nickname_with_422(api):
