@@ -27,10 +27,11 @@ import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
 /** Language names stay in their own language — a Finn lost in a Swedish UI
- * still finds "suomi". */
+ * still finds "Suomi". Capitalized as labels: grammatically fi/sv write
+ * language names lowercase, but a mixed-case picker reads as a defect. */
 const LANGUAGE_NAMES: Record<string, string> = {
-  fi: "suomi",
-  sv: "svenska",
+  fi: "Suomi",
+  sv: "Svenska",
   en: "English",
 };
 
@@ -42,13 +43,37 @@ const BIRTH_YEARS = Array.from({ length: CURRENT_YEAR - 1900 + 1 }, (_, i) =>
 );
 const HEIGHTS_CM = Array.from({ length: 231 - 100 }, (_, i) => String(230 - i));
 
-function timezoneOptions(current: string): string[] {
+/** "GMT+3" for Europe/Helsinki in summer — the current offset, DST included,
+ * from the browser's own tz database. */
+function gmtOffset(zone: string): string {
   try {
-    const zones = Intl.supportedValuesOf("timeZone");
-    return zones.includes(current) ? zones : [current, ...zones];
+    const parts = new Intl.DateTimeFormat("en", {
+      timeZone: zone,
+      timeZoneName: "shortOffset",
+    }).formatToParts(new Date());
+    return parts.find((part) => part.type === "timeZoneName")?.value ?? "";
   } catch {
-    return [current];
+    return "";
   }
+}
+
+/** Computed once per page load: ~450 zones × formatToParts is too much work
+ * to redo on every render. */
+let tzOptionsCache: { zone: string; offset: string }[] | null = null;
+
+function timezoneOptions(current: string): { zone: string; offset: string }[] {
+  if (tzOptionsCache && tzOptionsCache.some((option) => option.zone === current)) {
+    return tzOptionsCache;
+  }
+  let zones: string[];
+  try {
+    zones = Intl.supportedValuesOf("timeZone");
+  } catch {
+    zones = [];
+  }
+  if (!zones.includes(current)) zones = [current, ...zones];
+  tzOptionsCache = zones.map((zone) => ({ zone, offset: gmtOffset(zone) }));
+  return tzOptionsCache;
 }
 
 export default function ProfilePage() {
@@ -187,9 +212,10 @@ export default function ProfilePage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {timezoneOptions(profile.timezone).map((zone) => (
+            {timezoneOptions(profile.timezone).map(({ zone, offset }) => (
               <SelectItem key={zone} value={zone} className="font-mono text-sm">
                 {zone}
+                {offset && <span className="ml-2 text-xs text-muted-foreground">{offset}</span>}
               </SelectItem>
             ))}
           </SelectContent>
