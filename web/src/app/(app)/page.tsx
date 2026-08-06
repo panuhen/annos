@@ -1,13 +1,16 @@
 "use client";
 
 import { CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
+import { toast } from "sonner";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnnosMark } from "@/components/logo";
+import { api } from "@/lib/api/client";
 import { $api } from "@/lib/api/hooks";
 import {
   addDays,
@@ -62,6 +65,8 @@ function DaySheet() {
   const summary = $api.useQuery("get", "/api/summary/daily", {
     params: { query: date ? { date } : {} },
   });
+  const queryClient = useQueryClient();
+  const [marking, setMarking] = useState(false);
 
   if (summary.isPending) return <SheetSkeleton />;
   if (summary.error || !summary.data) {
@@ -76,6 +81,24 @@ function DaySheet() {
   const day = summary.data;
   const today = day.server_time.local_date;
   const isToday = day.date === today;
+
+  // The mark is the user's say and wins over any derivation, in both
+  // directions; it applies to the sheet's own date, a day the user is
+  // looking at and therefore stating.
+  async function markDay() {
+    setMarking(true);
+    try {
+      const { error } = await api.PUT("/api/days/type", {
+        body: { day_type: day.day_type === "rest" ? "training" : "rest", date: day.date },
+      });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["get", "/api/summary/daily"] });
+    } catch {
+      toast.error(t("markFailed"));
+    } finally {
+      setMarking(false);
+    }
+  }
 
   return (
     <>
@@ -227,7 +250,13 @@ function DaySheet() {
         <p className="mt-1 text-xs text-muted-foreground">
           {day.target ? (
             <>
-              {day.day_type === "rest" ? t("restTarget") : t("trainingTarget")} ·{" "}
+              {day.day_type === "rest" ? t("restTarget") : t("trainingTarget")}
+              {/* An unmarked day is an assumption, and the sheet says so —
+               * the same honesty as the provenance parentheticals. */}
+              {day.day_type_source === "default" && (
+                <span className="font-mono"> ({t("assumed")})</span>
+              )}
+              {" · "}
               {kindLabel(day.target.kind)}
               {day.target.rate_kg_per_week != null && (
                 <>
@@ -245,6 +274,16 @@ function DaySheet() {
             </>
           )}
         </p>
+        {day.target && (
+          <button
+            type="button"
+            disabled={marking}
+            onClick={markDay}
+            className="mt-1 flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {day.day_type === "rest" ? t("markTraining") : t("markRest")}
+          </button>
+        )}
       </div>
 
       <div className="sticky bottom-[4.5rem] lg:bottom-4 mt-6 bg-background pb-1">

@@ -42,7 +42,8 @@ export default function GoalPage() {
   const [kind, setKind] = useState("deficit");
   const [kcalTraining, setKcalTraining] = useState("");
   const [kcalRest, setKcalRest] = useState("");
-  const [protein, setProtein] = useState("");
+  const [proteinTraining, setProteinTraining] = useState("");
+  const [proteinRest, setProteinRest] = useState("");
   const [rate, setRate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -51,7 +52,11 @@ export default function GoalPage() {
   // history. Revising reuses the form, prefilled from the open phase.
   const [revising, setRevising] = useState(false);
 
-  const valid = parseInt(kcalTraining) > 0 && parseInt(kcalRest) > 0 && parseInt(protein) > 0;
+  const valid =
+    parseInt(kcalTraining) > 0 &&
+    parseInt(kcalRest) > 0 &&
+    parseInt(proteinTraining) > 0 &&
+    parseInt(proteinRest) > 0;
 
   const kindLabel = (value: string) =>
     (KINDS as readonly string[]).includes(value) ? tKinds(value) : value;
@@ -66,7 +71,8 @@ export default function GoalPage() {
     setKind(open.kind);
     setKcalTraining(String(open.kcal_target_training));
     setKcalRest(String(open.kcal_target_rest));
-    setProtein(String(open.protein_target_g));
+    setProteinTraining(String(open.protein_target_training));
+    setProteinRest(String(open.protein_target_rest));
     // The field holds the magnitude; the sign is drawn from the kind.
     setRate(
       open.rate_target_kg_per_week != null ? String(Math.abs(open.rate_target_kg_per_week)) : "",
@@ -81,7 +87,8 @@ export default function GoalPage() {
     setKind("deficit");
     setKcalTraining("");
     setKcalRest("");
-    setProtein("");
+    setProteinTraining("");
+    setProteinRest("");
     setRate("");
     setStartDate("");
   }
@@ -96,7 +103,8 @@ export default function GoalPage() {
         kind,
         kcal_training: parseInt(kcalTraining),
         kcal_rest: parseInt(kcalRest),
-        protein_g: parseInt(protein),
+        protein_training: parseInt(proteinTraining),
+        protein_rest: parseInt(proteinRest),
         rate_target:
           kind === "maintenance" || rate.trim() === "" || !(magnitude > 0)
             ? null
@@ -231,14 +239,26 @@ export default function GoalPage() {
           />
         </div>
         <div>
-          <Label htmlFor="protein-g" className="mb-1.5 font-mono text-xs uppercase">
-            {t("protein")}
+          <Label htmlFor="protein-rest" className="mb-1.5 font-mono text-xs uppercase">
+            {t("proteinRest")}
           </Label>
           <Input
-            id="protein-g"
+            id="protein-rest"
             inputMode="numeric"
-            value={protein}
-            onChange={(e) => setProtein(e.target.value)}
+            value={proteinRest}
+            onChange={(e) => setProteinRest(e.target.value)}
+            className="tnum h-11 text-right font-mono"
+          />
+        </div>
+        <div>
+          <Label htmlFor="protein-training" className="mb-1.5 font-mono text-xs uppercase">
+            {t("proteinTraining")}
+          </Label>
+          <Input
+            id="protein-training"
+            inputMode="numeric"
+            value={proteinTraining}
+            onChange={(e) => setProteinTraining(e.target.value)}
             className="tnum h-11 text-right font-mono"
           />
         </div>
@@ -319,7 +339,8 @@ export default function GoalPage() {
                     {t("phaseTargets", {
                       kcalRest: phase.kcal_target_rest,
                       kcalTraining: phase.kcal_target_training,
-                      protein: phase.protein_target_g,
+                      proteinRest: phase.protein_target_rest,
+                      proteinTraining: phase.protein_target_training,
                     })}
                     {phase.rate_target_kg_per_week != null &&
                       t("rateSuffix", {

@@ -111,6 +111,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/days/type": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Day Type */
+        put: operations["set_day_type_api_days_type_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/logs/weight": {
         parameters: {
             query?: never;
@@ -264,6 +281,8 @@ export interface components {
             date: string;
             /** Day Type */
             day_type: string;
+            /** Day Type Source */
+            day_type_source: string;
             totals: components["schemas"]["DayTotals"];
             target: components["schemas"]["TargetOut"] | null;
             remaining: components["schemas"]["RemainingOut"] | null;
@@ -288,6 +307,24 @@ export interface components {
             fat_g: number;
             /** Fiber G */
             fiber_g: number;
+        };
+        /** DayTypeResponse */
+        DayTypeResponse: {
+            /** Date */
+            date: string;
+            /** Day Type */
+            day_type: string;
+            server_time: components["schemas"]["ServerTime"];
+        };
+        /** DayTypeSet */
+        DayTypeSet: {
+            /** Day Type */
+            day_type: string;
+            /**
+             * Date
+             * @description Only when the user stated a day; defaults to today.
+             */
+            date?: string | null;
         };
         /** FoodCandidateOut */
         FoodCandidateOut: {
@@ -327,8 +364,10 @@ export interface components {
             kcal_training: number;
             /** Kcal Rest */
             kcal_rest: number;
-            /** Protein G */
-            protein_g: number;
+            /** Protein Training */
+            protein_training: number;
+            /** Protein Rest */
+            protein_rest: number;
             /** Rate Target */
             rate_target?: number | null;
             /** Start Date */
@@ -348,8 +387,10 @@ export interface components {
             kcal_target_training: number;
             /** Kcal Target Rest */
             kcal_target_rest: number;
-            /** Protein Target G */
-            protein_target_g: number;
+            /** Protein Target Training */
+            protein_target_training: number;
+            /** Protein Target Rest */
+            protein_target_rest: number;
             /** Rate Target Kg Per Week */
             rate_target_kg_per_week: number | null;
         };
@@ -367,8 +408,10 @@ export interface components {
             kcal_target_training: number;
             /** Kcal Target Rest */
             kcal_target_rest: number;
-            /** Protein Target G */
-            protein_target_g: number;
+            /** Protein Target Training */
+            protein_target_training: number;
+            /** Protein Target Rest */
+            protein_target_rest: number;
             /** Rate Target Kg Per Week */
             rate_target_kg_per_week: number | null;
             server_time: components["schemas"]["ServerTime"];
@@ -998,6 +1041,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DailySummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_day_type_api_days_type_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DayTypeSet"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DayTypeResponse"];
                 };
             };
             /** @description Validation Error */
