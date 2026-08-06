@@ -17,7 +17,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON
     goal_phases,
     coaching_note_revisions,
     meal_templates,
-    meal_template_items
+    meal_template_items,
+    day_types
 TO annos_api;
 
 GRANT USAGE, SELECT ON

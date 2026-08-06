@@ -2,13 +2,14 @@
 
 What must not regress: no-args means today as the server defines it, planned
 entries visible but never counted, targets resolved from the phase active on
-*that* day, and the honest "rest day" label while exercise logging doesn't
-exist yet.
+*that* day, and the day's type picking both the kcal and the protein target —
+with the source of the resolution always labelled.
 """
 
 import pytest
 
 from annos.domain import body as body_domain
+from annos.domain import days as days_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
 from annos.domain import summary as summary_domain
@@ -28,7 +29,8 @@ async def deficit_phase(session, profile):
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=180,
+        protein_rest=160,
         rate_target=-0.4,
         start_date="2026-07-01",
     )
@@ -57,13 +59,14 @@ async def test_totals_target_and_remaining_line_up(session, deficit_phase, make_
     assert summary["totals"]["kcal"] == pytest.approx(550.0)
     assert summary["target"] == {
         "kind": "deficit",
-        "kcal": 2100,  # rest-day target: no exercise logging yet
+        "kcal": 2100,  # rest-day target: the day is unmarked
         "protein_g": 160,
         "rate_kg_per_week": -0.4,
     }
     assert summary["remaining"]["kcal"] == pytest.approx(1550.0)
     assert summary["remaining"]["protein_g"] == pytest.approx(125.0)
     assert summary["day_type"] == "rest"
+    assert summary["day_type_source"] == "default"
 
     (meal,) = summary["meals"]
     assert meal["meal"] == "lunch"
@@ -78,6 +81,39 @@ async def test_totals_target_and_remaining_line_up(session, deficit_phase, make_
     assert item["source"] == "fineli"
     assert item["grams"] == pytest.approx(100.0)
     assert item["kcal"] == pytest.approx(550.0)
+
+
+async def test_a_training_mark_switches_both_targets(session, deficit_phase, make_food):
+    """The day's type picks kcal AND protein: a marked training day gets the
+    training pair, and the payload says the mark was the user's own."""
+    food = await make_food(name_en="lunch bowl", kcal=550, protein_g=35, carbs_g=50, fat_g=20)
+    await meals_domain.log_meal(
+        session,
+        subject=SUBJECT,
+        items=[{"food_id": food.id, "grams": 100}],
+        ts="2026-08-03T12:40",
+    )
+    await days_domain.set_day_type(session, subject=SUBJECT, day_type="training", date="2026-08-03")
+
+    summary = await summary_domain.daily_summary(session, subject=SUBJECT, date="2026-08-03")
+
+    assert summary["day_type"] == "training"
+    assert summary["day_type_source"] == "manual"
+    assert summary["target"]["kcal"] == 2400
+    assert summary["target"]["protein_g"] == 180
+    assert summary["remaining"]["kcal"] == pytest.approx(1850.0)
+    assert summary["remaining"]["protein_g"] == pytest.approx(145.0)
+
+
+async def test_a_rest_mark_is_manual_not_default(session, deficit_phase):
+    """Marking rest looks like the default but must not read as one: the mark
+    outranks the exercise derivation arriving in Phase 2."""
+    await days_domain.set_day_type(session, subject=SUBJECT, day_type="rest", date="2026-08-03")
+
+    summary = await summary_domain.daily_summary(session, subject=SUBJECT, date="2026-08-03")
+
+    assert summary["day_type"] == "rest"
+    assert summary["day_type_source"] == "manual"
 
 
 async def test_going_over_target_goes_negative_not_clamped(session, deficit_phase, make_food):
@@ -115,7 +151,8 @@ async def test_a_past_day_is_judged_by_the_phase_active_then(session, deficit_ph
         kind="maintenance",
         kcal_training=2900,
         kcal_rest=2600,
-        protein_g=150,
+        protein_training=150,
+        protein_rest=150,
         start_date="2026-08-01",
     )
 

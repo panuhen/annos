@@ -110,7 +110,8 @@ def _phase_fields(phase: GoalPhase) -> dict:
         "end_date": phase.end_date.isoformat() if phase.end_date is not None else None,
         "kcal_target_training": phase.kcal_target_training,
         "kcal_target_rest": phase.kcal_target_rest,
-        "protein_target_g": phase.protein_target_g,
+        "protein_target_training": phase.protein_target_training,
+        "protein_target_rest": phase.protein_target_rest,
         "rate_target_kg_per_week": (
             float(phase.rate_target_kg_per_week)
             if phase.rate_target_kg_per_week is not None
@@ -174,14 +175,15 @@ async def set_goal_phase(
     kind: str,
     kcal_training: int,
     kcal_rest: int,
-    protein_g: int,
+    protein_training: int,
+    protein_rest: int,
     rate_target: float | None = None,
     start_date: str | date_type | None = None,
 ) -> dict:
     """Open a new phase, closing the current one the day before it starts."""
     if kind not in GOAL_KINDS:
         raise InvalidPhase(f"kind must be one of {', '.join(GOAL_KINDS)}")
-    if min(kcal_training, kcal_rest, protein_g) <= 0:
+    if min(kcal_training, kcal_rest, protein_training, protein_rest) <= 0:
         raise InvalidPhase("targets must be positive")
     _check_rate(kind, rate_target)
 
@@ -212,7 +214,8 @@ async def set_goal_phase(
         start_date=start,
         kcal_target_training=kcal_training,
         kcal_target_rest=kcal_rest,
-        protein_target_g=protein_g,
+        protein_target_training=protein_training,
+        protein_target_rest=protein_rest,
         rate_target_kg_per_week=rate_target,
     )
     session.add(phase)
@@ -230,7 +233,15 @@ async def set_goal_phase(
 
 # What revise_goal_phase accepts — the same vocabulary set_goal_phase takes.
 REVISABLE_PHASE_FIELDS = frozenset(
-    {"kind", "kcal_training", "kcal_rest", "protein_g", "rate_target", "start_date"}
+    {
+        "kind",
+        "kcal_training",
+        "kcal_rest",
+        "protein_training",
+        "protein_rest",
+        "rate_target",
+        "start_date",
+    }
 )
 
 
@@ -263,8 +274,9 @@ async def revise_goal_phase(session: AsyncSession, *, subject: str, changes: dic
         raise InvalidPhase(f"kind must be one of {', '.join(GOAL_KINDS)}")
     kcal_training = changes.get("kcal_training", phase.kcal_target_training)
     kcal_rest = changes.get("kcal_rest", phase.kcal_target_rest)
-    protein_g = changes.get("protein_g", phase.protein_target_g)
-    if min(kcal_training, kcal_rest, protein_g) <= 0:
+    protein_training = changes.get("protein_training", phase.protein_target_training)
+    protein_rest = changes.get("protein_rest", phase.protein_target_rest)
+    if min(kcal_training, kcal_rest, protein_training, protein_rest) <= 0:
         raise InvalidPhase("targets must be positive")
     # The *merged* result must be consistent: switching kind to maintenance
     # while a rate survives is refused rather than silently cleared.
@@ -300,7 +312,8 @@ async def revise_goal_phase(session: AsyncSession, *, subject: str, changes: dic
     phase.kind = kind
     phase.kcal_target_training = kcal_training
     phase.kcal_target_rest = kcal_rest
-    phase.protein_target_g = protein_g
+    phase.protein_target_training = protein_training
+    phase.protein_target_rest = protein_rest
     if "rate_target" in changes:
         phase.rate_target_kg_per_week = changes["rate_target"]
 

@@ -20,6 +20,7 @@ from annos import servertime
 from annos.config import settings
 from annos.db import SessionLocal
 from annos.domain import body as body_domain
+from annos.domain import days as days_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -192,13 +193,34 @@ async def daily_summary(date: str | None = None) -> dict[str, Any]:
     No date means today, as the server defines it — never guess the date.
     `meals` carries log_ids so a correction can go straight to revise_log.
     Planned entries appear in the list but count toward no totals. day_type
-    is "rest" until exercise logging exists, so the rest-day kcal target is
-    the one in force. The numbers are facts; the judgment on them is yours,
-    guided by profile_context.
+    picks which of the phase's targets (kcal and protein) is in force;
+    day_type_source says how it was resolved — "manual" is the user's own
+    mark via set_day_type, "default" means unmarked days count as rest until
+    exercise logging exists. The numbers are facts; the judgment on them is
+    yours, guided by profile_context.
     """
     who = await _caller()
     async with SessionLocal() as session:
         return await summary_domain.daily_summary(session, subject=who.subject, date=date)
+
+
+@mcp.tool
+async def set_day_type(day_type: str, date: str | None = None) -> dict[str, Any]:
+    """Mark a day "training" or "rest" — the user's own say on which of the
+    goal phase's targets the day gets.
+
+    A manual mark always wins, in both directions: it gets training targets
+    before the session is logged (or when the session happens outside Annos),
+    and marks a day rest even if something later derives otherwise. Marking
+    again replaces. Omit date unless the user stated one; it defaults to today
+    in their timezone. Only call this when the user says what the day is —
+    never infer it from the conversation.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await days_domain.set_day_type(
+            session, subject=who.subject, day_type=day_type, date=date
+        )
 
 
 @mcp.tool
@@ -233,18 +255,20 @@ async def set_goal_phase(
     kind: str,
     kcal_training: int,
     kcal_rest: int,
-    protein_g: int,
+    protein_training: int,
+    protein_rest: int,
     rate_target: float | None = None,
     start_date: str | None = None,
 ) -> dict[str, Any]:
     """Start a new goal phase: deficit, maintenance, or surplus.
 
-    kcal targets are per day type (training vs rest); protein_g is the daily
-    protein target. rate_target is the intended weight change in kg/week and
-    its sign must match the kind — negative for a deficit, positive for a
-    surplus, omitted for maintenance. start_date defaults to today; the
-    currently open phase is closed automatically the day before the new one
-    starts. Past days keep being judged against the phase that was active then.
+    kcal and protein targets are per day type (training vs rest) — a user with
+    one flat number gets it in both. rate_target is the intended weight change
+    in kg/week and its sign must match the kind — negative for a deficit,
+    positive for a surplus, omitted for maintenance. start_date defaults to
+    today; the currently open phase is closed automatically the day before
+    the new one starts. Past days keep being judged against the phase that
+    was active then.
     """
     who = await _caller()
     async with SessionLocal() as session:
@@ -254,7 +278,8 @@ async def set_goal_phase(
             kind=kind,
             kcal_training=kcal_training,
             kcal_rest=kcal_rest,
-            protein_g=protein_g,
+            protein_training=protein_training,
+            protein_rest=protein_rest,
             rate_target=rate_target,
             start_date=start_date,
         )
@@ -262,8 +287,8 @@ async def set_goal_phase(
 
 @mcp.tool
 async def revise_goal_phase(changes: dict[str, Any]) -> dict[str, Any]:
-    """Correct the open goal phase: kind, kcal_training, kcal_rest, protein_g,
-    rate_target, and/or start_date.
+    """Correct the open goal phase: kind, kcal_training, kcal_rest,
+    protein_training, protein_rest, rate_target, and/or start_date.
 
     Only the open phase (end_date null) is revisable — closed phases are
     history and the days they judged keep them. Moving start_date also moves

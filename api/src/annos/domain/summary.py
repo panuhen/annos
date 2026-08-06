@@ -5,9 +5,10 @@ I doing?" can never be off by a day. The response is arithmetic and facts:
 totals, the active phase's target, what remains. Whether the number is good
 news is the client's judgment, fed by `profile_context`.
 
-Until exercise logging exists (Phase 2), every day is a rest day and the
-payload says so explicitly — a wrong-but-labelled assumption beats a hidden
-one.
+The day's type (training or rest) picks which of the phase's targets is in
+force; it resolves in annos.domain.days — a manual mark wins, an unmarked day
+is rest until exercise logging exists — and the payload carries the source of
+the resolution, so a wrong-but-labelled assumption beats a hidden one.
 """
 
 from datetime import date as date_type
@@ -17,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from annos import servertime
 from annos.domain import body as body_domain
+from annos.domain import days as days_domain
 from annos.domain import language as language_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -94,18 +96,16 @@ async def daily_summary(
 
     phase = await body_domain.active_phase(session, subject=subject, on=day)
 
-    # No exercise logging yet, so every day is a rest day — labelled, not
-    # hidden, so the client knows why the training target was not used.
-    day_type = "rest"
+    day_type, day_type_source = await days_domain.resolve_day_type(session, subject=subject, on=day)
 
     if phase is not None:
-        kcal_target = (
-            phase.kcal_target_training if day_type == "training" else phase.kcal_target_rest
-        )
+        training = day_type == "training"
+        kcal_target = phase.kcal_target_training if training else phase.kcal_target_rest
+        protein_target = phase.protein_target_training if training else phase.protein_target_rest
         target = {
             "kind": phase.kind,
             "kcal": kcal_target,
-            "protein_g": phase.protein_target_g,
+            "protein_g": protein_target,
             "rate_kg_per_week": (
                 float(phase.rate_target_kg_per_week)
                 if phase.rate_target_kg_per_week is not None
@@ -114,7 +114,7 @@ async def daily_summary(
         }
         remaining = {
             "kcal": round(kcal_target - totals["kcal"], 2),
-            "protein_g": round(phase.protein_target_g - totals["protein_g"], 2),
+            "protein_g": round(protein_target - totals["protein_g"], 2),
         }
     else:
         target = None
@@ -123,6 +123,7 @@ async def daily_summary(
     return {
         "date": day.isoformat(),
         "day_type": day_type,
+        "day_type_source": day_type_source,
         "totals": totals,
         "target": target,
         "remaining": remaining,

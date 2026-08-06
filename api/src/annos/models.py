@@ -46,6 +46,9 @@ InputMode = Enum(*INPUT_MODES, name="input_mode")
 GOAL_KINDS = ("deficit", "maintenance", "surplus")
 GoalKind = Enum(*GOAL_KINDS, name="goal_kind")
 
+DAY_TYPES = ("training", "rest")
+DayType = Enum(*DAY_TYPES, name="day_type")
+
 
 class UserProfile(Base):
     """One row per user. `subject` is the Better Auth user id.
@@ -421,10 +424,12 @@ class GoalPhase(Base):
     start_date: Mapped[date_type] = mapped_column(Date, nullable=False)
     end_date: Mapped[date_type | None] = mapped_column(Date)
 
-    # Different targets per day type: training days earn more food.
+    # Different targets per day type: training days earn more food, and
+    # protein needs vary by day type the same way energy does.
     kcal_target_training: Mapped[int] = mapped_column(Integer, nullable=False)
     kcal_target_rest: Mapped[int] = mapped_column(Integer, nullable=False)
-    protein_target_g: Mapped[int] = mapped_column(Integer, nullable=False)
+    protein_target_training: Mapped[int] = mapped_column(Integer, nullable=False)
+    protein_target_rest: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # What the phase is trying to achieve; the adaptive TDEE method evaluates
     # actuals against this. Negative = losing.
@@ -436,11 +441,38 @@ class GoalPhase(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "kcal_target_training > 0 AND kcal_target_rest > 0 AND protein_target_g > 0",
+            "kcal_target_training > 0 AND kcal_target_rest > 0 "
+            "AND protein_target_training > 0 AND protein_target_rest > 0",
             name="ck_goal_phases_targets_positive",
         ),
         CheckConstraint("end_date IS NULL OR end_date >= start_date", name="ck_goal_phases_dates"),
         Index("ix_goal_phases_subject_start", "subject", "start_date"),
+    )
+
+
+class DayTypeMark(Base):
+    """The user's manual say on what kind of day a date is.
+
+    A row here wins over any derivation, in both directions: marking a rest
+    day rest silences a logged session, and marking training gets the training
+    targets before the session is logged (the eating happens all day) or when
+    the session lives outside Annos. Days without a row resolve at read time —
+    exercise-derived once exercise logging exists, rest until then — so the
+    table records only what the user actually said.
+    """
+
+    __tablename__ = "day_types"
+
+    subject: Mapped[str] = mapped_column(Text, primary_key=True)
+    date: Mapped[date_type] = mapped_column(Date, primary_key=True)
+
+    day_type: Mapped[str] = mapped_column(DayType, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
 

@@ -22,6 +22,7 @@ EXPECTED_TOOLS = {
     "delete_template",
     "list_templates",
     "log_weight",
+    "set_day_type",
     "set_goal_phase",
     "revise_goal_phase",
     "goal_history",
@@ -144,7 +145,8 @@ async def test_goal_history_is_byte_identical_across_surfaces(api, mcp_client, s
                 "kind": kind,
                 "kcal_training": 2400,
                 "kcal_rest": 2100,
-                "protein_g": 160,
+                "protein_training": 160,
+                "protein_rest": 160,
                 "start_date": start,
             },
         )

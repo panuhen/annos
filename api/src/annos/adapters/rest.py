@@ -22,6 +22,7 @@ from annos import nickname as nickname_mod
 from annos import servertime
 from annos.db import get_session
 from annos.domain import body as body_domain
+from annos.domain import days as days_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -168,6 +169,7 @@ class ProfileContextOut(BaseModel):
 class DailySummaryResponse(BaseModel):
     date: str
     day_type: str
+    day_type_source: str
     totals: DayTotals
     target: TargetOut | None
     remaining: RemainingOut | None
@@ -196,7 +198,8 @@ class GoalPhaseResponse(BaseModel):
     end_date: str | None
     kcal_target_training: int
     kcal_target_rest: int
-    protein_target_g: int
+    protein_target_training: int
+    protein_target_rest: int
     rate_target_kg_per_week: float | None
     server_time: ServerTime
     closed_previous: ClosedPhaseOut | None = None
@@ -219,7 +222,8 @@ class GoalPhaseOut(BaseModel):
     end_date: str | None
     kcal_target_training: int
     kcal_target_rest: int
-    protein_target_g: int
+    protein_target_training: int
+    protein_target_rest: int
     rate_target_kg_per_week: float | None
 
 
@@ -388,6 +392,19 @@ async def daily_summary(
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
 
+class DayTypeSet(BaseModel):
+    day_type: str
+    date: str | None = Field(
+        default=None, description="Only when the user stated a day; defaults to today."
+    )
+
+
+class DayTypeResponse(BaseModel):
+    date: str
+    day_type: str
+    server_time: ServerTime
+
+
 class WeightLogCreate(BaseModel):
     weight_kg: float | None = None
     date: str | None = Field(
@@ -401,9 +418,22 @@ class GoalPhaseCreate(BaseModel):
     kind: str
     kcal_training: int
     kcal_rest: int
-    protein_g: int
+    protein_training: int
+    protein_rest: int
     rate_target: float | None = None
     start_date: str | None = None
+
+
+@router.put("/days/type")
+async def set_day_type(session: SessionDep, who: CallerDep, body: DayTypeSet) -> DayTypeResponse:
+    try:
+        return await days_domain.set_day_type(
+            session, subject=who.subject, day_type=body.day_type, date=body.date
+        )
+    except days_domain.InvalidDayType as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
 
 @router.post("/logs/weight", status_code=201)
@@ -436,7 +466,8 @@ async def set_goal_phase(
             kind=body.kind,
             kcal_training=body.kcal_training,
             kcal_rest=body.kcal_rest,
-            protein_g=body.protein_g,
+            protein_training=body.protein_training,
+            protein_rest=body.protein_rest,
             rate_target=body.rate_target,
             start_date=body.start_date,
         )

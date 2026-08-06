@@ -82,7 +82,8 @@ async def test_the_first_phase_opens_with_no_end(session, profile):
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
         rate_target=-0.4,
         start_date="2026-08-01",
     )
@@ -99,7 +100,8 @@ async def test_a_new_phase_closes_the_previous_one_the_day_before(session, profi
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
         start_date="2026-07-01",
     )
     second = await body_domain.set_goal_phase(
@@ -108,7 +110,8 @@ async def test_a_new_phase_closes_the_previous_one_the_day_before(session, profi
         kind="maintenance",
         kcal_training=2800,
         kcal_rest=2500,
-        protein_g=150,
+        protein_training=150,
+        protein_rest=150,
         start_date="2026-08-01",
     )
 
@@ -129,7 +132,8 @@ async def test_history_evaluates_against_the_phase_in_force_then(session, profil
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
         start_date="2026-07-01",
     )
     await body_domain.set_goal_phase(
@@ -138,7 +142,8 @@ async def test_history_evaluates_against_the_phase_in_force_then(session, profil
         kind="maintenance",
         kcal_training=2800,
         kcal_rest=2500,
-        protein_g=150,
+        protein_training=150,
+        protein_rest=150,
         start_date="2026-08-01",
     )
 
@@ -158,7 +163,8 @@ async def test_a_phase_cannot_start_before_the_current_one(session, profile):
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
         start_date="2026-08-01",
     )
 
@@ -169,7 +175,8 @@ async def test_a_phase_cannot_start_before_the_current_one(session, profile):
             kind="surplus",
             kcal_training=3000,
             kcal_rest=2800,
-            protein_g=170,
+            protein_training=170,
+            protein_rest=170,
             start_date="2026-08-01",
         )
 
@@ -188,7 +195,8 @@ async def test_a_rate_contradicting_the_kind_is_refused(session, profile, kind, 
             kind=kind,
             kcal_training=2400,
             kcal_rest=2100,
-            protein_g=160,
+            protein_training=160,
+            protein_rest=160,
             rate_target=rate,
         )
 
@@ -200,7 +208,8 @@ async def test_revising_to_maintenance_requires_clearing_the_rate(session, profi
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
         rate_target=-0.4,
     )
 
@@ -218,11 +227,23 @@ async def test_revising_to_maintenance_requires_clearing_the_rate(session, profi
 async def test_nonsense_targets_are_refused(session, profile):
     with pytest.raises(body_domain.InvalidPhase, match="positive"):
         await body_domain.set_goal_phase(
-            session, subject=SUBJECT, kind="deficit", kcal_training=0, kcal_rest=2100, protein_g=160
+            session,
+            subject=SUBJECT,
+            kind="deficit",
+            kcal_training=0,
+            kcal_rest=2100,
+            protein_training=160,
+            protein_rest=160,
         )
     with pytest.raises(body_domain.InvalidPhase, match="kind"):
         await body_domain.set_goal_phase(
-            session, subject=SUBJECT, kind="bulk", kcal_training=3000, kcal_rest=2800, protein_g=170
+            session,
+            subject=SUBJECT,
+            kind="bulk",
+            kcal_training=3000,
+            kcal_rest=2800,
+            protein_training=170,
+            protein_rest=170,
         )
 
 
@@ -235,7 +256,8 @@ async def test_phases_are_scoped_by_subject(session, profile):
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
     )
     theirs = await body_domain.set_goal_phase(
         session,
@@ -243,7 +265,8 @@ async def test_phases_are_scoped_by_subject(session, profile):
         kind="surplus",
         kcal_training=3200,
         kcal_rest=2900,
-        protein_g=140,
+        protein_training=140,
+        protein_rest=140,
     )
 
     assert theirs["closed_previous"] is None
@@ -261,7 +284,8 @@ async def test_revising_the_open_phase_changes_its_targets(session, profile):
         kind="surplus",
         kcal_training=3000,
         kcal_rest=2800,
-        protein_g=170,
+        protein_training=170,
+        protein_rest=170,
         start_date="2026-08-01",
     )
 
@@ -282,7 +306,8 @@ async def test_moving_the_start_recloses_the_previous_phase(session, profile):
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
         start_date="2026-07-01",
     )
     await body_domain.set_goal_phase(
@@ -291,7 +316,8 @@ async def test_moving_the_start_recloses_the_previous_phase(session, profile):
         kind="maintenance",
         kcal_training=2800,
         kcal_rest=2500,
-        protein_g=150,
+        protein_training=150,
+        protein_rest=150,
         start_date="2026-08-05",
     )
 
@@ -311,7 +337,8 @@ async def test_the_open_phase_cannot_move_onto_the_previous_one(session, profile
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
         start_date="2026-07-01",
     )
     await body_domain.set_goal_phase(
@@ -320,7 +347,8 @@ async def test_the_open_phase_cannot_move_onto_the_previous_one(session, profile
         kind="maintenance",
         kcal_training=2800,
         kcal_rest=2500,
-        protein_g=150,
+        protein_training=150,
+        protein_rest=150,
         start_date="2026-08-05",
     )
 
@@ -337,7 +365,13 @@ async def test_revising_with_no_open_phase_is_refused(session, profile):
 
 async def test_revising_unknown_fields_is_refused(session, profile):
     await body_domain.set_goal_phase(
-        session, subject=SUBJECT, kind="deficit", kcal_training=2400, kcal_rest=2100, protein_g=160
+        session,
+        subject=SUBJECT,
+        kind="deficit",
+        kcal_training=2400,
+        kcal_rest=2100,
+        protein_training=160,
+        protein_rest=160,
     )
 
     with pytest.raises(body_domain.InvalidPhase, match="not revisable"):
@@ -349,7 +383,13 @@ async def test_revising_unknown_fields_is_refused(session, profile):
 async def test_rest_revises_the_open_phase(api, profile):
     await api.post(
         "/api/goals/phase",
-        json={"kind": "surplus", "kcal_training": 3000, "kcal_rest": 2800, "protein_g": 170},
+        json={
+            "kind": "surplus",
+            "kcal_training": 3000,
+            "kcal_rest": 2800,
+            "protein_training": 170,
+            "protein_rest": 170,
+        },
     )
 
     response = await api.patch("/api/goals/phase", json={"changes": {"kind": "maintenance"}})
@@ -374,7 +414,8 @@ async def test_goal_history_lists_phases_newest_first(session, profile):
         kind="deficit",
         kcal_training=2400,
         kcal_rest=2100,
-        protein_g=160,
+        protein_training=160,
+        protein_rest=160,
         rate_target=-0.4,
         start_date="2026-07-01",
     )
@@ -384,7 +425,8 @@ async def test_goal_history_lists_phases_newest_first(session, profile):
         kind="maintenance",
         kcal_training=2800,
         kcal_rest=2500,
-        protein_g=150,
+        protein_training=150,
+        protein_rest=150,
         start_date="2026-08-01",
     )
 
@@ -413,7 +455,8 @@ async def test_goal_history_is_scoped_by_subject(session, profile):
         kind="surplus",
         kcal_training=3200,
         kcal_rest=2900,
-        protein_g=140,
+        protein_training=140,
+        protein_rest=140,
     )
 
     payload = await body_domain.list_goal_phases(session, subject=SUBJECT)
@@ -444,7 +487,13 @@ async def test_rest_rejects_an_empty_weight_log(api, profile):
 async def test_rest_sets_a_goal_phase(api, profile):
     response = await api.post(
         "/api/goals/phase",
-        json={"kind": "deficit", "kcal_training": 2400, "kcal_rest": 2100, "protein_g": 160},
+        json={
+            "kind": "deficit",
+            "kcal_training": 2400,
+            "kcal_rest": 2100,
+            "protein_training": 160,
+            "protein_rest": 160,
+        },
     )
     assert response.status_code == 201
     assert response.json()["end_date"] is None
@@ -458,7 +507,8 @@ async def test_rest_lists_the_goal_history(api, profile):
                 "kind": kind,
                 "kcal_training": 2400,
                 "kcal_rest": 2100,
-                "protein_g": 160,
+                "protein_training": 160,
+                "protein_rest": 160,
                 "start_date": start,
             },
         )
