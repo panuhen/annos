@@ -391,6 +391,8 @@ export interface components {
             units: string;
             /** Language */
             language: string;
+            /** Ui Language */
+            ui_language: string | null;
             /** Dietary Prefs */
             dietary_prefs: {
                 [key: string]: unknown;

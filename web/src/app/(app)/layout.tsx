@@ -1,12 +1,13 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AppNav, DesktopNav } from "@/components/app-nav";
 import { FineliFooter } from "@/components/fineli-footer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LOCALE_COOKIE, isLocale } from "@/i18n/config";
 import { authClient } from "@/lib/auth-client";
 import { ProfileProvider, useProfileQuery } from "@/lib/profile";
 
@@ -15,12 +16,24 @@ import { ProfileProvider, useProfileQuery } from "@/lib/profile";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const t = useTranslations("gate");
+  const locale = useLocale();
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const profile = useProfileQuery(!!session);
 
   useEffect(() => {
     if (!sessionPending && !session) router.replace("/sign-in");
   }, [sessionPending, session, router]);
+
+  // The chosen app language lives on the profile so it follows the user to
+  // any browser; the cookie is only the rendering mechanism. Sync once the
+  // profile arrives — after the refresh the two agree and this is a no-op.
+  useEffect(() => {
+    const pref = profile.data?.ui_language;
+    if (isLocale(pref ?? undefined) && pref !== locale) {
+      document.cookie = `${LOCALE_COOKIE}=${pref};path=/;max-age=31536000;samesite=lax`;
+      router.refresh();
+    }
+  }, [profile.data?.ui_language, locale, router]);
 
   useEffect(() => {
     if (session && profile.data === null && !profile.isPending) router.replace("/welcome");

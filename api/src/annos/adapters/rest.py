@@ -91,6 +91,7 @@ class ProfileResponse(BaseModel):
     timezone: str
     units: str
     language: str
+    ui_language: str | None
     dietary_prefs: dict[str, Any]
     coaching_notes: str | None
     server_time: ServerTime
@@ -222,6 +223,7 @@ def _profile_payload(profile) -> dict:
         "timezone": profile.timezone,
         "units": profile.units,
         "language": profile.language,
+        "ui_language": profile.ui_language,
         "dietary_prefs": profile.dietary_prefs,
         "coaching_notes": profile.coaching_notes,
         "server_time": servertime.echo(profile.timezone),

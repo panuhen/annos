@@ -125,6 +125,7 @@ async def get_profile() -> dict[str, Any]:
             "timezone": profile.timezone,
             "units": profile.units,
             "language": profile.language,
+            "ui_language": profile.ui_language,
             "profile_context": {
                 "dietary_prefs": profile.dietary_prefs,
                 "coaching_notes": profile.coaching_notes,

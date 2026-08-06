@@ -34,6 +34,20 @@ async def test_defaults_are_set_by_the_database(session):
     assert profile.timezone == "Europe/Helsinki"
     assert profile.units == "metric"
     assert profile.dietary_prefs == {}
+    # NULL means "never chosen" — the web negotiates from Accept-Language.
+    assert profile.ui_language is None
+
+
+async def test_ui_language_updates_separately_from_language(session):
+    """Two settings on purpose: an English app can still show ruisleipä."""
+    await profile_domain.create_profile(session, subject=SUBJECT)
+
+    updated = await profile_domain.update_profile(
+        session, subject=SUBJECT, changes={"ui_language": "en"}
+    )
+
+    assert updated.ui_language == "en"
+    assert updated.language == "fi"  # food names untouched
 
 
 async def test_update_applies_changes(session):

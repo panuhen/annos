@@ -23,6 +23,7 @@ UPDATABLE = frozenset(
         "timezone",
         "units",
         "language",
+        "ui_language",
         "dietary_prefs",
         "coaching_notes",
     }

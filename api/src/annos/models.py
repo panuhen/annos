@@ -78,6 +78,11 @@ class UserProfile(Base):
     # all three regardless — a Finnish speaker still types "banana" sometimes.
     language: Mapped[str] = mapped_column(String(2), nullable=False, server_default="fi")
 
+    # The web UI's chrome language — labels, dates, letterhead. Separate from
+    # `language` on purpose: an English app can still show foods as ruisleipä.
+    # NULL means "never chosen": the web negotiates from Accept-Language.
+    ui_language: Mapped[str | None] = mapped_column(String(2))
+
     dietary_prefs: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'"))
 
     # Free text in the user's own words. Stored and returned verbatim; the server
@@ -99,6 +104,10 @@ class UserProfile(Base):
             name="ck_profile_birth_year",
         ),
         CheckConstraint("language IN ('fi', 'sv', 'en')", name="ck_profile_language"),
+        CheckConstraint(
+            "ui_language IS NULL OR ui_language IN ('fi', 'sv', 'en')",
+            name="ck_profile_ui_language",
+        ),
     )
 
 

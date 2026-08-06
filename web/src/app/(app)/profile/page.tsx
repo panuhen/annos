@@ -48,12 +48,22 @@ export default function ProfilePage() {
   const [coachingNotes, setCoachingNotes] = useState(profile.coaching_notes ?? "");
   const [saving, setSaving] = useState(false);
 
-  /** App language is a web-only preference: a cookie, applied immediately.
-   * Food-name language is `user_profile.language` — server data, saved with
-   * the form, and shared with the MCP surface. */
-  function setAppLanguage(locale: string) {
+  /** App language persists on the profile (`ui_language`) so it follows the
+   * user across devices, and applies immediately via the cookie the server
+   * renders from. Food-name language is `language` — saved with the form,
+   * shared with the MCP surface. */
+  async function setAppLanguage(locale: string) {
     document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=31536000;samesite=lax`;
     router.refresh();
+    const { data } = await api.PATCH("/api/profile", {
+      body: { changes: { ui_language: locale } },
+    });
+    if (data) {
+      queryClient.setQueryData(["profile"], data);
+    } else {
+      // The cookie already switched this browser; only persistence failed.
+      toast.error(t("saveFailed"), { description: t("apiNoAnswer") });
+    }
   }
 
   async function save() {
