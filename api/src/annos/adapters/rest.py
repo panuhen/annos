@@ -279,6 +279,8 @@ async def create_profile(
         )
     except nickname_mod.NicknameTaken as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except profile_domain.AlreadyRegistered as exc:
+        raise HTTPException(status_code=409, detail="already registered") from exc
     return _profile_payload(profile)
 
 

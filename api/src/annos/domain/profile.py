@@ -6,6 +6,7 @@ here would pull judgment server-side, which is explicitly rejected.
 """
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from annos import nickname as nickname_mod
@@ -34,6 +35,14 @@ class ProfileNotFound(Exception):
     """No profile row for this subject — registration never completed."""
 
 
+class AlreadyRegistered(Exception):
+    """This subject already completed registration; there is nothing to create."""
+
+    def __init__(self, subject: str) -> None:
+        super().__init__("already registered")
+        self.subject = subject
+
+
 class UnknownField(Exception):
     def __init__(self, names: set[str]) -> None:
         super().__init__(f"not updatable: {', '.join(sorted(names))}")
@@ -55,9 +64,26 @@ async def create_profile(
     Called from the REST adapter only — registration is UI-only, so there is no
     MCP tool for this.
     """
-    profile = await nickname_mod.claim(session, subject=subject, nickname=nickname)
+    # The pre-check gives the common double-submit a clean answer; the
+    # IntegrityError below is the backstop for the race the check can't close
+    # (subject is the primary key, so the constraint always has the last word).
+    if await session.scalar(select(UserProfile).where(UserProfile.subject == subject)):
+        raise AlreadyRegistered(subject)
+    try:
+        profile = await nickname_mod.claim(session, subject=subject, nickname=nickname)
+    except IntegrityError as exc:
+        if _is_subject_conflict(exc):
+            raise AlreadyRegistered(subject) from exc
+        raise
     await session.commit()
     return profile
+
+
+def _is_subject_conflict(exc: IntegrityError) -> bool:
+    constraint = getattr(getattr(exc.orig, "__cause__", None), "constraint_name", None)
+    if constraint:
+        return "pkey" in constraint
+    return "pkey" in str(exc.orig)
 
 
 async def update_profile(session: AsyncSession, *, subject: str, changes: dict) -> UserProfile:

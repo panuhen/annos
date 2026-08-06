@@ -9,7 +9,6 @@ try again" from "the name you picked is taken, here's an error".
 import re
 
 import pytest
-from sqlalchemy.exc import IntegrityError
 
 from annos import nickname as nickname_mod
 from annos.domain import profile as profile_domain
@@ -63,11 +62,11 @@ async def test_a_supplied_collision_is_reported_not_substituted(session):
 
 
 async def test_a_duplicate_subject_is_not_mistaken_for_a_nickname_collision(session):
-    """Registering the same subject twice is a caller bug, not a name clash.
-    The retry loop must not swallow it and hand back a second profile."""
+    """Registering the same subject twice is a double registration, not a name
+    clash. The retry loop must not swallow it and hand back a second profile."""
     await profile_domain.create_profile(session, subject=SUBJECT)
 
-    with pytest.raises(IntegrityError):
+    with pytest.raises(profile_domain.AlreadyRegistered):
         await profile_domain.create_profile(session, subject=SUBJECT)
 
 

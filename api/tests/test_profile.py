@@ -28,6 +28,15 @@ async def test_create_then_get_round_trips(session):
     assert fetched.nickname == created.nickname
 
 
+async def test_registering_twice_is_refused(session):
+    """The welcome flow retries and clients double-submit; the second attempt
+    must be a clean refusal, not a constraint error dressed as a 500."""
+    await profile_domain.create_profile(session, subject=SUBJECT)
+
+    with pytest.raises(profile_domain.AlreadyRegistered):
+        await profile_domain.create_profile(session, subject=SUBJECT)
+
+
 async def test_defaults_are_set_by_the_database(session):
     profile = await profile_domain.create_profile(session, subject=SUBJECT)
 
@@ -121,6 +130,16 @@ async def test_rest_registration_flow(api):
     fetched = await api.get("/api/profile")
     assert fetched.status_code == 200
     assert fetched.json()["nickname"] == candidate
+
+
+async def test_rest_double_registration_is_409(api):
+    """The welcome page keys on 409 to say "already registered → home"."""
+    assert (await api.post("/api/profile", json={})).status_code == 201
+
+    second = await api.post("/api/profile", json={})
+
+    assert second.status_code == 409
+    assert second.json()["detail"] == "already registered"
 
 
 async def test_rest_rolling_a_nickname_commits_nothing(api):
