@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import { useTranslations } from "next-intl";
@@ -19,20 +19,24 @@ import { authClient } from "@/lib/auth-client";
  */
 function SignInForm() {
   const t = useTranslations("auth");
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   const oauthFlow = searchParams.has("client_id");
 
-  async function onSubmit(event: React.FormEvent) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setError(null);
-    const { error } = await authClient.signIn.email({ email, password });
+    // The values come from the form, not component state: credentials the
+    // browser autofills never fire React's onChange, so a submit reading
+    // state posts empty strings — the "enter it twice" bug.
+    const form = new FormData(event.currentTarget);
+    const { error } = await authClient.signIn.email({
+      email: String(form.get("email") ?? ""),
+      password: String(form.get("password") ?? ""),
+    });
     if (error) {
       setError(error.message ?? t("signInFailed"));
       setPending(false);
@@ -41,7 +45,9 @@ function SignInForm() {
     if (oauthFlow) {
       window.location.href = `/api/auth/mcp/authorize?${searchParams.toString()}`;
     } else {
-      router.push("/");
+      // A full navigation, not router.push: crossing the auth boundary is
+      // where the client-side session store must be rebuilt, not trusted.
+      window.location.href = "/";
     }
   }
 
@@ -59,11 +65,10 @@ function SignInForm() {
           </Label>
           <Input
             id="email"
+            name="email"
             type="email"
             required
             autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             className="h-12 text-base"
           />
         </div>
@@ -73,11 +78,10 @@ function SignInForm() {
           </Label>
           <Input
             id="password"
+            name="password"
             type="password"
             required
             autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             className="h-12 text-base"
           />
         </div>

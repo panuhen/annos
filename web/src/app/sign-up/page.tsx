@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useTranslations } from "next-intl";
@@ -22,19 +21,19 @@ import { authClient } from "@/lib/auth-client";
  */
 export default function SignUpPage() {
   const t = useTranslations("auth");
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function onSubmit(event: React.FormEvent) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setError(null);
+    // Form values, not component state — autofilled credentials never fire
+    // React's onChange. Same fix as the sign-in page.
+    const form = new FormData(event.currentTarget);
     const { error } = await authClient.signUp.email({
-      email,
-      password,
+      email: String(form.get("email") ?? ""),
+      password: String(form.get("password") ?? ""),
       name: "",
     });
     if (error) {
@@ -42,7 +41,8 @@ export default function SignUpPage() {
       setPending(false);
       return;
     }
-    router.push("/welcome");
+    // Full navigation: crossing the auth boundary rebuilds the session store.
+    window.location.href = "/welcome";
   }
 
   return (
@@ -54,11 +54,10 @@ export default function SignUpPage() {
           </Label>
           <Input
             id="email"
+            name="email"
             type="email"
             required
             autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             className="h-12 text-base"
           />
         </div>
@@ -68,12 +67,11 @@ export default function SignUpPage() {
           </Label>
           <Input
             id="password"
+            name="password"
             type="password"
             required
             minLength={8}
             autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             className="h-12 text-base"
           />
         </div>
