@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MagnifyingGlass, Minus, Plus, X } from "@phosphor-icons/react";
+import { CaretRight, MagnifyingGlass, Minus, Plus, X } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -449,9 +449,11 @@ export function MealForm(props: Props) {
           ) : (
             <button
               type="button"
+              aria-expanded={false}
               onClick={() => setTplOpen(true)}
-              className="flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
             >
+              <CaretRight aria-hidden className="size-3.5" />
               {t("saveAsTemplate")}
             </button>
           )}
