@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Minus, Plus, Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
-import { MEAL_LABELS, grams as fmtGrams, kcal as fmtKcal, sourceCode } from "@/lib/format";
+import { MEALS, grams as fmtGrams, kcal as fmtKcal, sourceCode } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type FoodCandidate = components["schemas"]["FoodCandidateOut"];
@@ -49,7 +50,7 @@ function suggestMeal(): string {
 function itemsFromLog(log: SummaryMeal): FormItem[] {
   return log.items.map((item) => ({
     food_id: item.food_id,
-    name: item.name ?? `Food #${item.food_id}`,
+    name: item.name ?? `#${item.food_id}`,
     source: item.source,
     grams: fmtGrams(item.grams),
     // Recover per-100g from the snapshot so the preview stays honest.
@@ -61,14 +62,12 @@ function itemsFromLog(log: SummaryMeal): FormItem[] {
 export function MealForm(props: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("logForm");
+  const tMeals = useTranslations("meals");
   const editing = props.mode === "edit";
 
-  const [items, setItems] = useState<FormItem[]>(
-    editing ? itemsFromLog(props.log) : [],
-  );
-  const [meal, setMeal] = useState<string>(
-    editing ? (props.log.meal ?? "none") : suggestMeal(),
-  );
+  const [items, setItems] = useState<FormItem[]>(editing ? itemsFromLog(props.log) : []);
+  const [meal, setMeal] = useState<string>(editing ? (props.log.meal ?? "none") : suggestMeal());
   const [notes, setNotes] = useState(editing ? (props.log.notes ?? "") : "");
   const [planned, setPlanned] = useState(editing ? props.log.planned : false);
   const [time, setTime] = useState("12:00");
@@ -100,8 +99,7 @@ export function MealForm(props: Props) {
     return Math.round(sum);
   }, [items]);
 
-  const valid =
-    items.length > 0 && items.every((item) => parseFloat(item.grams) > 0);
+  const valid = items.length > 0 && items.every((item) => parseFloat(item.grams) > 0);
 
   function add(food: FoodCandidate) {
     const unit = food.serving_units[0];
@@ -161,9 +159,7 @@ export function MealForm(props: Props) {
         if (error || !data) throw error ?? new Error("no response");
         await queryClient.invalidateQueries({ queryKey: ["get", "/api/summary/daily"] });
         router.push(
-          backdate
-            ? `/?date=${backdate}&stamp=${data.log_id}`
-            : `/?stamp=${data.log_id}`,
+          backdate ? `/?date=${backdate}&stamp=${data.log_id}` : `/?stamp=${data.log_id}`,
         );
       } else {
         const { data, error } = await api.PATCH("/api/logs/meals/{log_id}", {
@@ -186,8 +182,8 @@ export function MealForm(props: Props) {
       const detail =
         typeof err === "object" && err !== null && "detail" in err
           ? String((err as { detail: unknown }).detail)
-          : "The kitchen did not answer. Try again.";
-      toast.error(editing ? "Could not save the revision" : "Could not log the meal", {
+          : t("noAnswer");
+      toast.error(editing ? t("reviseFailed") : t("logFailed"), {
         description: detail,
       });
     }
@@ -198,7 +194,7 @@ export function MealForm(props: Props) {
       {/* Search — the flow starts here and stays here for most logs */}
       <div>
         <Label htmlFor="food-search" className="sr-only">
-          Search foods
+          {t("searchLabel")}
         </Label>
         <div className="relative">
           <Search
@@ -210,7 +206,7 @@ export function MealForm(props: Props) {
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search foods — ruisleipä, banana…"
+            placeholder={t("searchPlaceholder")}
             autoComplete="off"
             className="h-12 pl-9 text-base"
             autoFocus={!editing}
@@ -220,11 +216,9 @@ export function MealForm(props: Props) {
         {debounced.length >= 2 && (
           <div className="border border-t-0 border-input">
             {search.isPending ? (
-              <p className="px-3 py-3 text-sm text-muted-foreground">Searching…</p>
+              <p className="px-3 py-3 text-sm text-muted-foreground">{t("searching")}</p>
             ) : search.error ? (
-              <p className="px-3 py-3 text-sm text-destructive">
-                Search failed — check the connection and type again.
-              </p>
+              <p className="px-3 py-3 text-sm text-destructive">{t("searchFailed")}</p>
             ) : search.data && search.data.results.length > 0 ? (
               <ul>
                 {search.data.results.map((food) => (
@@ -243,16 +237,14 @@ export function MealForm(props: Props) {
                         )}
                       </span>
                       <span className="tnum font-mono text-xs text-muted-foreground">
-                        {fmtKcal(food.per_100g.kcal)} kcal/100g
+                        {fmtKcal(food.per_100g.kcal)} {t("kcalPer100")}
                       </span>
                     </button>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="px-3 py-3 text-sm text-muted-foreground">
-                No match. Fineli knows most Finnish foods — try another spelling.
-              </p>
+              <p className="px-3 py-3 text-sm text-muted-foreground">{t("noMatch")}</p>
             )}
           </div>
         )}
@@ -261,7 +253,7 @@ export function MealForm(props: Props) {
       {/* The plate so far */}
       {items.length === 0 ? (
         <p className="border-t border-border pt-4 text-sm text-muted-foreground">
-          Nothing on the plate yet — search above and tap a food to add it.
+          {t("emptyPlate")}
         </p>
       ) : (
         <ul className="border-t-2 border-foreground">
@@ -286,7 +278,7 @@ export function MealForm(props: Props) {
               <div className="mt-2 flex items-center gap-2">
                 <button
                   type="button"
-                  aria-label={`Less ${item.name}`}
+                  aria-label={t("less", { name: item.name })}
                   onClick={() => nudgeGrams(index, -10)}
                   className="flex size-11 items-center justify-center border border-input hover:bg-secondary"
                 >
@@ -294,7 +286,7 @@ export function MealForm(props: Props) {
                 </button>
                 <div className="relative w-24">
                   <Label htmlFor={`grams-${index}`} className="sr-only">
-                    Grams of {item.name}
+                    {t("gramsOf", { name: item.name })}
                   </Label>
                   <Input
                     id={`grams-${index}`}
@@ -310,7 +302,7 @@ export function MealForm(props: Props) {
                 </div>
                 <button
                   type="button"
-                  aria-label={`More ${item.name}`}
+                  aria-label={t("more", { name: item.name })}
                   onClick={() => nudgeGrams(index, 10)}
                   className="flex size-11 items-center justify-center border border-input hover:bg-secondary"
                 >
@@ -319,7 +311,7 @@ export function MealForm(props: Props) {
                 <div className="flex-1" />
                 <button
                   type="button"
-                  aria-label={`Remove ${item.name}`}
+                  aria-label={t("remove", { name: item.name })}
                   onClick={() => remove(index)}
                   className="flex size-11 items-center justify-center text-muted-foreground hover:text-destructive"
                 >
@@ -349,17 +341,17 @@ export function MealForm(props: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="meal-type" className="mb-1.5 font-mono text-xs uppercase">
-            Meal
+            {t("meal")}
           </Label>
           <Select value={meal} onValueChange={setMeal}>
             <SelectTrigger id="meal-type" className="h-11 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">Unlabelled</SelectItem>
-              {Object.entries(MEAL_LABELS).map(([value, label]) => (
+              <SelectItem value="none">{t("unlabelled")}</SelectItem>
+              {MEALS.map((value) => (
                 <SelectItem key={value} value={value}>
-                  {label}
+                  {tMeals(value)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -368,7 +360,7 @@ export function MealForm(props: Props) {
         {backdate ? (
           <div>
             <Label htmlFor="log-time" className="mb-1.5 font-mono text-xs uppercase">
-              Time on {backdate}
+              {t("timeOn", { date: backdate })}
             </Label>
             <Input
               id="log-time"
@@ -387,7 +379,7 @@ export function MealForm(props: Props) {
                 onChange={(e) => setPlanned(e.target.checked)}
                 className="size-4 accent-primary"
               />
-              Planned, not eaten yet
+              {t("plannedToggle")}
             </label>
           </div>
         )}
@@ -395,14 +387,14 @@ export function MealForm(props: Props) {
 
       <div>
         <Label htmlFor="log-notes" className="mb-1.5 font-mono text-xs uppercase">
-          Notes
+          {t("notes")}
         </Label>
         <Textarea
           id="log-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
-          placeholder="Anything worth remembering about this meal."
+          placeholder={t("notesPlaceholder")}
         />
       </div>
 
@@ -414,7 +406,7 @@ export function MealForm(props: Props) {
             onChange={(e) => setPlanned(!e.target.checked)}
             className="size-4 accent-primary"
           />
-          Mark as eaten — count it toward the day
+          {t("markEaten")}
         </label>
       )}
 
@@ -432,11 +424,13 @@ export function MealForm(props: Props) {
         >
           {submitting
             ? editing
-              ? "Saving…"
-              : "Logging…"
+              ? t("saving")
+              : t("logging")
             : editing
-              ? "Save revision"
-              : `Log meal${previewKcal > 0 ? ` · ≈${previewKcal} kcal` : ""}`}
+              ? t("saveRevision")
+              : previewKcal > 0
+                ? t("logMealKcal", { kcal: previewKcal })
+                : t("logMeal")}
         </button>
       </div>
     </div>

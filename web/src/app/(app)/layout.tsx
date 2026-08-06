@@ -1,9 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AppNav, DesktopNav } from "@/components/app-nav";
+import { FineliFooter } from "@/components/fineli-footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { ProfileProvider, useProfileQuery } from "@/lib/profile";
@@ -12,6 +14,7 @@ import { ProfileProvider, useProfileQuery } from "@/lib/profile";
  * Unauthenticated → /sign-in; authenticated but unregistered → /welcome. */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const t = useTranslations("gate");
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const profile = useProfileQuery(!!session);
 
@@ -38,10 +41,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (profile.error) {
     return (
       <div className="mx-auto max-w-md px-4 pt-10">
-        <h1 className="text-lg font-bold">The kitchen is not answering</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The API could not be reached. Check that the server is running, then reload.
-        </p>
+        <h1 className="text-lg font-bold">{t("errorTitle")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("errorBody")}</p>
       </div>
     );
   }
@@ -51,21 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-24 lg:max-w-2xl lg:pb-10">
         <DesktopNav />
         {children}
-        <footer className="mt-auto pt-10 pb-2 font-mono text-[0.625rem] leading-relaxed text-muted-foreground">
-          Food composition data:{" "}
-          <a href="https://fineli.fi" rel="license noopener" className="underline">
-            Fineli
-          </a>
-          , National Institute for Health and Welfare,{" "}
-          <a
-            href="https://creativecommons.org/licenses/by/4.0/"
-            rel="license noopener"
-            className="underline"
-          >
-            CC BY 4.0
-          </a>
-          .
-        </footer>
+        <FineliFooter className="mt-auto pt-10 pb-2 font-mono text-[0.625rem] leading-relaxed text-muted-foreground" />
       </div>
       <AppNav />
     </ProfileProvider>

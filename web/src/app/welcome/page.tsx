@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dices } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ import { authClient } from "@/lib/auth-client";
 export default function WelcomePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("welcome");
   const { data: session, isPending: sessionPending } = authClient.useSession();
 
   const [creating, setCreating] = useState(false);
@@ -46,9 +48,7 @@ export default function WelcomePage() {
   async function roll() {
     const { error } = await rollQuery.refetch();
     if (error) {
-      toast.error("Could not draw a name", {
-        description: "The API did not answer. Try the dice again.",
-      });
+      toast.error(t("drawFailed"), { description: t("drawFailedBody") });
     }
   }
 
@@ -60,7 +60,7 @@ export default function WelcomePage() {
       });
       if (response.status === 409) {
         // Someone kept the same name first — draw a fresh one and say so.
-        toast.error("That name was just taken", { description: "Here is a new draw." });
+        toast.error(t("taken"), { description: t("takenBody") });
         await roll();
         return;
       }
@@ -71,22 +71,19 @@ export default function WelcomePage() {
       // Includes the already-registered case: the gate will route home.
       const { response } = await api.GET("/api/profile");
       if (response.ok) {
-        toast("You are already registered.");
+        toast(t("already"));
         router.replace("/");
         return;
       }
-      toast.error("Registration failed", { description: "The API did not answer. Try again." });
+      toast.error(t("failed"), { description: t("failedBody") });
     } finally {
       setCreating(false);
     }
   }
 
   return (
-    <AuthSheet title="One name, drawn for you">
-      <p className="text-sm text-muted-foreground">
-        Inside Annos you are a nickname, not an email. Roll until one feels
-        right — it is permanent after this page.
-      </p>
+    <AuthSheet title={t("title")}>
+      <p className="text-sm text-muted-foreground">{t("intro")}</p>
 
       <div className="mt-6 border-y-2 border-foreground py-6 text-center">
         {nickname ? (
@@ -104,7 +101,7 @@ export default function WelcomePage() {
           className="flex min-h-12 items-center justify-center gap-2 border border-input font-bold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Dices aria-hidden className="size-5" />
-          {rolling ? "Drawing…" : "Draw another"}
+          {rolling ? t("drawing") : t("draw")}
         </button>
         <button
           type="button"
@@ -112,7 +109,7 @@ export default function WelcomePage() {
           disabled={!nickname || rolling || creating}
           className="flex min-h-12 items-center justify-center bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {creating ? "Registering…" : "Keep it — start logging"}
+          {creating ? t("registering") : t("keep")}
         </button>
       </div>
     </AuthSheet>

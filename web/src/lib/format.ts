@@ -86,9 +86,6 @@ export function sourceCode(source: string | null | undefined): string | null {
   }
 }
 
-export const MEAL_LABELS: Record<string, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-  snack: "Snack",
-};
+/** The server's meal_type enum, in menu order. Labels live in the message
+ * catalogues (`meals.*`). */
+export const MEALS = ["breakfast", "lunch", "dinner", "snack"] as const;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -13,23 +14,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { $api } from "@/lib/api/hooks";
 import { api } from "@/lib/api/client";
+import { $api } from "@/lib/api/hooks";
 import { localeFor, sheetDate } from "@/lib/format";
-import { useProfile } from "@/lib/profile";
 
-const KIND_LABELS: Record<string, string> = {
-  deficit: "Deficit — losing",
-  maintenance: "Maintenance — holding",
-  surplus: "Surplus — gaining",
-};
+const KINDS = ["deficit", "maintenance", "surplus"] as const;
 
 /** Phases append and close: a new one closes the old the day before it
  * starts, and history is always judged against the phase in force then. */
 export default function GoalPage() {
-  const profile = useProfile();
   const queryClient = useQueryClient();
-  const locale = localeFor(profile.language);
+  const t = useTranslations("goal");
+  const tKinds = useTranslations("kinds");
+  const locale = localeFor(useLocale());
 
   const summary = $api.useQuery("get", "/api/summary/daily", { params: { query: {} } });
   const target = summary.data?.target;
@@ -43,8 +40,10 @@ export default function GoalPage() {
   const [submitting, setSubmitting] = useState(false);
   const [opened, setOpened] = useState<{ start_date: string } | null>(null);
 
-  const valid =
-    parseInt(kcalTraining) > 0 && parseInt(kcalRest) > 0 && parseInt(protein) > 0;
+  const valid = parseInt(kcalTraining) > 0 && parseInt(kcalRest) > 0 && parseInt(protein) > 0;
+
+  const kindLabel = (value: string) =>
+    (KINDS as readonly string[]).includes(value) ? tKinds(value) : value;
 
   async function submit() {
     setSubmitting(true);
@@ -66,8 +65,8 @@ export default function GoalPage() {
       const detail =
         typeof err === "object" && err !== null && "detail" in err
           ? String((err as { detail: unknown }).detail)
-          : "The kitchen did not answer. Try again.";
-      toast.error("Could not open the phase", { description: detail });
+          : undefined;
+      toast.error(t("failed"), { description: detail });
     } finally {
       setSubmitting(false);
     }
@@ -76,53 +75,53 @@ export default function GoalPage() {
   return (
     <>
       <header className="border-b-2 border-foreground pt-5 pb-2">
-        <h1 className="text-lg font-bold">Goal phase</h1>
+        <h1 className="text-lg font-bold">{t("title")}</h1>
       </header>
 
       {/* What today is judged against */}
       <div className="mt-4 border-b border-border pb-4">
         {summary.isPending ? (
-          <p className="text-sm text-muted-foreground">Reading the current phase…</p>
+          <p className="text-sm text-muted-foreground">{t("reading")}</p>
         ) : target ? (
           <>
-            <p className="text-sm font-bold">{KIND_LABELS[target.kind] ?? target.kind}</p>
+            <p className="text-sm font-bold">{kindLabel(target.kind)}</p>
             <p className="tnum mt-1 font-mono text-sm">
-              {target.kcal} kcal · {target.protein_g} g protein
-              {target.rate_kg_per_week != null && <> · {target.rate_kg_per_week} kg/week</>}
+              {t("targetLine", { kcal: target.kcal, protein: target.protein_g })}
+              {target.rate_kg_per_week != null &&
+                t("rateSuffix", { rate: target.rate_kg_per_week })}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Target for today ({summary.data?.day_type === "rest" ? "rest day" : "training day"}).
-              Opening a new phase closes this one the day before the new start — past days keep
-              their old target.
+              {t("targetToday", {
+                dayType: summary.data?.day_type === "rest" ? t("restDay") : t("trainingDay"),
+              })}{" "}
+              {t("closesOld")}
             </p>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No phase is open. Days are logged without a target until one starts.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("noPhase")}</p>
         )}
       </div>
 
       {opened && (
         <p className="stamp-in mt-4 border border-border px-3 py-2 text-sm" role="status">
-          Phase opened from <span className="font-mono">{sheetDate(opened.start_date, locale)}</span>.
+          {t("opened", { date: sheetDate(opened.start_date, locale) })}
         </p>
       )}
 
-      <h2 className="mt-5 text-sm font-bold">Open a new phase</h2>
+      <h2 className="mt-5 text-sm font-bold">{t("newPhase")}</h2>
 
       <div className="mt-3">
         <Label htmlFor="goal-kind" className="mb-1.5 font-mono text-xs uppercase">
-          Kind
+          {t("kind")}
         </Label>
         <Select value={kind} onValueChange={setKind}>
           <SelectTrigger id="goal-kind" className="h-11 w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(KIND_LABELS).map(([value, label]) => (
+            {KINDS.map((value) => (
               <SelectItem key={value} value={value}>
-                {label}
+                {tKinds(value)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -132,53 +131,50 @@ export default function GoalPage() {
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="kcal-rest" className="mb-1.5 font-mono text-xs uppercase">
-            Rest-day kcal
+            {t("kcalRest")}
           </Label>
           <Input
             id="kcal-rest"
             inputMode="numeric"
             value={kcalRest}
             onChange={(e) => setKcalRest(e.target.value)}
-            placeholder=""
             className="tnum h-11 text-right font-mono"
           />
         </div>
         <div>
           <Label htmlFor="kcal-training" className="mb-1.5 font-mono text-xs uppercase">
-            Training-day kcal
+            {t("kcalTraining")}
           </Label>
           <Input
             id="kcal-training"
             inputMode="numeric"
             value={kcalTraining}
             onChange={(e) => setKcalTraining(e.target.value)}
-            placeholder=""
             className="tnum h-11 text-right font-mono"
           />
         </div>
         <div>
           <Label htmlFor="protein-g" className="mb-1.5 font-mono text-xs uppercase">
-            Protein, g/day
+            {t("protein")}
           </Label>
           <Input
             id="protein-g"
             inputMode="numeric"
             value={protein}
             onChange={(e) => setProtein(e.target.value)}
-            placeholder=""
             className="tnum h-11 text-right font-mono"
           />
         </div>
         <div>
           <Label htmlFor="rate-target" className="mb-1.5 font-mono text-xs uppercase">
-            Rate, kg/week
+            {t("rate")}
           </Label>
           <Input
             id="rate-target"
             inputMode="decimal"
             value={rate}
             onChange={(e) => setRate(e.target.value)}
-            placeholder="optional"
+            placeholder={t("optional")}
             className="tnum h-11 text-right font-mono"
           />
         </div>
@@ -186,7 +182,7 @@ export default function GoalPage() {
 
       <div className="mt-3">
         <Label htmlFor="start-date" className="mb-1.5 font-mono text-xs uppercase">
-          Starts — leave empty for today
+          {t("starts")}
         </Label>
         <Input
           id="start-date"
@@ -197,10 +193,7 @@ export default function GoalPage() {
         />
       </div>
 
-      <p className="mt-3 text-xs text-muted-foreground">
-        Until exercise logging exists every day uses the rest-day target, and the
-        sheet says so.
-      </p>
+      <p className="mt-3 text-xs text-muted-foreground">{t("restNote")}</p>
 
       <div className="sticky bottom-[4.5rem] lg:bottom-4 mt-6 bg-background pb-1">
         <button
@@ -209,7 +202,7 @@ export default function GoalPage() {
           onClick={submit}
           className="flex min-h-12 w-full items-center justify-center bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {submitting ? "Opening…" : "Open phase"}
+          {submitting ? t("opening") : t("submit")}
         </button>
       </div>
     </>

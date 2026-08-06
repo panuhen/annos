@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useState, useSyncExternalStore } from "react";
@@ -17,24 +18,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { LOCALE_COOKIE, LOCALES } from "@/i18n/config";
 import { api } from "@/lib/api/client";
 import { clearApiToken } from "@/lib/api/token";
 import { authClient } from "@/lib/auth-client";
 import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
-const LANGUAGES = [
-  { value: "fi", label: "suomi" },
-  { value: "sv", label: "svenska" },
-  { value: "en", label: "English" },
-];
+/** Language names stay in their own language — a Finn lost in a Swedish UI
+ * still finds "suomi". */
+const LANGUAGE_NAMES: Record<string, string> = {
+  fi: "suomi",
+  sv: "svenska",
+  en: "English",
+};
 
 export default function ProfilePage() {
   const profile = useProfile();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const t = useTranslations("profile");
+  const appLocale = useLocale();
 
-  const [language, setLanguage] = useState(profile.language);
+  const [foodLanguage, setFoodLanguage] = useState(profile.language);
   const [timezone, setTimezone] = useState(profile.timezone);
   const [birthYear, setBirthYear] = useState(profile.birth_year?.toString() ?? "");
   const [height, setHeight] = useState(profile.height_cm?.toString() ?? "");
@@ -42,10 +48,18 @@ export default function ProfilePage() {
   const [coachingNotes, setCoachingNotes] = useState(profile.coaching_notes ?? "");
   const [saving, setSaving] = useState(false);
 
+  /** App language is a web-only preference: a cookie, applied immediately.
+   * Food-name language is `user_profile.language` — server data, saved with
+   * the form, and shared with the MCP surface. */
+  function setAppLanguage(locale: string) {
+    document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=31536000;samesite=lax`;
+    router.refresh();
+  }
+
   async function save() {
     setSaving(true);
     const changes: Record<string, unknown> = {};
-    if (language !== profile.language) changes.language = language;
+    if (foodLanguage !== profile.language) changes.language = foodLanguage;
     if (timezone !== profile.timezone) changes.timezone = timezone;
     const by = birthYear.trim() === "" ? null : parseInt(birthYear);
     if (by !== profile.birth_year) changes.birth_year = by;
@@ -57,7 +71,7 @@ export default function ProfilePage() {
     if (notes !== profile.coaching_notes) changes.coaching_notes = notes;
 
     if (Object.keys(changes).length === 0) {
-      toast("Nothing changed.");
+      toast(t("nothingChanged"));
       setSaving(false);
       return;
     }
@@ -65,13 +79,13 @@ export default function ProfilePage() {
       const { data, error } = await api.PATCH("/api/profile", { body: { changes } });
       if (error || !data) throw error ?? new Error("no response");
       await queryClient.invalidateQueries();
-      toast("Saved.");
+      toast(t("saved"));
     } catch (err) {
       const detail =
         typeof err === "object" && err !== null && "detail" in err
           ? String((err as { detail: unknown }).detail)
-          : "The API did not answer. Try again.";
-      toast.error("Could not save", { description: detail });
+          : t("apiNoAnswer");
+      toast.error(t("saveFailed"), { description: detail });
     } finally {
       setSaving(false);
     }
@@ -87,86 +101,99 @@ export default function ProfilePage() {
   return (
     <>
       <header className="border-b-2 border-foreground pt-5 pb-2">
-        <h1 className="text-lg font-bold">Profile</h1>
+        <h1 className="text-lg font-bold">{t("title")}</h1>
       </header>
 
       <div className="mt-4 flex items-baseline justify-between border-b border-border pb-4">
         <span className="font-mono text-lg font-bold break-all">{profile.nickname}</span>
-        <span className="ml-3 shrink-0 font-mono text-xs text-muted-foreground">permanent</span>
+        <span className="ml-3 shrink-0 font-mono text-xs text-muted-foreground">
+          {t("permanent")}
+        </span>
       </div>
 
       <ThemeRow />
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="language" className="mb-1.5 font-mono text-xs uppercase">
-            Food names in
+          <Label htmlFor="app-language" className="mb-1.5 font-mono text-xs uppercase">
+            {t("appLanguage")}
           </Label>
-          <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger id="language" className="h-11 w-full">
+          <Select value={appLocale} onValueChange={setAppLanguage}>
+            <SelectTrigger id="app-language" className="h-11 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {LANGUAGES.map(({ value, label }) => (
+              {LOCALES.map((value) => (
                 <SelectItem key={value} value={value}>
-                  {label}
+                  {LANGUAGE_NAMES[value]}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label htmlFor="timezone" className="mb-1.5 font-mono text-xs uppercase">
-            Timezone
+          <Label htmlFor="food-language" className="mb-1.5 font-mono text-xs uppercase">
+            {t("foodLanguage")}
           </Label>
-          <Input
-            id="timezone"
-            value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-            autoComplete="off"
-            className="h-11 font-mono text-sm"
-          />
+          <Select value={foodLanguage} onValueChange={setFoodLanguage}>
+            <SelectTrigger id="food-language" className="h-11 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LOCALES.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {LANGUAGE_NAMES[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
-      <p className="mt-1.5 text-xs text-muted-foreground">
-        The timezone decides when your day rolls over — a 00:30 snack belongs
-        to the new day.
-      </p>
 
-      <h2 className="mt-6 text-sm font-bold">Body facts</h2>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        Optional. Used for energy arithmetic later; never judged.
-      </p>
+      <div className="mt-3">
+        <Label htmlFor="timezone" className="mb-1.5 font-mono text-xs uppercase">
+          {t("timezone")}
+        </Label>
+        <Input
+          id="timezone"
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          autoComplete="off"
+          className="h-11 font-mono text-sm"
+        />
+      </div>
+      <p className="mt-1.5 text-xs text-muted-foreground">{t("tzNote")}</p>
+
+      <h2 className="mt-6 text-sm font-bold">{t("bodyFacts")}</h2>
+      <p className="mt-0.5 text-xs text-muted-foreground">{t("bodyNote")}</p>
       <div className="mt-3 grid grid-cols-3 gap-3">
         <div>
           <Label htmlFor="birth-year" className="mb-1.5 font-mono text-xs uppercase">
-            Born
+            {t("born")}
           </Label>
           <Input
             id="birth-year"
             inputMode="numeric"
             value={birthYear}
             onChange={(e) => setBirthYear(e.target.value)}
-            placeholder=""
             className="tnum h-11 text-right font-mono"
           />
         </div>
         <div>
           <Label htmlFor="height-cm" className="mb-1.5 font-mono text-xs uppercase">
-            Height cm
+            {t("height")}
           </Label>
           <Input
             id="height-cm"
             inputMode="numeric"
             value={height}
             onChange={(e) => setHeight(e.target.value)}
-            placeholder=""
             className="tnum h-11 text-right font-mono"
           />
         </div>
         <div>
           <Label htmlFor="sex" className="mb-1.5 font-mono text-xs uppercase">
-            Sex
+            {t("sex")}
           </Label>
           <Select value={sex} onValueChange={setSex}>
             <SelectTrigger id="sex" className="h-11 w-full">
@@ -174,9 +201,9 @@ export default function ProfilePage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="unset">—</SelectItem>
-              <SelectItem value="female">female</SelectItem>
-              <SelectItem value="male">male</SelectItem>
-              <SelectItem value="other">other</SelectItem>
+              <SelectItem value="female">{t("female")}</SelectItem>
+              <SelectItem value="male">{t("male")}</SelectItem>
+              <SelectItem value="other">{t("other")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -184,14 +211,14 @@ export default function ProfilePage() {
 
       <div className="mt-4">
         <Label htmlFor="coaching-notes" className="mb-1.5 font-mono text-xs uppercase">
-          Coaching notes
+          {t("coachingNotes")}
         </Label>
         <Textarea
           id="coaching-notes"
           value={coachingNotes}
           onChange={(e) => setCoachingNotes(e.target.value)}
           rows={3}
-          placeholder="In your own words — your AI reads this with every summary."
+          placeholder={t("coachingPlaceholder")}
         />
       </div>
 
@@ -201,7 +228,7 @@ export default function ProfilePage() {
         disabled={saving}
         className="mt-5 flex min-h-12 w-full items-center justify-center bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {saving ? "Saving…" : "Save changes"}
+        {saving ? t("saving") : t("save")}
       </button>
 
       <button
@@ -209,17 +236,18 @@ export default function ProfilePage() {
         onClick={signOut}
         className="mt-3 flex min-h-12 w-full items-center justify-center border border-input font-bold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
-        Sign out
+        {t("signOut")}
       </button>
     </>
   );
 }
 
-/** Both themes are first-class; the toggle is three-way with system default. */
 const emptySubscribe = () => () => {};
 
+/** Both themes are first-class; the toggle is three-way with system default. */
 function ThemeRow() {
   const { theme, setTheme } = useTheme();
+  const t = useTranslations("profile");
   // Theme is unknowable server-side; render the toggle neutral until hydrated.
   const mounted = useSyncExternalStore(
     emptySubscribe,
@@ -228,17 +256,17 @@ function ThemeRow() {
   );
 
   const options = [
-    { value: "light", label: "Light", icon: Sun },
-    { value: "system", label: "System", icon: Monitor },
-    { value: "dark", label: "Dark", icon: Moon },
+    { value: "light", label: t("light"), icon: Sun },
+    { value: "system", label: t("system"), icon: Monitor },
+    { value: "dark", label: t("dark"), icon: Moon },
   ] as const;
 
   return (
     <div className="mt-4">
       <span className="mb-1.5 block font-mono text-xs uppercase text-muted-foreground">
-        Theme
+        {t("theme")}
       </span>
-      <div role="radiogroup" aria-label="Theme" className="flex border border-input">
+      <div role="radiogroup" aria-label={t("theme")} className="flex border border-input">
         {options.map(({ value, label, icon: Icon }) => {
           const active = mounted && theme === value;
           return (

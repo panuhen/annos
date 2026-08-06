@@ -1,29 +1,31 @@
 "use client";
 
 import { CircleUserRound, ClipboardList, Crosshair, Weight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { href: "/", label: "Today", icon: ClipboardList },
-  { href: "/weight", label: "Weight", icon: Weight },
-  { href: "/goal", label: "Goal", icon: Crosshair },
-  { href: "/profile", label: "Profile", icon: CircleUserRound },
+  { href: "/", key: "today", icon: ClipboardList },
+  { href: "/weight", key: "weight", icon: Weight },
+  { href: "/goal", key: "goal", icon: Crosshair },
+  { href: "/profile", key: "profile", icon: CircleUserRound },
 ] as const;
 
 /** The sheet's foot on a phone: a heavy rule with the app's four places
  * under it. On wide screens the places dock into the letterhead instead. */
 export function AppNav() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   return (
     <nav
       aria-label="Main"
       className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-foreground bg-background pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <div className="mx-auto flex max-w-md">
-        {TABS.map(({ href, label, icon: Icon }) => {
+        {TABS.map(({ href, key, icon: Icon }) => {
           const active = pathname === href;
           return (
             <Link
@@ -37,7 +39,7 @@ export function AppNav() {
               )}
             >
               <Icon aria-hidden strokeWidth={active ? 2.25 : 1.75} className="size-5" />
-              {label}
+              {t(key)}
             </Link>
           );
         })}
@@ -50,9 +52,10 @@ export function AppNav() {
  * mono labels, no bar chrome. */
 export function DesktopNav() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   return (
     <nav aria-label="Main" className="hidden justify-end gap-6 pt-4 lg:flex">
-      {TABS.map(({ href, label }) => {
+      {TABS.map(({ href, key }) => {
         const active = pathname === href;
         return (
           <Link
@@ -66,7 +69,7 @@ export function DesktopNav() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {label}
+            {t(key)}
           </Link>
         );
       })}

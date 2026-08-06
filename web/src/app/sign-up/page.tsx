@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useTranslations } from "next-intl";
+
 import { AuthSheet } from "@/components/auth-sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +21,7 @@ import { authClient } from "@/lib/auth-client";
  * nickname.
  */
 export default function SignUpPage() {
+  const t = useTranslations("auth");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +38,7 @@ export default function SignUpPage() {
       name: "",
     });
     if (error) {
-      setError(error.message ?? "Sign-up failed");
+      setError(error.message ?? t("signUpFailed"));
       setPending(false);
       return;
     }
@@ -43,11 +46,11 @@ export default function SignUpPage() {
   }
 
   return (
-    <AuthSheet title="Create an account">
+    <AuthSheet title={t("signUpTitle")}>
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <div>
           <Label htmlFor="email" className="mb-1.5 font-mono text-xs uppercase">
-            Email
+            {t("email")}
           </Label>
           <Input
             id="email"
@@ -61,7 +64,7 @@ export default function SignUpPage() {
         </div>
         <div>
           <Label htmlFor="password" className="mb-1.5 font-mono text-xs uppercase">
-            Password
+            {t("password")}
           </Label>
           <Input
             id="password"
@@ -75,9 +78,7 @@ export default function SignUpPage() {
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Your email stays with the sign-in system — the tracker itself never
-          sees it. Inside Annos you are only your nickname, drawn on the next
-          page.
+          {t("quarantine")}
         </p>
         {error && (
           <p className="text-sm text-destructive" role="alert">
@@ -89,13 +90,13 @@ export default function SignUpPage() {
           disabled={pending}
           className="mt-1 flex min-h-12 items-center justify-center bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {pending ? "Creating account…" : "Sign up"}
+          {pending ? t("creating") : t("signUp")}
         </button>
       </form>
       <p className="mt-5 text-sm text-muted-foreground">
-        Already registered?{" "}
+        {t("haveAccount")}{" "}
         <Link href="/sign-in" className="text-primary underline underline-offset-2">
-          Sign in
+          {t("signIn")}
         </Link>
       </p>
     </AuthSheet>

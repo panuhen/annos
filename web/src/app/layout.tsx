@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import { Fragment_Mono, Schibsted_Grotesk } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 
@@ -41,23 +43,26 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the
 finish review, the verdict, and DESIGN.md
 -->`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
       className={`${grotesk.variable} ${mono.variable}`}
     >
       <body className="antialiased">
         <span hidden dangerouslySetInnerHTML={{ __html: contract }} />
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Providers>{children}</Providers>
-          <Toaster position="top-center" />
-        </ThemeProvider>
+        <NextIntlClientProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <Providers>{children}</Providers>
+            <Toaster position="top-center" />
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

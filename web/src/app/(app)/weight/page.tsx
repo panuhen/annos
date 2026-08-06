@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,15 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import { localeFor, sheetDate } from "@/lib/format";
-import { useProfile } from "@/lib/profile";
 
 /** Morning ritual: step on the scale, type one number. Re-logging the same
  * day replaces only the fields sent — waist in the evening keeps the
  * morning's weight. */
 export default function WeightPage() {
-  const profile = useProfile();
   const queryClient = useQueryClient();
-  const locale = localeFor(profile.language);
+  const t = useTranslations("weight");
+  const locale = localeFor(useLocale());
 
   const [weight, setWeight] = useState("");
   const [waist, setWaist] = useState("");
@@ -50,8 +50,8 @@ export default function WeightPage() {
       const detail =
         typeof err === "object" && err !== null && "detail" in err
           ? String((err as { detail: unknown }).detail)
-          : "The kitchen did not answer. Try again.";
-      toast.error("Could not log the measurement", { description: detail });
+          : undefined;
+      toast.error(t("failed"), { description: detail });
     } finally {
       setSubmitting(false);
     }
@@ -60,42 +60,45 @@ export default function WeightPage() {
   return (
     <>
       <header className="border-b-2 border-foreground pt-5 pb-2">
-        <h1 className="text-lg font-bold">Weight</h1>
+        <h1 className="text-lg font-bold">{t("title")}</h1>
       </header>
 
       {logged && (
         <p className="stamp-in mt-4 border border-border px-3 py-2 text-sm" role="status">
-          Logged{logged.weight_kg != null && <> <span className="tnum font-mono">{logged.weight_kg}</span> kg</>} for{" "}
-          <span className="font-mono">{sheetDate(logged.date, locale)}</span>. Same day, new
-          number? Log again — it replaces.
+          {logged.weight_kg != null
+            ? t("loggedWith", {
+                weight: logged.weight_kg,
+                date: sheetDate(logged.date, locale),
+              })
+            : t("loggedPlain", { date: sheetDate(logged.date, locale) })}{" "}
+          {t("replaces")}
         </p>
       )}
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="weight-kg" className="mb-1.5 font-mono text-xs uppercase">
-            Weight, kg
+            {t("weightKg")}
           </Label>
           <Input
             id="weight-kg"
             inputMode="decimal"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            placeholder=""
             className="tnum h-12 text-right font-mono text-base"
             autoFocus
           />
         </div>
         <div>
           <Label htmlFor="waist-cm" className="mb-1.5 font-mono text-xs uppercase">
-            Waist, cm
+            {t("waistCm")}
           </Label>
           <Input
             id="waist-cm"
             inputMode="decimal"
             value={waist}
             onChange={(e) => setWaist(e.target.value)}
-            placeholder="optional"
+            placeholder={t("optional")}
             className="tnum h-12 text-right font-mono text-base"
           />
         </div>
@@ -103,7 +106,7 @@ export default function WeightPage() {
 
       <div className="mt-3">
         <Label htmlFor="weight-date" className="mb-1.5 font-mono text-xs uppercase">
-          Day — leave empty for today
+          {t("day")}
         </Label>
         <Input
           id="weight-date"
@@ -116,21 +119,18 @@ export default function WeightPage() {
 
       <div className="mt-3">
         <Label htmlFor="weight-notes" className="mb-1.5 font-mono text-xs uppercase">
-          Notes
+          {t("notes")}
         </Label>
         <Textarea
           id="weight-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
-          placeholder="Slept badly, salty dinner…"
+          placeholder={t("notesPlaceholder")}
         />
       </div>
 
-      <p className="mt-3 text-xs text-muted-foreground">
-        The number is stored as-is. Trends and smoothing come later — a
-        single morning is weather, not climate.
-      </p>
+      <p className="mt-3 text-xs text-muted-foreground">{t("asIs")}</p>
 
       <div className="sticky bottom-[4.5rem] lg:bottom-4 mt-6 bg-background pb-1">
         <button
@@ -139,7 +139,7 @@ export default function WeightPage() {
           onClick={submit}
           className="flex min-h-12 w-full items-center justify-center gap-2 bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {submitting ? "Logging…" : "Log measurement"}
+          {submitting ? t("logging") : t("submit")}
         </button>
       </div>
     </>

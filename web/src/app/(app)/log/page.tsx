@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -18,6 +19,7 @@ export default function LogPage() {
 
 function LogNew() {
   const params = useSearchParams();
+  const t = useTranslations("logPage");
   const date = params.get("date") ?? undefined;
 
   return (
@@ -25,14 +27,18 @@ function LogNew() {
       <header className="flex items-center gap-1 border-b-2 border-foreground pt-5 pb-2">
         <Link
           href={date ? `/?date=${date}` : "/"}
-          aria-label="Back to the day"
+          aria-label={t("back")}
           className="-ml-2 flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft aria-hidden className="size-5" />
         </Link>
         <h1 className="text-lg font-bold">
-          Log a meal
-          {date && <span className="ml-2 font-mono text-sm font-normal text-muted-foreground">{date}</span>}
+          {t("title")}
+          {date && (
+            <span className="ml-2 font-mono text-sm font-normal text-muted-foreground">
+              {date}
+            </span>
+          )}
         </h1>
       </header>
       <MealForm mode="new" date={date} />
