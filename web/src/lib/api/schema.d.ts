@@ -173,7 +173,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Log */
+        delete: operations["delete_log_api_logs_meals__log_id__delete"];
         options?: never;
         head?: never;
         /** Revise Log */
@@ -348,6 +349,13 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LogDeletedResponse */
+        LogDeletedResponse: {
+            /** Deleted Log Id */
+            deleted_log_id: number;
+            day_totals: components["schemas"]["DayTotals"];
+            server_time: components["schemas"]["ServerTime"];
         };
         /** LoggedItemOut */
         LoggedItemOut: {
@@ -990,6 +998,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GoalHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_log_api_logs_meals__log_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                log_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogDeletedResponse"];
                 };
             };
             /** @description Validation Error */

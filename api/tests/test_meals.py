@@ -179,6 +179,54 @@ async def test_unknown_revision_fields_fail_loudly(session, profile, make_food):
         )
 
 
+# --- delete_log ----------------------------------------------------------------
+
+
+async def test_deleting_a_log_removes_it_from_the_day(session, profile, make_food):
+    food = await make_food(name_en="test entry", kcal=500, protein_g=20, carbs_g=50, fat_g=20)
+    kept = await log(session, items=[{"food_id": food.id, "grams": 100}])
+    doomed = await log(session, items=[{"food_id": food.id, "grams": 100}])
+
+    payload = await meals_domain.delete_log(session, subject=SUBJECT, log_id=doomed["log_id"])
+
+    assert payload["deleted_log_id"] == doomed["log_id"]
+    assert payload["day_totals"]["kcal"] == pytest.approx(500.0)
+    assert payload["day_totals"]["items_logged"] == 1
+
+    with pytest.raises(meals_domain.LogNotFound):
+        await meals_domain.revise_log(
+            session, subject=SUBJECT, log_id=doomed["log_id"], changes={"notes": "gone"}
+        )
+    revisable = await meals_domain.revise_log(
+        session, subject=SUBJECT, log_id=kept["log_id"], changes={"notes": "still here"}
+    )
+    assert revisable["notes"] == "still here"
+
+
+async def test_another_users_log_cannot_be_deleted(session, profile, make_food):
+    await profile_domain.create_profile(session, subject=OTHER_SUBJECT)
+    food = await make_food(name_en="oats", kcal=370, protein_g=13, carbs_g=60, fat_g=7)
+    theirs = await meals_domain.log_meal(
+        session, subject=OTHER_SUBJECT, items=[{"food_id": food.id, "grams": 100}]
+    )
+
+    with pytest.raises(meals_domain.LogNotFound):
+        await meals_domain.delete_log(session, subject=SUBJECT, log_id=theirs["log_id"])
+
+
+async def test_rest_deletes_a_log(api, profile, session, make_food):
+    food = await make_food(name_en="rest bread", kcal=250, protein_g=8, carbs_g=45, fat_g=3)
+    created = (
+        await api.post("/api/logs/meals", json={"items": [{"food_id": food.id, "grams": 100}]})
+    ).json()
+
+    response = await api.delete(f"/api/logs/meals/{created['log_id']}")
+
+    assert response.status_code == 200
+    assert response.json()["day_totals"]["items_logged"] == 0
+    assert (await api.delete(f"/api/logs/meals/{created['log_id']}")).status_code == 404
+
+
 # --- scoping ------------------------------------------------------------------
 
 

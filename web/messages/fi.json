@@ -59,7 +59,11 @@
     "notOnToday": "Tämä kirjaus ei ole tämän päivän listalla.",
     "notOnThat": "Tämä kirjaus ei ole sen päivän listalla.",
     "hint": "Avaa oikea päivä ja napauta ateriaa siellä.",
-    "backToToday": "Takaisin tähän päivään"
+    "backToToday": "Takaisin tähän päivään",
+    "deleteEntry": "Poista tämä kirjaus",
+    "deleteConfirm": "Napauta uudelleen — poistuu pysyvästi",
+    "deleting": "Poistetaan…",
+    "deleteFailed": "Kirjausta ei voitu poistaa"
   },
   "logForm": {
     "searchLabel": "Hae ruokia",

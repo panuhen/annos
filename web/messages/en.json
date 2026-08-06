@@ -59,7 +59,11 @@
     "notOnToday": "This log is not on today's sheet.",
     "notOnThat": "This log is not on that day's sheet.",
     "hint": "Open the day it belongs to and tap the meal there.",
-    "backToToday": "Back to today"
+    "backToToday": "Back to today",
+    "deleteEntry": "Delete this entry",
+    "deleteConfirm": "Tap again — removed permanently",
+    "deleting": "Deleting…",
+    "deleteFailed": "Could not delete the entry"
   },
   "logForm": {
     "searchLabel": "Search foods",

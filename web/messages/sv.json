@@ -59,7 +59,11 @@
     "notOnToday": "Den här loggen finns inte på dagens blad.",
     "notOnThat": "Den här loggen finns inte på den dagens blad.",
     "hint": "Öppna rätt dag och tryck på måltiden där.",
-    "backToToday": "Tillbaka till idag"
+    "backToToday": "Tillbaka till idag",
+    "deleteEntry": "Ta bort den här loggen",
+    "deleteConfirm": "Tryck igen — tas bort permanent",
+    "deleting": "Tar bort…",
+    "deleteFailed": "Loggen kunde inte tas bort"
   },
   "logForm": {
     "searchLabel": "Sök livsmedel",

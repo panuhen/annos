@@ -16,6 +16,7 @@ EXPECTED_TOOLS = {
     "coaching_history",
     "log_meal",
     "revise_log",
+    "delete_log",
     "log_weight",
     "set_goal_phase",
     "revise_goal_phase",
@@ -30,8 +31,9 @@ async def mcp_call(client, name: str, arguments: dict | None = None) -> dict:
 
 
 async def test_the_advertised_tool_surface(mcp_client):
-    """Registration and hard deletion are absent on purpose: a hallucinating
-    client must not be able to create or destroy an account."""
+    """Registration and account deletion are absent on purpose: a hallucinating
+    client must not be able to create or destroy an account. (Meal-log deletion
+    is on the surface since 2026-08-06 — logs are the user's data to erase.)"""
     names = {tool.name for tool in await mcp_client.list_tools()}
 
     assert names == EXPECTED_TOOLS

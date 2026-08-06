@@ -465,6 +465,22 @@ async def list_goal_phases(session: SessionDep, who: CallerDep) -> GoalHistoryRe
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
 
+class LogDeletedResponse(BaseModel):
+    deleted_log_id: int
+    day_totals: DayTotals
+    server_time: ServerTime
+
+
+@router.delete("/logs/meals/{log_id}")
+async def delete_log(session: SessionDep, who: CallerDep, log_id: int) -> LogDeletedResponse:
+    try:
+        return await meals_domain.delete_log(session, subject=who.subject, log_id=log_id)
+    except meals_domain.LogNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
 @router.patch("/logs/meals/{log_id}")
 async def revise_log(
     session: SessionDep, who: CallerDep, log_id: int, body: MealLogRevise

@@ -319,3 +319,17 @@ async def revise_log(log_id: int, changes: dict[str, Any]) -> dict[str, Any]:
         return await meals_domain.revise_log(
             session, subject=who.subject, log_id=log_id, changes=changes
         )
+
+
+@mcp.tool
+async def delete_log(log_id: int) -> dict[str, Any]:
+    """Erase a meal log entirely — a duplicate, a test entry, a meal that never
+    happened. Permanent: the log and its snapshots are gone.
+
+    Use this only when the user explicitly asks for the log to be removed.
+    A wrong amount or wrong food is a correction, not a deletion — that is
+    revise_log. Returns the day's totals after the removal.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await meals_domain.delete_log(session, subject=who.subject, log_id=log_id)

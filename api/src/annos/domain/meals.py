@@ -273,3 +273,33 @@ async def revise_log(session: AsyncSession, *, subject: str, log_id: int, change
         session, subject=subject, local_date=servertime.local_date(tz, log.ts), tz=tz
     )
     return log_payload(log, totals, tz)
+
+
+async def delete_log(session: AsyncSession, *, subject: str, log_id: int) -> dict:
+    """Erase a log that should never have existed — a duplicate, a test entry.
+
+    This is deletion, not correction: the log and its macro snapshots are gone
+    for good (originally rejected, reinstated 2026-08-06 — a mislog with no
+    true version has nothing to correct *to*). "That was 250 g, not 400" still
+    belongs to revise_log. Returns the day's totals after the deletion so the
+    caller sees the day it left behind.
+    """
+    profile = await profile_domain.get_profile(session, subject=subject)
+    tz = profile.timezone
+
+    log = await session.scalar(
+        select(MealLog).where(MealLog.id == log_id, MealLog.subject == subject)
+    )
+    if log is None:
+        raise LogNotFound(log_id)
+
+    local_date = servertime.local_date(tz, log.ts)
+    await session.delete(log)
+    await session.commit()
+
+    totals = await day_totals(session, subject=subject, local_date=local_date, tz=tz)
+    return {
+        "deleted_log_id": log_id,
+        "day_totals": totals,
+        "server_time": servertime.echo(tz),
+    }
