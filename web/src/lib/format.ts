@@ -48,13 +48,33 @@ export function addDays(dateISO: string, days: number): string {
 }
 
 /** Clock time of a log in the profile timezone the API already applied —
- * `ts` arrives timezone-aware. */
+ * `ts` arrives timezone-aware. Always the 24-hour clock: this is a Finnish
+ * sheet whatever language it is read in, and "3.05 ip." is nobody's dinner
+ * time. */
 export function clockTime(tsISO: string, locale: string, timeZone: string): string {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
     timeZone,
   }).format(new Date(tsISO));
+}
+
+/** The same clock as a form value: strictly HH:mm, whatever the locale
+ * separator — `<input type="time">` accepts nothing else. */
+export function timeValue(tsISO: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(new Date(tsISO));
+}
+
+/** Today as a calendar date in the given timezone — for stating "today at
+ * 19:30" as a timestamp the server reads in the user's own zone. */
+export function localDate(timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date());
 }
 
 export function kcal(value: number | null | undefined): string {

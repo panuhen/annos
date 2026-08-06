@@ -3,7 +3,8 @@
     "today": "Idag",
     "weight": "Vikt",
     "goal": "Mål",
-    "profile": "Profil"
+    "profile": "Profil",
+    "settings": "Inställn."
   },
   "footer": {
     "prefix": "Livsmedelsdata:",
@@ -38,11 +39,6 @@
     "energy": "Energi",
     "protein": "Protein",
     "macroLine": "kolhydrater {carbs} g · fett {fat} g · fiber {fiber} g",
-    "itemMacros": "protein {protein} g · kolhydrater {carbs} g · fett {fat} g",
-    "itemFiber": " · fiber {fiber} g",
-    "showMacros": "Visa makron",
-    "hideMacros": "Dölj makron",
-    "prefFailed": "Inställningen kunde inte sparas",
     "remaining": "Kvar",
     "kcalUnit": "kcal",
     "gProtein": "g protein",
@@ -113,7 +109,9 @@
     "templateFailed": "Mallen kunde inte sparas",
     "manageTemplates": "Hantera",
     "moreTemplates": "+{count} till",
-    "fewerTemplates": "Visa färre"
+    "fewerTemplates": "Visa färre",
+    "time": "Tid",
+    "timeNow": "Tid — tomt betyder nu"
   },
   "weight": {
     "title": "Vikt",
@@ -166,19 +164,16 @@
     "saveRevision": "Spara ändringen",
     "startsKeep": "Börjar — lämna som den är för att behålla",
     "rateLoss": "Minskning, kg/vecka",
-    "rateGain": "Ökning, kg/vecka"
+    "rateGain": "Ökning, kg/vecka",
+    "deletePhase": "Ta bort den här fasen",
+    "deleteConfirm": "Tryck igen — tas bort permanent",
+    "deleting": "Tar bort…",
+    "deleteFailed": "Fasen kunde inte tas bort",
+    "phaseDeleted": "Fasen borttagen."
   },
   "profile": {
     "title": "Profil",
-    "permanent": "permanent",
-    "theme": "Tema",
-    "light": "Ljust",
-    "system": "System",
-    "dark": "Mörkt",
-    "appLanguage": "Appens språk",
-    "foodLanguage": "Livsmedelsnamn",
-    "timezone": "Tidszon",
-    "tzNote": "Tidszonen avgör när din dag byter — ett mellanmål kl. 00.30 hör till den nya dagen.",
+    "permanent": "smeknamn",
     "bodyFacts": "Kroppsfakta",
     "bodyNote": "Valfritt. Används senare för energiberäkning; aldrig för bedömning.",
     "born": "Födelseår",
@@ -201,7 +196,9 @@
     "historyReading": "Läser…",
     "historyEmpty": "Inga ändringar ännu.",
     "notesCleared": "(rensat)",
-    "currentNote": "nuvarande"
+    "currentNote": "nuvarande",
+    "nicknameNote": "Slumpat med avsikt — appen ser aldrig ditt namn eller din e-post, så smeknamnet är kontots enda namn.",
+    "nicknameWhy": "Varför det här smeknamnet?"
   },
   "welcome": {
     "title": "Ett namn, draget åt dig",
@@ -255,5 +252,42 @@
     "deleteConfirm": "Tryck igen — tas bort permanent",
     "deleting": "Tar bort…",
     "deleteFailed": "Mallen kunde inte tas bort"
+  },
+  "macros": {
+    "line": "P {protein} g · K {carbs} g · F {fat} g",
+    "fiber": " · Fi {fiber} g",
+    "show": "Visa makron",
+    "hide": "Dölj makron",
+    "prefFailed": "Inställningen kunde inte sparas"
+  },
+  "settings": {
+    "title": "Inställningar",
+    "preferences": "Val",
+    "saved": "Sparat.",
+    "saveFailed": "Inställningen kunde inte sparas",
+    "mcpTitle": "Anslut din AI (MCP)",
+    "mcpIntro": "Annos fungerar inne i din AI-klient över Model Context Protocol: samma konto, samma data, verktygen agerar som du. Allt du kan göra här kan din AI göra i samtalet.",
+    "mcpEndpoint": "Adress",
+    "mcpConfig": "Klientkonfiguration",
+    "mcpConfigNote": "För andra MCP-klienter som tar en JSON-konfiguration.",
+    "mcpHow": "Så ansluter den",
+    "mcpStep1": "Lägg till anslutningen i Claude, eller konfigurationen i en annan MCP-klient.",
+    "mcpStep2": "Första gången öppnas appens inloggning — logga in med ditt Annos-konto och godkänn åtkomsten.",
+    "mcpStep3": "Annos verktyg dyker upp i din klient: loggning, korrigering, dagsöversikter — enbart din egen data.",
+    "copy": "Kopiera",
+    "copied": "Kopierat",
+    "copyEndpoint": "Kopiera adressen",
+    "copyConfig": "Kopiera konfigurationen",
+    "aboutTitle": "Om",
+    "aboutBody": "Annos är en dagbok för mat och vikt. Du kan använda den här eller från en AI-klient ansluten via MCP; båda arbetar med samma data och kan göra samma saker. Den visar din dag mot dina mål och ger inga råd. Konton är pseudonyma: ett genererat smeknamn är det enda namnet i appen.",
+    "theme": "Tema",
+    "light": "Ljust",
+    "dark": "Mörkt",
+    "system": "System",
+    "appLanguage": "Appens språk",
+    "timezone": "Tidszon",
+    "tzNote": "Tidszonen avgör när din dag byter — ett mellanmål kl. 00.30 hör till den nya dagen.",
+    "foodLanguage": "Livsmedelsnamn",
+    "mcpClaudeNote": "I Claude lägger du till detta som en anpassad anslutning: Settings → Connectors → Add custom connector."
   }
 }

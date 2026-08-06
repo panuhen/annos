@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { MacroLine, MacrosToggle } from "@/components/macros";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -20,21 +21,41 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import type { components } from "@/lib/api/schema";
-import { MEALS, grams as fmtGrams, kcal as fmtKcal, sourceCode } from "@/lib/format";
+import {
+  MEALS,
+  grams as fmtGrams,
+  kcal as fmtKcal,
+  localDate,
+  sourceCode,
+  timeValue,
+} from "@/lib/format";
+import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
 type FoodCandidate = components["schemas"]["FoodCandidateOut"];
 type SummaryMeal = components["schemas"]["SummaryMealOut"];
 type Template = components["schemas"]["TemplateOut"];
+type Per100 = components["schemas"]["Per100g"];
 
 type FormItem = {
   food_id: number;
   name: string;
   source: string | null;
   grams: string;
-  kcalPer100: number | null;
+  per100: Per100 | null;
   units: { code: string; name: string; grams: number }[];
 };
+
+/** The portion's value from a per-100g figure, or null when either half of
+ * the multiplication is unknown. */
+function portion(per100: number | null | undefined, grams: number): number | null {
+  return per100 != null && grams > 0 ? (per100 * grams) / 100 : null;
+}
+
+/** The native picker's clock format follows the browser/OS language, not the
+ * app's — accepted trade (Panu's call, 2026-08-06) for keeping the platform
+ * time UI on phones; the submitted value is always HH:MM regardless. */
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 type Props =
   | { mode: "new"; date?: string }
@@ -50,13 +71,22 @@ function suggestMeal(): string {
 }
 
 function itemsFromLog(log: SummaryMeal): FormItem[] {
+  // Recover per-100g from the snapshot so the preview stays honest — the
+  // logged portion's values divided back out, not the food's current row.
+  const per100 = (value: number | null | undefined, grams: number): number | null =>
+    value != null && grams > 0 ? (value / grams) * 100 : null;
   return log.items.map((item) => ({
     food_id: item.food_id,
     name: item.name ?? `#${item.food_id}`,
     source: item.source,
     grams: fmtGrams(item.grams),
-    // Recover per-100g from the snapshot so the preview stays honest.
-    kcalPer100: item.kcal != null && item.grams > 0 ? (item.kcal / item.grams) * 100 : null,
+    per100: {
+      kcal: per100(item.kcal, item.grams),
+      protein_g: per100(item.protein_g, item.grams),
+      carbs_g: per100(item.carbs_g, item.grams),
+      fat_g: per100(item.fat_g, item.grams),
+      fiber_g: per100(item.fiber_g, item.grams),
+    },
     units: [],
   }));
 }
@@ -66,13 +96,17 @@ export function MealForm(props: Props) {
   const queryClient = useQueryClient();
   const t = useTranslations("logForm");
   const tMeals = useTranslations("meals");
+  const profile = useProfile();
   const editing = props.mode === "edit";
 
   const [items, setItems] = useState<FormItem[]>(editing ? itemsFromLog(props.log) : []);
   const [meal, setMeal] = useState<string>(editing ? (props.log.meal ?? "none") : suggestMeal());
   const [notes, setNotes] = useState(editing ? (props.log.notes ?? "") : "");
   const [planned, setPlanned] = useState(editing ? props.log.planned : false);
-  const [time, setTime] = useState("12:00");
+  // Empty means "now" on a fresh log; a revision starts from the moment the
+  // log already has, in the profile timezone the sheet reads in.
+  const originalTime = editing ? timeValue(props.log.ts, profile.timezone) : "";
+  const [time, setTime] = useState(editing ? originalTime : props.mode === "new" && props.date ? "12:00" : "");
   const [query, setQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -110,13 +144,15 @@ export function MealForm(props: Props) {
   const previewKcal = useMemo(() => {
     let sum = 0;
     for (const item of items) {
-      const g = parseFloat(item.grams);
-      if (item.kcalPer100 != null && g > 0) sum += (item.kcalPer100 * g) / 100;
+      sum += portion(item.per100?.kcal, parseFloat(item.grams)) ?? 0;
     }
     return Math.round(sum);
   }, [items]);
 
-  const valid = items.length > 0 && items.every((item) => parseFloat(item.grams) > 0);
+  // A backdated log needs a stated time (a past day has no "now"); elsewhere
+  // empty means now / keep, and anything typed must be a real 24h moment.
+  const timeValid = backdate ? TIME_RE.test(time) : time === "" || TIME_RE.test(time);
+  const valid = items.length > 0 && items.every((item) => parseFloat(item.grams) > 0) && timeValid;
 
   function add(food: FoodCandidate) {
     const unit = food.serving_units[0];
@@ -127,7 +163,7 @@ export function MealForm(props: Props) {
         name: food.name,
         source: food.source,
         grams: fmtGrams(unit?.grams ?? 100),
-        kcalPer100: food.per_100g.kcal,
+        per100: food.per_100g,
         units: food.serving_units,
       },
     ]);
@@ -143,7 +179,7 @@ export function MealForm(props: Props) {
         name: item.name ?? `#${item.food_id}`,
         source: null,
         grams: fmtGrams(item.grams),
-        kcalPer100: item.kcal_per_100g,
+        per100: item.per_100g,
         units: [],
       })),
     ]);
@@ -199,11 +235,18 @@ export function MealForm(props: Props) {
 
     try {
       if (props.mode === "new") {
+        // A stated time becomes a timestamp the server reads in the user's
+        // own timezone; an empty field means now, which needs no timestamp.
+        const ts = backdate
+          ? `${backdate}T${time}`
+          : time
+            ? `${localDate(profile.timezone)}T${time}`
+            : null;
         const { data, error } = await api.POST("/api/logs/meals", {
           body: {
             items: payloadItems,
             meal: mealValue,
-            ts: backdate ? `${backdate}T${time}` : null,
+            ts,
             input_mode: planned ? "plan" : "text",
             notes: notesValue,
           },
@@ -222,6 +265,9 @@ export function MealForm(props: Props) {
               meal: mealValue,
               notes: notesValue,
               planned,
+              // Only a changed time is a stated time; cleared falls back to
+              // what the log already had.
+              ...(time && time !== originalTime ? { ts: `${props.date}T${time}` } : {}),
             },
           },
         });
@@ -369,6 +415,11 @@ export function MealForm(props: Props) {
           {t("emptyPlate")}
         </p>
       ) : (
+        <div className="-mb-4">
+          <MacrosToggle />
+        </div>
+      )}
+      {items.length > 0 && (
         <ul className="border-t-2 border-foreground">
           {items.map((item, index) => (
             <li key={`${item.food_id}-${index}`} className="border-b border-border py-3">
@@ -382,12 +433,18 @@ export function MealForm(props: Props) {
                   )}
                 </span>
                 <span className="tnum font-mono text-sm">
-                  {item.kcalPer100 != null && parseFloat(item.grams) > 0
-                    ? Math.round((item.kcalPer100 * parseFloat(item.grams)) / 100)
+                  {portion(item.per100?.kcal, parseFloat(item.grams)) != null
+                    ? Math.round(portion(item.per100?.kcal, parseFloat(item.grams))!)
                     : "–"}{" "}
                   kcal
                 </span>
               </div>
+              <MacroLine
+                protein={portion(item.per100?.protein_g, parseFloat(item.grams))}
+                carbs={portion(item.per100?.carbs_g, parseFloat(item.grams))}
+                fat={portion(item.per100?.fat_g, parseFloat(item.grams))}
+                fiber={portion(item.per100?.fiber_g, parseFloat(item.grams))}
+              />
               <div className="mt-2 flex items-center gap-2">
                 <button
                   type="button"
@@ -517,33 +574,32 @@ export function MealForm(props: Props) {
             </SelectContent>
           </Select>
         </div>
-        {backdate ? (
-          <div>
-            <Label htmlFor="log-time" className="mb-1.5 font-mono text-xs uppercase">
-              {t("timeOn", { date: backdate })}
-            </Label>
-            <Input
-              id="log-time"
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="tnum h-11 font-mono"
-            />
-          </div>
-        ) : (
-          <div className="flex items-end">
-            <label className="flex min-h-11 items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={planned}
-                onChange={(e) => setPlanned(e.target.checked)}
-                className="size-4 accent-primary"
-              />
-              {t("plannedToggle")}
-            </label>
-          </div>
-        )}
+        <div>
+          <Label htmlFor="log-time" className="mb-1.5 font-mono text-xs uppercase">
+            {backdate ? t("timeOn", { date: backdate }) : editing ? t("time") : t("timeNow")}
+          </Label>
+          <Input
+            id="log-time"
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            aria-invalid={!timeValid}
+            className="tnum h-11 font-mono"
+          />
+        </div>
       </div>
+
+      {!backdate && !editing && (
+        <label className="-mt-2 flex min-h-11 items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={planned}
+            onChange={(e) => setPlanned(e.target.checked)}
+            className="size-4 accent-primary"
+          />
+          {t("plannedToggle")}
+        </label>
+      )}
 
       <div>
         <Label htmlFor="log-notes" className="mb-1.5 font-mono text-xs uppercase">

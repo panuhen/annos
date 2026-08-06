@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AppNav, DesktopNav } from "@/components/app-nav";
-import { FineliFooter } from "@/components/fineli-footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LOCALE_COOKIE, isLocale } from "@/i18n/config";
 import { authClient } from "@/lib/auth-client";
@@ -65,7 +64,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-24 lg:max-w-2xl lg:pb-10">
         <DesktopNav />
         {children}
-        <FineliFooter className="mt-auto pt-10 pb-2 font-mono text-[0.625rem] leading-relaxed text-muted-foreground" />
       </div>
       <AppNav />
     </ProfileProvider>

@@ -18,6 +18,7 @@ import {
 import { api } from "@/lib/api/client";
 import { $api } from "@/lib/api/hooks";
 import { localeFor, rateFigure, sheetDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 const KINDS = ["deficit", "maintenance", "surplus"] as const;
 
@@ -51,6 +52,7 @@ export default function GoalPage() {
   // The open phase is a draft of the future and revisable; closed phases are
   // history. Revising reuses the form, prefilled from the open phase.
   const [revising, setRevising] = useState(false);
+  const [revisingId, setRevisingId] = useState<number | null>(null);
 
   const valid =
     parseInt(kcalTraining) > 0 &&
@@ -68,6 +70,7 @@ export default function GoalPage() {
       toast(t("noPhase"));
       return;
     }
+    setRevisingId(open.phase_id);
     setKind(open.kind);
     setKcalTraining(String(open.kcal_target_training));
     setKcalRest(String(open.kcal_target_rest));
@@ -84,6 +87,7 @@ export default function GoalPage() {
 
   function stopRevising() {
     setRevising(false);
+    setRevisingId(null);
     setKind("deficit");
     setKcalTraining("");
     setKcalRest("");
@@ -304,6 +308,15 @@ export default function GoalPage() {
 
       <p className="mt-3 text-xs text-muted-foreground">{t("restNote")}</p>
 
+      {/* Deleting the open phase lives with revising it: both answer
+       * "I set this up wrong", one when there is a true version and one
+       * when there isn't. */}
+      {revising && revisingId != null && (
+        <div className="mt-2 border-t border-border pt-1">
+          <DeletePhase phaseId={revisingId} onDeleted={stopRevising} />
+        </div>
+      )}
+
       {/* The ledger: phases append and close, so this list is the goal
        * history — kept off the sheet until asked for. */}
       <section className="mt-6">
@@ -347,6 +360,7 @@ export default function GoalPage() {
                         rate: rateFigure(phase.rate_target_kg_per_week, locale),
                       })}
                   </p>
+                  <DeletePhase phaseId={phase.phase_id} />
                 </li>
               ))}
             </ul>
@@ -366,5 +380,54 @@ export default function GoalPage() {
         </button>
       </div>
     </>
+  );
+}
+
+/** Deletion, not correction: for the phase that should never have existed —
+ * left in place, a junk closed phase even blocks the open phase's start
+ * date. Two taps, the second armed in rye red, same as deleting a log. */
+function DeletePhase({ phaseId, onDeleted }: { phaseId: number; onDeleted?: () => void }) {
+  const queryClient = useQueryClient();
+  const t = useTranslations("goal");
+  const [armed, setArmed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function run() {
+    if (!armed) {
+      setArmed(true);
+      return;
+    }
+    setDeleting(true);
+    const { error } = await api.DELETE("/api/goals/phase/{phase_id}", {
+      params: { path: { phase_id: phaseId } },
+    });
+    if (error) {
+      toast.error(t("deleteFailed"));
+      setDeleting(false);
+      setArmed(false);
+      return;
+    }
+    toast(t("phaseDeleted"));
+    await queryClient.invalidateQueries({ queryKey: ["get", "/api/goals/phases"] });
+    await queryClient.invalidateQueries({ queryKey: ["get", "/api/summary/daily"] });
+    setDeleting(false);
+    setArmed(false);
+    onDeleted?.();
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={run}
+      disabled={deleting}
+      onBlur={() => setArmed(false)}
+      className={cn(
+        "flex min-h-11 items-center font-mono text-xs uppercase tracking-wider",
+        armed ? "font-bold text-destructive" : "text-muted-foreground hover:text-destructive",
+        deleting && "cursor-not-allowed opacity-40",
+      )}
+    >
+      {deleting ? t("deleting") : armed ? t("deleteConfirm") : t("deletePhase")}
+    </button>
   );
 }

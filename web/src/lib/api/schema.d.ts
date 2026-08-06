@@ -163,6 +163,23 @@ export interface paths {
         patch: operations["revise_goal_phase_api_goals_phase_patch"];
         trace?: never;
     };
+    "/api/goals/phase/{phase_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Goal Phase */
+        delete: operations["delete_goal_phase_api_goals_phase__phase_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goals/phases": {
         parameters: {
             query?: never;
@@ -372,6 +389,18 @@ export interface components {
             rate_target?: number | null;
             /** Start Date */
             start_date?: string | null;
+        };
+        /** GoalPhaseDeletedResponse */
+        GoalPhaseDeletedResponse: {
+            /** Deleted Phase Id */
+            deleted_phase_id: number;
+            /** Kind */
+            kind: string;
+            /** Start Date */
+            start_date: string;
+            /** End Date */
+            end_date: string | null;
+            server_time: components["schemas"]["ServerTime"];
         };
         /** GoalPhaseOut */
         GoalPhaseOut: {
@@ -688,8 +717,7 @@ export interface components {
             name: string | null;
             /** Grams */
             grams: number;
-            /** Kcal Per 100G */
-            kcal_per_100g: number | null;
+            per_100g: components["schemas"]["Per100g"];
             /** Kcal */
             kcal: number | null;
         };
@@ -1191,6 +1219,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GoalPhaseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_goal_phase_api_goals_phase__phase_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                phase_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalPhaseDeletedResponse"];
                 };
             };
             /** @description Validation Error */

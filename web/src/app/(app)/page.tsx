@@ -15,7 +15,8 @@ import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { AnnosMark } from "@/components/logo";
+import { AnnosWordmark } from "@/components/wordmark";
+import { MacroLine, MacrosToggle } from "@/components/macros";
 import { api } from "@/lib/api/client";
 import { $api } from "@/lib/api/hooks";
 import {
@@ -73,7 +74,6 @@ function DaySheet() {
   });
   const queryClient = useQueryClient();
   const [marking, setMarking] = useState(false);
-  const [savingPref, setSavingPref] = useState(false);
 
   if (summary.isPending) return <SheetSkeleton />;
   if (summary.error || !summary.data) {
@@ -108,30 +108,10 @@ function DaySheet() {
     }
   }
 
-  // A reading preference, not a per-view state: it lives on the profile
-  // beside the language choices, so it follows the user to any device.
-  async function toggleMacros() {
-    setSavingPref(true);
-    try {
-      const { error } = await api.PATCH("/api/profile", {
-        body: { changes: { show_item_macros: !profile.show_item_macros } },
-      });
-      if (error) throw error;
-      await queryClient.invalidateQueries({ queryKey: ["profile"] });
-    } catch {
-      toast.error(t("prefFailed"));
-    } finally {
-      setSavingPref(false);
-    }
-  }
-
   return (
     <>
       <header className="flex items-end justify-between pt-5 pb-2">
-        <span className="flex items-center gap-2">
-          <AnnosMark className="h-8 w-auto" />
-          <span className="text-xl font-bold tracking-tight">Annos</span>
-        </span>
+        <AnnosWordmark className="text-2xl" />
         <span className="pb-1 font-mono text-xs text-muted-foreground uppercase">
           {t("week")} {isoWeek(day.date)}
         </span>
@@ -178,18 +158,7 @@ function DaySheet() {
         </Link>
       </div>
 
-      {day.meals.length > 0 && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            disabled={savingPref}
-            onClick={toggleMacros}
-            className="-my-1.5 flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {t(profile.show_item_macros ? "hideMacros" : "showMacros")}
-          </button>
-        </div>
-      )}
+      {day.meals.length > 0 && <MacrosToggle />}
 
       {day.meals.length === 0 ? (
         <div className="border-t border-border py-10 text-center">
@@ -248,20 +217,12 @@ function DaySheet() {
                           {kcal(item.kcal)}
                         </span>
                       </div>
-                      {profile.show_item_macros &&
-                        item.protein_g != null &&
-                        item.carbs_g != null &&
-                        item.fat_g != null && (
-                          <p className="tnum font-mono text-xs text-muted-foreground">
-                            {t("itemMacros", {
-                              protein: Math.round(item.protein_g),
-                              carbs: Math.round(item.carbs_g),
-                              fat: Math.round(item.fat_g),
-                            })}
-                            {item.fiber_g != null &&
-                              t("itemFiber", { fiber: Math.round(item.fiber_g) })}
-                          </p>
-                        )}
+                      <MacroLine
+                        protein={item.protein_g}
+                        carbs={item.carbs_g}
+                        fat={item.fat_g}
+                        fiber={item.fiber_g}
+                      />
                     </li>
                   ))}
                 </ul>

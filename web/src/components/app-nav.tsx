@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardText, Crosshair, Scales, UserCircle } from "@phosphor-icons/react";
+import { ClipboardText, Crosshair, GearSix, Scales, UserCircle } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,6 +12,7 @@ const TABS = [
   { href: "/weight", key: "weight", icon: Scales },
   { href: "/goal", key: "goal", icon: Crosshair },
   { href: "/profile", key: "profile", icon: UserCircle },
+  { href: "/settings", key: "settings", icon: GearSix },
 ] as const;
 
 /** The sheet's foot on a phone: a heavy rule with the app's four places

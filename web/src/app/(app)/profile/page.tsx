@@ -1,13 +1,13 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { CaretDown, CaretRight, Monitor, Moon, Sun } from "@phosphor-icons/react";
+import { CaretDown, CaretRight } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
+import { InfoTip } from "@/components/ui/info-tip";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -17,23 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { LOCALE_COOKIE, LOCALES } from "@/i18n/config";
 import { api } from "@/lib/api/client";
 import { $api } from "@/lib/api/hooks";
 import { clearApiToken } from "@/lib/api/token";
 import { authClient } from "@/lib/auth-client";
 import { clockTime, localeFor, sheetDate } from "@/lib/format";
 import { useProfile } from "@/lib/profile";
-import { cn } from "@/lib/utils";
-
-/** Language names stay in their own language — a Finn lost in a Swedish UI
- * still finds "Suomi". Capitalized as labels: grammatically fi/sv write
- * language names lowercase, but a mixed-case picker reads as a defect. */
-const LANGUAGE_NAMES: Record<string, string> = {
-  fi: "Suomi",
-  sv: "Svenska",
-  en: "English",
-};
 
 /** Closed lists instead of free text: the values are validated by being the
  * only ones offered. Ranges mirror the server's own checks. */
@@ -43,77 +32,21 @@ const BIRTH_YEARS = Array.from({ length: CURRENT_YEAR - 1900 + 1 }, (_, i) =>
 );
 const HEIGHTS_CM = Array.from({ length: 231 - 100 }, (_, i) => String(230 - i));
 
-/** "GMT+3" for Europe/Helsinki in summer — the current offset, DST included,
- * from the browser's own tz database. */
-function gmtOffset(zone: string): string {
-  try {
-    const parts = new Intl.DateTimeFormat("en", {
-      timeZone: zone,
-      timeZoneName: "shortOffset",
-    }).formatToParts(new Date());
-    return parts.find((part) => part.type === "timeZoneName")?.value ?? "";
-  } catch {
-    return "";
-  }
-}
-
-/** Computed once per page load: ~450 zones × formatToParts is too much work
- * to redo on every render. */
-let tzOptionsCache: { zone: string; offset: string }[] | null = null;
-
-function timezoneOptions(current: string): { zone: string; offset: string }[] {
-  if (tzOptionsCache && tzOptionsCache.some((option) => option.zone === current)) {
-    return tzOptionsCache;
-  }
-  let zones: string[];
-  try {
-    zones = Intl.supportedValuesOf("timeZone");
-  } catch {
-    zones = [];
-  }
-  if (!zones.includes(current)) zones = [current, ...zones];
-  tzOptionsCache = zones.map((zone) => ({ zone, offset: gmtOffset(zone) }));
-  return tzOptionsCache;
-}
-
 export default function ProfilePage() {
   const profile = useProfile();
   const router = useRouter();
   const queryClient = useQueryClient();
   const t = useTranslations("profile");
-  const appLocale = useLocale();
 
-  const [foodLanguage, setFoodLanguage] = useState(profile.language);
-  const [timezone, setTimezone] = useState(profile.timezone);
   const [birthYear, setBirthYear] = useState(profile.birth_year?.toString() ?? "");
   const [height, setHeight] = useState(profile.height_cm?.toString() ?? "");
   const [sex, setSex] = useState(profile.sex ?? "unset");
   const [coachingNotes, setCoachingNotes] = useState(profile.coaching_notes ?? "");
   const [saving, setSaving] = useState(false);
 
-  /** App language persists on the profile (`ui_language`) so it follows the
-   * user across devices, and applies immediately via the cookie the server
-   * renders from. Food-name language is `language` — saved with the form,
-   * shared with the MCP surface. */
-  async function setAppLanguage(locale: string) {
-    document.cookie = `${LOCALE_COOKIE}=${locale};path=/;max-age=31536000;samesite=lax`;
-    router.refresh();
-    const { data } = await api.PATCH("/api/profile", {
-      body: { changes: { ui_language: locale } },
-    });
-    if (data) {
-      queryClient.setQueryData(["profile"], data);
-    } else {
-      // The cookie already switched this browser; only persistence failed.
-      toast.error(t("saveFailed"), { description: t("apiNoAnswer") });
-    }
-  }
-
   async function save() {
     setSaving(true);
     const changes: Record<string, unknown> = {};
-    if (foodLanguage !== profile.language) changes.language = foodLanguage;
-    if (timezone !== profile.timezone) changes.timezone = timezone;
     const by = birthYear.trim() === "" ? null : parseInt(birthYear);
     if (by !== profile.birth_year) changes.birth_year = by;
     const h = height.trim() === "" ? null : parseInt(height);
@@ -157,71 +90,15 @@ export default function ProfilePage() {
         <h1 className="text-lg font-bold">{t("title")}</h1>
       </header>
 
-      <div className="mt-4 flex items-baseline justify-between border-b border-border pb-4">
-        <span className="font-mono text-lg font-bold break-all">{profile.nickname}</span>
-        <span className="ml-3 shrink-0 font-mono text-xs text-muted-foreground">
+      <div className="mt-4 flex items-center justify-between border-b border-border pb-2">
+        <span className="min-w-0 font-mono text-lg font-bold break-all">{profile.nickname}</span>
+        <span className="ml-3 flex shrink-0 items-center gap-0.5 font-mono text-xs text-muted-foreground">
           {t("permanent")}
+          {/* Why the name is nonsense — behind the glyph, where the
+           * question arises but off the sheet until asked. */}
+          <InfoTip label={t("nicknameWhy")}>{t("nicknameNote")}</InfoTip>
         </span>
       </div>
-
-      <ThemeRow />
-
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="app-language" className="mb-1.5 font-mono text-xs uppercase">
-            {t("appLanguage")}
-          </Label>
-          <Select value={appLocale} onValueChange={setAppLanguage}>
-            <SelectTrigger id="app-language" className="h-11 w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LOCALES.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {LANGUAGE_NAMES[value]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="food-language" className="mb-1.5 font-mono text-xs uppercase">
-            {t("foodLanguage")}
-          </Label>
-          <Select value={foodLanguage} onValueChange={setFoodLanguage}>
-            <SelectTrigger id="food-language" className="h-11 w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LOCALES.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {LANGUAGE_NAMES[value]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="mt-3">
-        <Label htmlFor="timezone" className="mb-1.5 font-mono text-xs uppercase">
-          {t("timezone")}
-        </Label>
-        <Select value={timezone} onValueChange={setTimezone}>
-          <SelectTrigger id="timezone" className="h-11 w-full font-mono text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {timezoneOptions(profile.timezone).map(({ zone, offset }) => (
-              <SelectItem key={zone} value={zone} className="font-mono text-sm">
-                {zone}
-                {offset && <span className="ml-2 text-xs text-muted-foreground">{offset}</span>}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <p className="mt-1.5 text-xs text-muted-foreground">{t("tzNote")}</p>
 
       <h2 className="mt-6 text-sm font-bold">{t("bodyFacts")}</h2>
       <p className="mt-0.5 text-xs text-muted-foreground">{t("bodyNote")}</p>
@@ -388,53 +265,3 @@ function CoachingHistory() {
   );
 }
 
-const emptySubscribe = () => () => {};
-
-/** Both themes are first-class; the toggle is three-way with system default. */
-function ThemeRow() {
-  const { theme, setTheme } = useTheme();
-  const t = useTranslations("profile");
-  // Theme is unknowable server-side; render the toggle neutral until hydrated.
-  const mounted = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false,
-  );
-
-  const options = [
-    { value: "light", label: t("light"), icon: Sun },
-    { value: "system", label: t("system"), icon: Monitor },
-    { value: "dark", label: t("dark"), icon: Moon },
-  ] as const;
-
-  return (
-    <div className="mt-4">
-      <span className="mb-1.5 block font-mono text-xs uppercase text-muted-foreground">
-        {t("theme")}
-      </span>
-      <div role="radiogroup" aria-label={t("theme")} className="flex border border-input">
-        {options.map(({ value, label, icon: Icon }) => {
-          const active = mounted && theme === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => setTheme(value)}
-              className={cn(
-                "flex min-h-11 flex-1 items-center justify-center gap-1.5 text-sm",
-                active
-                  ? "bg-foreground font-bold text-background"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-              )}
-            >
-              <Icon aria-hidden className="size-4" />
-              {label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
-import { Fragment_Mono, Schibsted_Grotesk } from "next/font/google";
+import { Fragment_Mono, Playwrite_CU, Schibsted_Grotesk } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 
 import "./globals.css";
@@ -19,6 +19,13 @@ const mono = Fragment_Mono({
   weight: "400",
   variable: "--font-fragment-mono",
   subsets: ["latin"],
+});
+
+// The wordmark face: Playwrite Cuba, a Cuban school-cursive hand. Google
+// ships it without subsets, so next/font can't preload it — it's one word on
+// the page, not body text, so the late swap is invisible.
+const wordmark = Playwrite_CU({
+  variable: "--font-playwrite",
 });
 
 export const metadata: Metadata = {
@@ -53,7 +60,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${grotesk.variable} ${mono.variable}`}
+      className={`${grotesk.variable} ${mono.variable} ${wordmark.variable}`}
     >
       <body className="antialiased">
         <span hidden dangerouslySetInnerHTML={{ __html: contract }} />

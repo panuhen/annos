@@ -3,11 +3,12 @@
     "today": "Today",
     "weight": "Weight",
     "goal": "Goal",
-    "profile": "Profile"
+    "profile": "Profile",
+    "settings": "Settings"
   },
   "footer": {
     "prefix": "Food composition data:",
-    "institute": "National Institute for Health and Welfare"
+    "institute": "Finnish Institute for Health and Welfare"
   },
   "gate": {
     "errorTitle": "The kitchen is not answering",
@@ -38,11 +39,6 @@
     "energy": "Energy",
     "protein": "Protein",
     "macroLine": "carbs {carbs} g · fat {fat} g · fiber {fiber} g",
-    "itemMacros": "protein {protein} g · carbs {carbs} g · fat {fat} g",
-    "itemFiber": " · fiber {fiber} g",
-    "showMacros": "Show macros",
-    "hideMacros": "Hide macros",
-    "prefFailed": "Could not save the preference",
     "remaining": "Remaining",
     "kcalUnit": "kcal",
     "gProtein": "g protein",
@@ -113,7 +109,9 @@
     "templateFailed": "Could not save the template",
     "manageTemplates": "Manage",
     "moreTemplates": "+{count} more",
-    "fewerTemplates": "Show fewer"
+    "fewerTemplates": "Show fewer",
+    "time": "Time",
+    "timeNow": "Time — empty means now"
   },
   "weight": {
     "title": "Weight",
@@ -166,19 +164,16 @@
     "saveRevision": "Save revision",
     "startsKeep": "Starts — leave as is to keep",
     "rateLoss": "Loss, kg/week",
-    "rateGain": "Gain, kg/week"
+    "rateGain": "Gain, kg/week",
+    "deletePhase": "Delete this phase",
+    "deleteConfirm": "Tap again — removed permanently",
+    "deleting": "Deleting…",
+    "deleteFailed": "Could not delete the phase",
+    "phaseDeleted": "Phase deleted."
   },
   "profile": {
     "title": "Profile",
-    "permanent": "permanent",
-    "theme": "Theme",
-    "light": "Light",
-    "system": "System",
-    "dark": "Dark",
-    "appLanguage": "App language",
-    "foodLanguage": "Food names in",
-    "timezone": "Timezone",
-    "tzNote": "The timezone decides when your day rolls over — a 00:30 snack belongs to the new day.",
+    "permanent": "nickname",
     "bodyFacts": "Body facts",
     "bodyNote": "Optional. Used for energy arithmetic later; never judged.",
     "born": "Birth year",
@@ -201,7 +196,9 @@
     "historyReading": "Reading…",
     "historyEmpty": "No changes yet.",
     "notesCleared": "(cleared)",
-    "currentNote": "current"
+    "currentNote": "current",
+    "nicknameNote": "Random on purpose — the app never sees your name or email, so the nickname is the only name an account has.",
+    "nicknameWhy": "Why this nickname?"
   },
   "welcome": {
     "title": "One name, drawn for you",
@@ -255,5 +252,42 @@
     "deleteConfirm": "Tap again — removed permanently",
     "deleting": "Deleting…",
     "deleteFailed": "Could not delete the template"
+  },
+  "macros": {
+    "line": "P {protein} g · C {carbs} g · F {fat} g",
+    "fiber": " · Fib {fiber} g",
+    "show": "Show macros",
+    "hide": "Hide macros",
+    "prefFailed": "Could not save the preference"
+  },
+  "settings": {
+    "title": "Settings",
+    "preferences": "Preferences",
+    "saved": "Saved.",
+    "saveFailed": "Could not save the setting",
+    "mcpTitle": "Connect your AI (MCP)",
+    "mcpIntro": "Annos works inside your AI client over the Model Context Protocol: the same account, the same data, the tools acting as you. Anything you can do here, your AI can do in conversation.",
+    "mcpEndpoint": "Endpoint",
+    "mcpConfig": "Client configuration",
+    "mcpConfigNote": "For other MCP clients that take a JSON configuration.",
+    "mcpHow": "How it connects",
+    "mcpStep1": "Add the connector in Claude, or the configuration in another MCP client.",
+    "mcpStep2": "On first use it opens this app's sign-in — sign in with your Annos account and approve access.",
+    "mcpStep3": "The Annos tools appear in your client: logging, revising, day summaries — scoped to your data alone.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyEndpoint": "Copy endpoint",
+    "copyConfig": "Copy configuration",
+    "aboutTitle": "About",
+    "aboutBody": "Annos tracks food and weight. You can use it here or from an AI client connected over MCP; both work on the same data and can do the same things. It shows your day against your targets and gives no advice. Accounts are pseudonymous: a generated nickname is the only name inside the app.",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "appLanguage": "App language",
+    "timezone": "Timezone",
+    "tzNote": "The timezone decides when your day rolls over — a 00:30 snack belongs to the new day.",
+    "foodLanguage": "Food names in",
+    "mcpClaudeNote": "In Claude, add this as a custom connector: Settings → Connectors → Add custom connector."
   }
 }

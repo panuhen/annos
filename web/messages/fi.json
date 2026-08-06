@@ -3,7 +3,8 @@
     "today": "Tänään",
     "weight": "Paino",
     "goal": "Tavoite",
-    "profile": "Profiili"
+    "profile": "Profiili",
+    "settings": "Asetukset"
   },
   "footer": {
     "prefix": "Ruoan koostumustiedot:",
@@ -38,11 +39,6 @@
     "energy": "Energia",
     "protein": "Proteiini",
     "macroLine": "hiilihydraatit {carbs} g · rasva {fat} g · kuitu {fiber} g",
-    "itemMacros": "proteiini {protein} g · hiilihydraatit {carbs} g · rasva {fat} g",
-    "itemFiber": " · kuitu {fiber} g",
-    "showMacros": "Näytä makrot",
-    "hideMacros": "Piilota makrot",
-    "prefFailed": "Asetusta ei voitu tallentaa",
     "remaining": "Jäljellä",
     "kcalUnit": "kcal",
     "gProtein": "g proteiinia",
@@ -113,7 +109,9 @@
     "templateFailed": "Pohjaa ei voitu tallentaa",
     "manageTemplates": "Hallinnoi",
     "moreTemplates": "+{count} lisää",
-    "fewerTemplates": "Näytä vähemmän"
+    "fewerTemplates": "Näytä vähemmän",
+    "time": "Aika",
+    "timeNow": "Aika — tyhjä tarkoittaa nyt"
   },
   "weight": {
     "title": "Paino",
@@ -166,19 +164,16 @@
     "saveRevision": "Tallenna muutos",
     "startsKeep": "Alkaa — jätä ennalleen säilyttääksesi",
     "rateLoss": "Pudotus, kg/vk",
-    "rateGain": "Nousu, kg/vk"
+    "rateGain": "Nousu, kg/vk",
+    "deletePhase": "Poista tämä jakso",
+    "deleteConfirm": "Napauta uudelleen — poistuu pysyvästi",
+    "deleting": "Poistetaan…",
+    "deleteFailed": "Jaksoa ei voitu poistaa",
+    "phaseDeleted": "Jakso poistettu."
   },
   "profile": {
     "title": "Profiili",
-    "permanent": "pysyvä",
-    "theme": "Teema",
-    "light": "Vaalea",
-    "system": "Järjestelmä",
-    "dark": "Tumma",
-    "appLanguage": "Sovelluksen kieli",
-    "foodLanguage": "Ruokien nimet",
-    "timezone": "Aikavyöhyke",
-    "tzNote": "Aikavyöhyke ratkaisee, milloin päiväsi vaihtuu — kello 00.30 välipala kuuluu uuteen päivään.",
+    "permanent": "nimimerkki",
     "bodyFacts": "Kehotiedot",
     "bodyNote": "Valinnaisia. Käytetään myöhemmin energialaskentaan; ei koskaan arvosteluun.",
     "born": "Syntymävuosi",
@@ -201,7 +196,9 @@
     "historyReading": "Luetaan…",
     "historyEmpty": "Ei vielä muutoksia.",
     "notesCleared": "(tyhjennetty)",
-    "currentNote": "nykyinen"
+    "currentNote": "nykyinen",
+    "nicknameNote": "Tarkoituksella satunnainen — sovellus ei koskaan näe nimeäsi tai sähköpostiasi, joten lempinimi on tilin ainoa nimi.",
+    "nicknameWhy": "Miksi tämä lempinimi?"
   },
   "welcome": {
     "title": "Yksi nimi, arvottu sinulle",
@@ -255,5 +252,42 @@
     "deleteConfirm": "Napauta uudelleen — poistuu pysyvästi",
     "deleting": "Poistetaan…",
     "deleteFailed": "Pohjaa ei voitu poistaa"
+  },
+  "macros": {
+    "line": "P {protein} g · HH {carbs} g · R {fat} g",
+    "fiber": " · K {fiber} g",
+    "show": "Näytä makrot",
+    "hide": "Piilota makrot",
+    "prefFailed": "Asetusta ei voitu tallentaa"
+  },
+  "settings": {
+    "title": "Asetukset",
+    "preferences": "Valinnat",
+    "saved": "Tallennettu.",
+    "saveFailed": "Asetusta ei voitu tallentaa",
+    "mcpTitle": "Yhdistä tekoälysi (MCP)",
+    "mcpIntro": "Annos toimii tekoälysovelluksesi sisällä Model Context Protocolin yli: sama tili, samat tiedot, työkalut toimivat sinuna. Kaiken minkä voit tehdä täällä, tekoälysi voi tehdä keskustelussa.",
+    "mcpEndpoint": "Osoite",
+    "mcpConfig": "Asiakasohjelman asetus",
+    "mcpConfigNote": "Muille MCP-asiakkaille, jotka käyttävät JSON-asetusta.",
+    "mcpHow": "Näin yhdistäminen toimii",
+    "mcpStep1": "Lisää liitin Claudeen tai asetus muuhun MCP-asiakkaaseen.",
+    "mcpStep2": "Ensimmäisellä kerralla avautuu tämän sovelluksen kirjautuminen — kirjaudu Annos-tililläsi ja hyväksy käyttö.",
+    "mcpStep3": "Annoksen työkalut ilmestyvät asiakasohjelmaasi: kirjaus, korjaus, päiväyhteenvedot — vain sinun tietoihisi.",
+    "copy": "Kopioi",
+    "copied": "Kopioitu",
+    "copyEndpoint": "Kopioi osoite",
+    "copyConfig": "Kopioi asetus",
+    "aboutTitle": "Tietoja",
+    "aboutBody": "Annos on ruoka- ja painokirjanpito. Voit käyttää sitä täällä tai MCP:llä yhdistetystä tekoälysovelluksesta; molemmat käyttävät samoja tietoja ja osaavat samat asiat. Se näyttää päiväsi tavoitteita vasten eikä anna neuvoja. Tilit ovat pseudonyymejä: luotu lempinimi on sovelluksen ainoa nimi.",
+    "theme": "Teema",
+    "light": "Vaalea",
+    "dark": "Tumma",
+    "system": "Järjestelmä",
+    "appLanguage": "Sovelluksen kieli",
+    "timezone": "Aikavyöhyke",
+    "tzNote": "Aikavyöhyke ratkaisee, milloin päiväsi vaihtuu — kello 00.30 välipala kuuluu uuteen päivään.",
+    "foodLanguage": "Ruokien nimet",
+    "mcpClaudeNote": "Claudessa lisää tämä mukautettuna liittimenä: Settings → Connectors → Add custom connector."
   }
 }
