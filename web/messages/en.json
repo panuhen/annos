@@ -175,7 +175,8 @@
     "hideNotesHistory": "Hide earlier notes",
     "historyReading": "Reading…",
     "historyEmpty": "No changes yet.",
-    "notesCleared": "(cleared)"
+    "notesCleared": "(cleared)",
+    "currentNote": "current"
   },
   "welcome": {
     "title": "One name, drawn for you",

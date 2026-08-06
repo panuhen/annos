@@ -355,21 +355,31 @@ function CoachingHistory() {
           <p className="pb-2 text-sm text-muted-foreground">{t("historyReading")}</p>
         ) : history.data && history.data.revisions.length > 0 ? (
           <ul>
-            {history.data.revisions.map((revision, i) => (
-              <li key={i} className="border-t border-border py-2">
-                <p className="font-mono text-xs text-muted-foreground tnum">
-                  {sheetDate(revision.set_at.slice(0, 10), locale)}{" "}
-                  {clockTime(revision.set_at, locale, profile.timezone)}
-                </p>
-                {revision.notes ? (
-                  <p className="mt-0.5 text-sm">{revision.notes}</p>
-                ) : (
-                  <p className="mt-0.5 text-sm italic text-muted-foreground">
-                    {t("notesCleared")}
+            {history.data.revisions.map((revision, i) => {
+              // The newest revision is usually what's in force, but notes set
+              // before history existed have no revision row — so the tag only
+              // appears when the row really is the live text.
+              const isCurrent =
+                i === 0 && revision.notes === (profile.coaching_notes ?? null);
+              return (
+                <li key={i} className="border-t border-border py-2">
+                  <p className="flex items-baseline justify-between font-mono text-xs text-muted-foreground tnum">
+                    <span>
+                      {sheetDate(revision.set_at.slice(0, 10), locale)}{" "}
+                      {clockTime(revision.set_at, locale, profile.timezone)}
+                    </span>
+                    {isCurrent && <span className="ml-3 shrink-0">{t("currentNote")}</span>}
                   </p>
-                )}
-              </li>
-            ))}
+                  {revision.notes ? (
+                    <p className="mt-0.5 text-sm">{revision.notes}</p>
+                  ) : (
+                    <p className="mt-0.5 text-sm italic text-muted-foreground">
+                      {t("notesCleared")}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="pb-2 text-sm text-muted-foreground">{t("historyEmpty")}</p>

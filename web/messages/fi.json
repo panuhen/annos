@@ -175,7 +175,8 @@
     "hideNotesHistory": "Piilota aiemmat muistiinpanot",
     "historyReading": "Luetaan…",
     "historyEmpty": "Ei vielä muutoksia.",
-    "notesCleared": "(tyhjennetty)"
+    "notesCleared": "(tyhjennetty)",
+    "currentNote": "nykyinen"
   },
   "welcome": {
     "title": "Yksi nimi, arvottu sinulle",

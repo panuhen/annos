@@ -175,7 +175,8 @@
     "hideNotesHistory": "Dölj tidigare anteckningar",
     "historyReading": "Läser…",
     "historyEmpty": "Inga ändringar ännu.",
-    "notesCleared": "(rensat)"
+    "notesCleared": "(rensat)",
+    "currentNote": "nuvarande"
   },
   "welcome": {
     "title": "Ett namn, draget åt dig",
