@@ -100,7 +100,8 @@
     "templateCancel": "Cancel",
     "templateSaved": "Template “{name}” saved.",
     "templateReplaced": "Template “{name}” updated.",
-    "templateFailed": "Could not save the template"
+    "templateFailed": "Could not save the template",
+    "manageTemplates": "Manage"
   },
   "weight": {
     "title": "Weight",
@@ -219,5 +220,27 @@
     "noAccount": "No account?",
     "haveAccount": "Already registered?",
     "quarantine": "Your email stays with the sign-in system — the tracker itself never sees it. Inside Annos you are only your nickname, drawn on the next page."
+  },
+  "templates": {
+    "title": "Templates",
+    "backToLog": "Back to logging",
+    "reading": "Reading…",
+    "emptyTitle": "No templates yet.",
+    "emptyBody": "Build a plate on the log page and save it as a template.",
+    "goLog": "Log a meal",
+    "editTitle": "Edit template",
+    "backToList": "Back to templates",
+    "notFound": "No such template.",
+    "totalGrams": "Batch weight, g",
+    "noYield": "optional",
+    "yieldNote": "For recipes: the whole batch weighs this much, and a portion can then be logged in grams.",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Template “{name}” saved.",
+    "saveFailed": "Could not save the template",
+    "deleteTemplate": "Delete this template",
+    "deleteConfirm": "Tap again — removed permanently",
+    "deleting": "Deleting…",
+    "deleteFailed": "Could not delete the template"
   }
 }

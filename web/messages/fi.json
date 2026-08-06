@@ -100,7 +100,8 @@
     "templateCancel": "Peruuta",
     "templateSaved": "Pohja ”{name}” tallennettu.",
     "templateReplaced": "Pohja ”{name}” päivitetty.",
-    "templateFailed": "Pohjaa ei voitu tallentaa"
+    "templateFailed": "Pohjaa ei voitu tallentaa",
+    "manageTemplates": "Hallinnoi"
   },
   "weight": {
     "title": "Paino",
@@ -219,5 +220,27 @@
     "noAccount": "Ei tiliä?",
     "haveAccount": "Onko sinulla jo tili?",
     "quarantine": "Sähköpostisi jää kirjautumisjärjestelmään — itse sovellus ei koskaan näe sitä. Annoksessa olet vain nimimerkkisi, joka arvotaan seuraavalla sivulla."
+  },
+  "templates": {
+    "title": "Pohjat",
+    "backToLog": "Takaisin kirjaukseen",
+    "reading": "Luetaan…",
+    "emptyTitle": "Ei vielä pohjia.",
+    "emptyBody": "Kokoa annos kirjaussivulla ja tallenna se pohjaksi.",
+    "goLog": "Kirjaa ateria",
+    "editTitle": "Muokkaa pohjaa",
+    "backToList": "Takaisin pohjiin",
+    "notFound": "Pohjaa ei löydy.",
+    "totalGrams": "Erän paino, g",
+    "noYield": "valinnainen",
+    "yieldNote": "Resepteille: koko erä painaa tämän verran, ja annoksen voi sitten kirjata grammoina.",
+    "save": "Tallenna muutokset",
+    "saving": "Tallennetaan…",
+    "saved": "Pohja ”{name}” tallennettu.",
+    "saveFailed": "Pohjaa ei voitu tallentaa",
+    "deleteTemplate": "Poista tämä pohja",
+    "deleteConfirm": "Napauta uudelleen — poistuu pysyvästi",
+    "deleting": "Poistetaan…",
+    "deleteFailed": "Pohjaa ei voitu poistaa"
   }
 }

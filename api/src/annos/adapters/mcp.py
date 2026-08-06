@@ -345,6 +345,34 @@ async def save_template(
 
 
 @mcp.tool
+async def revise_template(template_id: int, changes: dict[str, Any]) -> dict[str, Any]:
+    """Correct a saved template by id: rename it, restate its items, or set
+    or clear the recipe yield (total_grams).
+
+    changes may carry name, items, and/or total_grams; items replaces the
+    whole list, like revise_log. Find ids with list_templates. To simply
+    replace the contents under an unchanged name, save_template also works.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await templates_domain.revise_template(
+            session, subject=who.subject, template_id=template_id, changes=changes
+        )
+
+
+@mcp.tool
+async def delete_template(template_id: int) -> dict[str, Any]:
+    """Erase a saved template for good. Only when the user asks for it to be
+    removed — meals already logged from it are untouched, they carry their
+    own snapshots."""
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await templates_domain.delete_template(
+            session, subject=who.subject, template_id=template_id
+        )
+
+
+@mcp.tool
 async def list_templates() -> dict[str, Any]:
     """The saved templates, with items, current-definition kcal estimates,
     and template_ids for logging.

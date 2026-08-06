@@ -100,7 +100,8 @@
     "templateCancel": "Avbryt",
     "templateSaved": "Mallen ”{name}” sparad.",
     "templateReplaced": "Mallen ”{name}” uppdaterad.",
-    "templateFailed": "Mallen kunde inte sparas"
+    "templateFailed": "Mallen kunde inte sparas",
+    "manageTemplates": "Hantera"
   },
   "weight": {
     "title": "Vikt",
@@ -219,5 +220,27 @@
     "noAccount": "Inget konto?",
     "haveAccount": "Redan registrerad?",
     "quarantine": "Din e-post stannar hos inloggningssystemet — själva appen ser den aldrig. I Annos är du bara ditt smeknamn, som dras på nästa sida."
+  },
+  "templates": {
+    "title": "Mallar",
+    "backToLog": "Tillbaka till loggning",
+    "reading": "Läser…",
+    "emptyTitle": "Inga mallar ännu.",
+    "emptyBody": "Bygg en tallrik på loggsidan och spara den som mall.",
+    "goLog": "Logga en måltid",
+    "editTitle": "Redigera mall",
+    "backToList": "Tillbaka till mallarna",
+    "notFound": "Mallen finns inte.",
+    "totalGrams": "Satsens vikt, g",
+    "noYield": "valfritt",
+    "yieldNote": "För recept: hela satsen väger så här mycket, och en portion kan sedan loggas i gram.",
+    "save": "Spara ändringar",
+    "saving": "Sparar…",
+    "saved": "Mallen ”{name}” sparad.",
+    "saveFailed": "Mallen kunde inte sparas",
+    "deleteTemplate": "Ta bort den här mallen",
+    "deleteConfirm": "Tryck igen — tas bort permanent",
+    "deleting": "Tar bort…",
+    "deleteFailed": "Mallen kunde inte tas bort"
   }
 }

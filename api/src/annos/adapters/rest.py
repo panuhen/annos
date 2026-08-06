@@ -575,6 +575,45 @@ async def save_template(
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
 
+class TemplateRevise(BaseModel):
+    changes: dict[str, Any]
+
+
+@router.patch("/templates/{template_id}")
+async def revise_template(
+    session: SessionDep, who: CallerDep, template_id: int, body: TemplateRevise
+) -> TemplateSavedResponse:
+    try:
+        return await templates_domain.revise_template(
+            session, subject=who.subject, template_id=template_id, changes=body.changes
+        )
+    except templates_domain.InvalidTemplate as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except templates_domain.TemplateNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class TemplateDeletedResponse(BaseModel):
+    deleted_template_id: int
+    server_time: ServerTime
+
+
+@router.delete("/templates/{template_id}")
+async def delete_template(
+    session: SessionDep, who: CallerDep, template_id: int
+) -> TemplateDeletedResponse:
+    try:
+        return await templates_domain.delete_template(
+            session, subject=who.subject, template_id=template_id
+        )
+    except templates_domain.TemplateNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
 @router.get("/templates")
 async def list_templates(session: SessionDep, who: CallerDep) -> TemplatesResponse:
     try:

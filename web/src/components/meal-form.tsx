@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretRight, MagnifyingGlass, Minus, Plus, X } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -303,8 +304,11 @@ export function MealForm(props: Props) {
       {/* Saved templates: one tap puts the usual on the plate */}
       {(templates.data?.templates.length ?? 0) > 0 && (
         <div>
-          <p className="mb-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <p className="mb-1.5 flex items-baseline justify-between font-mono text-xs uppercase tracking-wider text-muted-foreground">
             {t("templates")}
+            <Link href="/templates" className="hover:text-foreground">
+              {t("manageTemplates")}
+            </Link>
           </p>
           <div className="flex flex-wrap gap-1.5">
             {templates.data!.templates.map((template) => (

@@ -101,6 +101,103 @@ async def test_templates_are_scoped_by_subject(session, breakfast):
     assert listed["templates"] == []
 
 
+# --- revise_template / delete_template ----------------------------------------
+
+
+async def test_revising_renames_and_restates(session, breakfast):
+    revised = await templates_domain.revise_template(
+        session,
+        subject=SUBJECT,
+        template_id=breakfast["saved"]["template_id"],
+        changes={
+            "name": "weekend breakfast",
+            "items": [{"food_id": breakfast["bread"].id, "grams": 90}],
+        },
+    )
+
+    assert revised["name"] == "weekend breakfast"
+    assert [item["grams"] for item in revised["items"]] == [90.0]
+
+
+async def test_renaming_onto_an_existing_name_is_refused(session, breakfast):
+    await templates_domain.save_template(
+        session,
+        subject=SUBJECT,
+        name="other",
+        items=[{"food_id": breakfast["bread"].id, "grams": 30}],
+    )
+
+    with pytest.raises(templates_domain.InvalidTemplate, match="already exists"):
+        await templates_domain.revise_template(
+            session,
+            subject=SUBJECT,
+            template_id=breakfast["saved"]["template_id"],
+            changes={"name": "other"},
+        )
+
+
+async def test_the_yield_can_be_set_and_cleared(session, breakfast):
+    template_id = breakfast["saved"]["template_id"]
+
+    with_yield = await templates_domain.revise_template(
+        session, subject=SUBJECT, template_id=template_id, changes={"total_grams": 500}
+    )
+    assert with_yield["total_grams"] == 500.0
+
+    cleared = await templates_domain.revise_template(
+        session, subject=SUBJECT, template_id=template_id, changes={"total_grams": None}
+    )
+    assert cleared["total_grams"] is None
+
+
+async def test_deleting_a_template_leaves_logs_alone(session, breakfast):
+    logged = await meals_domain.log_meal(
+        session, subject=SUBJECT, items=[{"template_id": breakfast["saved"]["template_id"]}]
+    )
+
+    await templates_domain.delete_template(
+        session, subject=SUBJECT, template_id=breakfast["saved"]["template_id"]
+    )
+
+    listed = await templates_domain.list_templates(session, subject=SUBJECT)
+    assert listed["templates"] == []
+    # The log carries its own snapshots; the template was never a dependency.
+    revised = await meals_domain.revise_log(
+        session, subject=SUBJECT, log_id=logged["log_id"], changes={"notes": "still fine"}
+    )
+    assert len(revised["items"]) == 2
+
+
+async def test_another_users_template_cannot_be_revised_or_deleted(session, breakfast):
+    await profile_domain.create_profile(session, subject=OTHER_SUBJECT)
+
+    with pytest.raises(templates_domain.TemplateNotFound):
+        await templates_domain.revise_template(
+            session,
+            subject=OTHER_SUBJECT,
+            template_id=breakfast["saved"]["template_id"],
+            changes={"name": "mine now"},
+        )
+    with pytest.raises(templates_domain.TemplateNotFound):
+        await templates_domain.delete_template(
+            session, subject=OTHER_SUBJECT, template_id=breakfast["saved"]["template_id"]
+        )
+
+
+async def test_rest_revises_and_deletes_a_template(api, breakfast):
+    template_id = breakfast["saved"]["template_id"]
+
+    revised = await api.patch(
+        f"/api/templates/{template_id}", json={"changes": {"name": "renamed"}}
+    )
+    assert revised.status_code == 200
+    assert revised.json()["name"] == "renamed"
+
+    deleted = await api.delete(f"/api/templates/{template_id}")
+    assert deleted.status_code == 200
+    assert (await api.delete(f"/api/templates/{template_id}")).status_code == 404
+
+
 # --- logging a template ------------------------------------------------------
 
 

@@ -199,6 +199,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Template */
+        delete: operations["delete_template_api_templates__template_id__delete"];
+        options?: never;
+        head?: never;
+        /** Revise Template */
+        patch: operations["revise_template_api_templates__template_id__patch"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -589,6 +607,12 @@ export interface components {
             /** Total Grams */
             total_grams?: number | null;
         };
+        /** TemplateDeletedResponse */
+        TemplateDeletedResponse: {
+            /** Deleted Template Id */
+            deleted_template_id: number;
+            server_time: components["schemas"]["ServerTime"];
+        };
         /** TemplateItemIn */
         TemplateItemIn: {
             /** Food Id */
@@ -640,6 +664,13 @@ export interface components {
             portions?: number | null;
             /** Grams */
             grams?: number | null;
+        };
+        /** TemplateRevise */
+        TemplateRevise: {
+            /** Changes */
+            changes: {
+                [key: string]: unknown;
+            };
         };
         /** TemplateSavedResponse */
         TemplateSavedResponse: {
@@ -1230,6 +1261,76 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateSavedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_template_api_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                template_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateDeletedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revise_template_api_templates__template_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                template_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateRevise"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

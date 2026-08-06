@@ -101,14 +101,7 @@ async def save_template(
     await session.commit()
     await session.refresh(template)
 
-    return {
-        "template_id": template.id,
-        "name": template.name,
-        "total_grams": float(template.total_grams) if template.total_grams is not None else None,
-        "created": created,
-        "items": [{"food_id": item.food_id, "grams": float(item.grams)} for item in template.items],
-        "server_time": servertime.echo(profile.timezone),
-    }
+    return _saved_payload(template, profile.timezone, created=created)
 
 
 async def get_template(session: AsyncSession, *, subject: str, template_id: int) -> MealTemplate:
@@ -118,6 +111,75 @@ async def get_template(session: AsyncSession, *, subject: str, template_id: int)
     if template is None:
         raise TemplateNotFound(template_id)
     return template
+
+
+# What revise_template accepts — save_template's vocabulary, plus the name.
+REVISABLE_TEMPLATE_FIELDS = frozenset({"name", "items", "total_grams"})
+
+
+def _saved_payload(template: MealTemplate, tz: str, *, created: bool) -> dict:
+    return {
+        "template_id": template.id,
+        "name": template.name,
+        "total_grams": float(template.total_grams) if template.total_grams is not None else None,
+        "created": created,
+        "items": [{"food_id": item.food_id, "grams": float(item.grams)} for item in template.items],
+        "server_time": servertime.echo(tz),
+    }
+
+
+async def revise_template(
+    session: AsyncSession, *, subject: str, template_id: int, changes: dict
+) -> dict:
+    """Correct a template by id: rename it, restate its items, set or clear
+    the recipe yield. Items replace the whole list, like revise_log."""
+    unknown = set(changes) - REVISABLE_TEMPLATE_FIELDS
+    if unknown:
+        raise InvalidTemplate(f"not revisable: {', '.join(sorted(unknown))}")
+    if not changes:
+        raise InvalidTemplate("nothing to revise: changes is empty")
+
+    profile = await profile_domain.get_profile(session, subject=subject)
+    template = await get_template(session, subject=subject, template_id=template_id)
+
+    if "name" in changes:
+        name = (changes["name"] or "").strip()
+        if not name:
+            raise InvalidTemplate("a template needs a name")
+        taken = await session.scalar(
+            select(MealTemplate).where(
+                MealTemplate.subject == subject,
+                MealTemplate.name == name,
+                MealTemplate.id != template_id,
+            )
+        )
+        if taken is not None:
+            raise InvalidTemplate(f"a template named {name!r} already exists")
+        template.name = name
+    if "total_grams" in changes:
+        total_grams = changes["total_grams"]
+        if total_grams is not None and total_grams <= 0:
+            raise InvalidTemplate("total_grams must be positive")
+        template.total_grams = total_grams
+    if "items" in changes:
+        template.items = await _validated_items(session, subject=subject, items=changes["items"])
+
+    await session.commit()
+    await session.refresh(template)
+    return _saved_payload(template, profile.timezone, created=False)
+
+
+async def delete_template(session: AsyncSession, *, subject: str, template_id: int) -> dict:
+    """Erase a template for good. Logs made from it are untouched — they carry
+    their own snapshots and never referenced the template."""
+    profile = await profile_domain.get_profile(session, subject=subject)
+    template = await get_template(session, subject=subject, template_id=template_id)
+    await session.delete(template)
+    await session.commit()
+    return {
+        "deleted_template_id": template_id,
+        "server_time": servertime.echo(profile.timezone),
+    }
 
 
 async def list_templates(session: AsyncSession, *, subject: str) -> dict:
