@@ -91,7 +91,16 @@
     "logging": "Logging…",
     "reviseFailed": "Could not save the revision",
     "logFailed": "Could not log the meal",
-    "noAnswer": "The kitchen did not answer. Try again."
+    "noAnswer": "The kitchen did not answer. Try again.",
+    "templates": "Templates",
+    "saveAsTemplate": "Save plate as template",
+    "templateName": "Template name",
+    "templateSave": "Save",
+    "templateSaving": "Saving…",
+    "templateCancel": "Cancel",
+    "templateSaved": "Template “{name}” saved.",
+    "templateReplaced": "Template “{name}” updated.",
+    "templateFailed": "Could not save the template"
   },
   "weight": {
     "title": "Weight",

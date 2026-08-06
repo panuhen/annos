@@ -24,6 +24,7 @@ from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
 from annos.domain import summary as summary_domain
+from annos.domain import templates as templates_domain
 from annos.identity import AuthError, Caller, resolve_caller
 
 
@@ -319,6 +320,41 @@ async def revise_log(log_id: int, changes: dict[str, Any]) -> dict[str, Any]:
         return await meals_domain.revise_log(
             session, subject=who.subject, log_id=log_id, changes=changes
         )
+
+
+@mcp.tool
+async def save_template(
+    name: str,
+    items: list[dict[str, Any]],
+    total_grams: float | None = None,
+) -> dict[str, Any]:
+    """Save a meal as a reusable template: "the usual breakfast".
+
+    Items are {food_id, grams} — resolve foods with find_food first. Saving
+    an existing name replaces its contents; the name is how the user refers
+    to it. total_grams turns the template into a recipe: the whole batch
+    weighs this much, and logging can then take a stated number of grams.
+    Templates store no macros — logging one snapshots that day's definitions.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await templates_domain.save_template(
+            session, subject=who.subject, name=name, items=items, total_grams=total_grams
+        )
+
+
+@mcp.tool
+async def list_templates() -> dict[str, Any]:
+    """The saved templates, with items, current-definition kcal estimates,
+    and template_ids for logging.
+
+    Log one by putting {template_id, portions?} in log_meal's items —
+    portions defaults to 1 (the whole template); {template_id, grams} takes
+    that many grams of a recipe that has total_grams.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await templates_domain.list_templates(session, subject=who.subject)
 
 
 @mcp.tool

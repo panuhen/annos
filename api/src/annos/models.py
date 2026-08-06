@@ -297,6 +297,64 @@ class MealLogItem(Base):
     )
 
 
+class MealTemplate(Base):
+    """A meal saved as one loggable unit — "the usual breakfast".
+
+    A recipe is the same template with a yield: `total_grams` states what the
+    whole batch weighs, and logging takes a portion of it. Templates store
+    foods and grams only, never macros — snapshots happen at log time, so a
+    template logged next month uses that day's definitions. Names are unique
+    per owner because "the usual breakfast" is how a template is referred to;
+    saving the same name again replaces the contents.
+    """
+
+    __tablename__ = "meal_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    total_grams: Mapped[float | None] = mapped_column(Numeric(8, 2))
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+    items: Mapped[list["MealTemplateItem"]] = relationship(
+        back_populates="template",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="MealTemplateItem.id",
+    )
+
+    __table_args__ = (
+        UniqueConstraint("subject", "name", name="uq_meal_templates_subject_name"),
+        CheckConstraint(
+            "total_grams IS NULL OR total_grams > 0", name="ck_meal_templates_total_grams"
+        ),
+    )
+
+
+class MealTemplateItem(Base):
+    __tablename__ = "meal_template_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    template_id: Mapped[int] = mapped_column(
+        ForeignKey("meal_templates.id", ondelete="CASCADE"), nullable=False
+    )
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"), nullable=False)
+    grams: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
+
+    template: Mapped[MealTemplate] = relationship(back_populates="items")
+
+    __table_args__ = (
+        CheckConstraint("grams > 0", name="ck_meal_template_items_grams_positive"),
+        Index("ix_meal_template_items_template_id", "template_id"),
+    )
+
+
 class BodyMetric(Base):
     """One row per subject per day, upserted — logging weight twice on a day
     replaces, never duplicates. The smoothed trend is computed at read time

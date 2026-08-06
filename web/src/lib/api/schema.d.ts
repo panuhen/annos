@@ -181,6 +181,24 @@ export interface paths {
         patch: operations["revise_log_api_logs_meals__log_id__patch"];
         trace?: never;
     };
+    "/api/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["list_templates_api_templates_get"];
+        put?: never;
+        /** Save Template */
+        post: operations["save_template_api_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -384,7 +402,7 @@ export interface components {
         /** MealLogCreate */
         MealLogCreate: {
             /** Items */
-            items: components["schemas"]["MealItem"][];
+            items: (components["schemas"]["MealItem"] | components["schemas"]["TemplateRef"])[];
             /** Meal */
             meal?: string | null;
             /**
@@ -561,6 +579,89 @@ export interface components {
             protein_g: number;
             /** Rate Kg Per Week */
             rate_kg_per_week: number | null;
+        };
+        /** TemplateCreate */
+        TemplateCreate: {
+            /** Name */
+            name: string;
+            /** Items */
+            items: components["schemas"]["TemplateItemIn"][];
+            /** Total Grams */
+            total_grams?: number | null;
+        };
+        /** TemplateItemIn */
+        TemplateItemIn: {
+            /** Food Id */
+            food_id: number;
+            /** Grams */
+            grams: number;
+        };
+        /** TemplateItemOut */
+        TemplateItemOut: {
+            /** Food Id */
+            food_id: number;
+            /** Grams */
+            grams: number;
+        };
+        /** TemplateListItemOut */
+        TemplateListItemOut: {
+            /** Food Id */
+            food_id: number;
+            /** Name */
+            name: string | null;
+            /** Grams */
+            grams: number;
+            /** Kcal Per 100G */
+            kcal_per_100g: number | null;
+            /** Kcal */
+            kcal: number | null;
+        };
+        /** TemplateOut */
+        TemplateOut: {
+            /** Template Id */
+            template_id: number;
+            /** Name */
+            name: string;
+            /** Total Grams */
+            total_grams: number | null;
+            /** Kcal */
+            kcal: number | null;
+            /** Items */
+            items: components["schemas"]["TemplateListItemOut"][];
+        };
+        /**
+         * TemplateRef
+         * @description A template standing in for its foods; expanded server-side at log time.
+         */
+        TemplateRef: {
+            /** Template Id */
+            template_id: number;
+            /** Portions */
+            portions?: number | null;
+            /** Grams */
+            grams?: number | null;
+        };
+        /** TemplateSavedResponse */
+        TemplateSavedResponse: {
+            /** Template Id */
+            template_id: number;
+            /** Name */
+            name: string;
+            /** Total Grams */
+            total_grams: number | null;
+            /** Created */
+            created: boolean;
+            /** Items */
+            items: components["schemas"]["TemplateItemOut"][];
+            server_time: components["schemas"]["ServerTime"];
+        };
+        /** TemplatesResponse */
+        TemplatesResponse: {
+            /** Templates */
+            templates: components["schemas"]["TemplateOut"][];
+            /** Language */
+            language: string;
+            server_time: components["schemas"]["ServerTime"];
         };
         /** ValidationError */
         ValidationError: {
@@ -1068,6 +1169,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MealLogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_templates_api_templates_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplatesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_template_api_templates_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateSavedResponse"];
                 };
             };
             /** @description Validation Error */

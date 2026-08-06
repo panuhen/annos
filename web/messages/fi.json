@@ -91,7 +91,16 @@
     "logging": "Kirjataan…",
     "reviseFailed": "Korjausta ei voitu tallentaa",
     "logFailed": "Ateriaa ei voitu kirjata",
-    "noAnswer": "Keittiö ei vastannut. Yritä uudelleen."
+    "noAnswer": "Keittiö ei vastannut. Yritä uudelleen.",
+    "templates": "Pohjat",
+    "saveAsTemplate": "Tallenna annos pohjaksi",
+    "templateName": "Pohjan nimi",
+    "templateSave": "Tallenna",
+    "templateSaving": "Tallennetaan…",
+    "templateCancel": "Peruuta",
+    "templateSaved": "Pohja ”{name}” tallennettu.",
+    "templateReplaced": "Pohja ”{name}” päivitetty.",
+    "templateFailed": "Pohjaa ei voitu tallentaa"
   },
   "weight": {
     "title": "Paino",

@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 type FoodCandidate = components["schemas"]["FoodCandidateOut"];
 type SummaryMeal = components["schemas"]["SummaryMealOut"];
+type Template = components["schemas"]["TemplateOut"];
 
 type FormItem = {
   food_id: number;
@@ -77,6 +78,20 @@ export function MealForm(props: Props) {
 
   const backdate = props.mode === "new" ? props.date : undefined;
 
+  // Templates expand client-side into normal plate rows so amounts stay
+  // editable; the server-side expansion path exists for MCP clients.
+  const templates = useQuery({
+    queryKey: ["templates"],
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/templates");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [tplOpen, setTplOpen] = useState(false);
+  const [tplName, setTplName] = useState("");
+  const [tplSaving, setTplSaving] = useState(false);
+
   const debounced = useDebounced(query.trim(), 250);
   const search = useQuery({
     queryKey: ["food-search", debounced],
@@ -116,6 +131,41 @@ export function MealForm(props: Props) {
     ]);
     setQuery("");
     searchRef.current?.focus();
+  }
+
+  function addTemplate(template: Template) {
+    setItems((prev) => [
+      ...prev,
+      ...template.items.map((item) => ({
+        food_id: item.food_id,
+        name: item.name ?? `#${item.food_id}`,
+        source: null,
+        grams: fmtGrams(item.grams),
+        kcalPer100: item.kcal_per_100g,
+        units: [],
+      })),
+    ]);
+  }
+
+  async function saveAsTemplate() {
+    const name = tplName.trim();
+    if (!name) return;
+    setTplSaving(true);
+    const { data, error } = await api.POST("/api/templates", {
+      body: {
+        name,
+        items: items.map((item) => ({ food_id: item.food_id, grams: parseFloat(item.grams) })),
+      },
+    });
+    setTplSaving(false);
+    if (error || !data) {
+      toast.error(t("templateFailed"));
+      return;
+    }
+    toast(t(data.created ? "templateSaved" : "templateReplaced", { name: data.name }));
+    setTplOpen(false);
+    setTplName("");
+    await queryClient.invalidateQueries({ queryKey: ["templates"] });
   }
 
   function setGrams(index: number, grams: string) {
@@ -250,6 +300,32 @@ export function MealForm(props: Props) {
         )}
       </div>
 
+      {/* Saved templates: one tap puts the usual on the plate */}
+      {(templates.data?.templates.length ?? 0) > 0 && (
+        <div>
+          <p className="mb-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            {t("templates")}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {templates.data!.templates.map((template) => (
+              <button
+                key={template.template_id}
+                type="button"
+                onClick={() => addTemplate(template)}
+                className="inline-flex min-h-11 items-center border border-input px-3 font-mono text-xs hover:bg-secondary"
+              >
+                +{template.name}
+                {template.kcal != null && (
+                  <span className="tnum ml-1.5 text-muted-foreground">
+                    {Math.round(template.kcal)}&#8239;kcal
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* The plate so far */}
       {items.length === 0 ? (
         <p className="border-t border-border pt-4 text-sm text-muted-foreground">
@@ -335,6 +411,51 @@ export function MealForm(props: Props) {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* The plate can become a template — quiet, out of the fast path */}
+      {items.length > 0 && (
+        <div className="-mt-3">
+          {tplOpen ? (
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Label htmlFor="template-name" className="mb-1.5 font-mono text-xs uppercase">
+                  {t("templateName")}
+                </Label>
+                <Input
+                  id="template-name"
+                  value={tplName}
+                  onChange={(e) => setTplName(e.target.value)}
+                  autoComplete="off"
+                  className="h-11"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={tplName.trim() === "" || tplSaving}
+                onClick={saveAsTemplate}
+                className="flex min-h-11 items-center border border-input px-3 font-bold text-sm hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {tplSaving ? t("templateSaving") : t("templateSave")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTplOpen(false)}
+                className="flex min-h-11 items-center px-2 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              >
+                {t("templateCancel")}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setTplOpen(true)}
+              className="flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            >
+              {t("saveAsTemplate")}
+            </button>
+          )}
+        </div>
       )}
 
       {/* Details: everything optional, out of the fast path */}

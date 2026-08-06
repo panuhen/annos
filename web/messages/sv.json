@@ -91,7 +91,16 @@
     "logging": "Loggar…",
     "reviseFailed": "Korrigeringen kunde inte sparas",
     "logFailed": "Måltiden kunde inte loggas",
-    "noAnswer": "Köket svarade inte. Försök igen."
+    "noAnswer": "Köket svarade inte. Försök igen.",
+    "templates": "Mallar",
+    "saveAsTemplate": "Spara tallriken som mall",
+    "templateName": "Mallens namn",
+    "templateSave": "Spara",
+    "templateSaving": "Sparar…",
+    "templateCancel": "Avbryt",
+    "templateSaved": "Mallen ”{name}” sparad.",
+    "templateReplaced": "Mallen ”{name}” uppdaterad.",
+    "templateFailed": "Mallen kunde inte sparas"
   },
   "weight": {
     "title": "Vikt",

@@ -26,6 +26,7 @@ from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
 from annos.domain import summary as summary_domain
+from annos.domain import templates as templates_domain
 from annos.identity import AuthError, Caller, resolve_caller
 
 router = APIRouter()
@@ -331,8 +332,16 @@ class MealItem(BaseModel):
     grams: float = Field(gt=0)
 
 
+class TemplateRef(BaseModel):
+    """A template standing in for its foods; expanded server-side at log time."""
+
+    template_id: int
+    portions: float | None = Field(default=None, gt=0)
+    grams: float | None = Field(default=None, gt=0)
+
+
 class MealLogCreate(BaseModel):
-    items: list[MealItem] = Field(min_length=1)
+    items: list[MealItem | TemplateRef] = Field(min_length=1)
     meal: str | None = None
     ts: str | None = Field(
         default=None,
@@ -353,7 +362,7 @@ async def log_meal(session: SessionDep, who: CallerDep, body: MealLogCreate) -> 
         return await meals_domain.log_meal(
             session,
             subject=who.subject,
-            items=[item.model_dump() for item in body.items],
+            items=[item.model_dump(exclude_none=True) for item in body.items],
             meal=body.meal,
             ts=body.ts,
             input_mode=body.input_mode,
@@ -361,7 +370,7 @@ async def log_meal(session: SessionDep, who: CallerDep, body: MealLogCreate) -> 
         )
     except meals_domain.InvalidLog as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except meals_domain.UnknownFood as exc:
+    except (meals_domain.UnknownFood, templates_domain.TemplateNotFound) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
@@ -491,7 +500,84 @@ async def revise_log(
         )
     except meals_domain.InvalidLog as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except (meals_domain.UnknownFood, meals_domain.LogNotFound) as exc:
+    except (
+        meals_domain.UnknownFood,
+        meals_domain.LogNotFound,
+        templates_domain.TemplateNotFound,
+    ) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class TemplateItemIn(BaseModel):
+    food_id: int
+    grams: float = Field(gt=0)
+
+
+class TemplateCreate(BaseModel):
+    name: str
+    items: list[TemplateItemIn] = Field(min_length=1)
+    total_grams: float | None = Field(default=None, gt=0)
+
+
+class TemplateItemOut(BaseModel):
+    food_id: int
+    grams: float
+
+
+class TemplateSavedResponse(BaseModel):
+    template_id: int
+    name: str
+    total_grams: float | None
+    created: bool
+    items: list[TemplateItemOut]
+    server_time: ServerTime
+
+
+class TemplateListItemOut(BaseModel):
+    food_id: int
+    name: str | None
+    grams: float
+    kcal_per_100g: float | None
+    kcal: float | None
+
+
+class TemplateOut(BaseModel):
+    template_id: int
+    name: str
+    total_grams: float | None
+    kcal: float | None
+    items: list[TemplateListItemOut]
+
+
+class TemplatesResponse(BaseModel):
+    templates: list[TemplateOut]
+    language: str
+    server_time: ServerTime
+
+
+@router.post("/templates", status_code=201)
+async def save_template(
+    session: SessionDep, who: CallerDep, body: TemplateCreate
+) -> TemplateSavedResponse:
+    try:
+        return await templates_domain.save_template(
+            session,
+            subject=who.subject,
+            name=body.name,
+            items=[item.model_dump() for item in body.items],
+            total_grams=body.total_grams,
+        )
+    except templates_domain.InvalidTemplate as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+@router.get("/templates")
+async def list_templates(session: SessionDep, who: CallerDep) -> TemplatesResponse:
+    try:
+        return await templates_domain.list_templates(session, subject=who.subject)
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc

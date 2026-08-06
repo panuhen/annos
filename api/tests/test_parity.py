@@ -17,6 +17,8 @@ EXPECTED_TOOLS = {
     "log_meal",
     "revise_log",
     "delete_log",
+    "save_template",
+    "list_templates",
     "log_weight",
     "set_goal_phase",
     "revise_goal_phase",

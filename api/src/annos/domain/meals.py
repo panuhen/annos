@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from annos import servertime
 from annos.domain import profile as profile_domain
+from annos.domain import templates as templates_domain
 from annos.models import INPUT_MODES, MEALS, Food, MealLog, MealLogItem
 
 # What revise_log accepts. Item edits replace the whole list — "the one-sentence
@@ -70,6 +71,49 @@ def _day_window(local_date_iso: str, tz: str) -> tuple[datetime, datetime]:
     day = datetime.fromisoformat(local_date_iso).date()
     start = datetime.combine(day, time.min, tzinfo=zone)
     return start, start + timedelta(days=1)
+
+
+async def _expand_templates(
+    session: AsyncSession, *, subject: str, items: list[dict]
+) -> list[dict]:
+    """Template references become their foods before snapshotting.
+
+    An item is either `{food_id, grams}` or `{template_id, portions?, grams?}`:
+    `portions` multiplies the saved amounts (default 1 — the whole template);
+    `grams` takes that much of a recipe and needs the template's `total_grams`
+    to scale against. Expansion happens at log time so the snapshot discipline
+    is untouched — a template is a shorthand, not a second source of truth.
+    """
+    expanded: list[dict] = []
+    for item in items:
+        if not (isinstance(item, dict) and "template_id" in item):
+            expanded.append(item)
+            continue
+
+        unknown = set(item) - {"template_id", "portions", "grams"}
+        if unknown:
+            raise InvalidLog(f"unknown template fields: {', '.join(sorted(unknown))}")
+        template = await templates_domain.get_template(
+            session, subject=subject, template_id=int(item["template_id"])
+        )
+        portions = item.get("portions")
+        grams = item.get("grams")
+        if portions is not None and grams is not None:
+            raise InvalidLog("give portions or grams, not both")
+        if grams is not None:
+            if template.total_grams is None:
+                raise InvalidLog(f"template {template.id} has no total_grams; log it in portions")
+            scale = Decimal(str(grams)) / Decimal(template.total_grams)
+        else:
+            scale = Decimal(str(portions)) if portions is not None else Decimal(1)
+        if scale <= 0:
+            raise InvalidLog("the portion must be positive")
+
+        expanded.extend(
+            {"food_id": row.food_id, "grams": float(Decimal(row.grams) * scale)}
+            for row in template.items
+        )
+    return expanded
 
 
 async def _snapshot_items(
@@ -211,7 +255,11 @@ async def log_meal(
         input_mode=input_mode,
         planned=input_mode == "plan",
         notes=notes,
-        items=await _snapshot_items(session, subject=subject, items=items),
+        items=await _snapshot_items(
+            session,
+            subject=subject,
+            items=await _expand_templates(session, subject=subject, items=items),
+        ),
     )
     session.add(log)
     await session.commit()
@@ -263,7 +311,10 @@ async def revise_log(session: AsyncSession, *, subject: str, log_id: int, change
     if "items" in changes:
         existing = {item.food_id: {f: getattr(item, f) for f in MACRO_FIELDS} for item in log.items}
         log.items = await _snapshot_items(
-            session, subject=subject, items=changes["items"], keep=existing
+            session,
+            subject=subject,
+            items=await _expand_templates(session, subject=subject, items=changes["items"]),
+            keep=existing,
         )
 
     await session.commit()
