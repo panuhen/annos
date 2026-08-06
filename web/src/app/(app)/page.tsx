@@ -16,6 +16,7 @@ import {
   isoWeek,
   kcal,
   localeFor,
+  rateFigure,
   sheetDate,
   signed,
   sourceCode,
@@ -231,7 +232,7 @@ function DaySheet() {
               {day.target.rate_kg_per_week != null && (
                 <>
                   {" · "}
-                  {day.target.rate_kg_per_week} {t("kgPerWeek")}
+                  {rateFigure(day.target.rate_kg_per_week, locale)} {t("kgPerWeek")}
                 </>
               )}
             </>
@@ -271,12 +272,41 @@ function TotalRow({
   unit: string;
 }) {
   return (
-    <div className="flex items-baseline justify-between">
-      <span className="text-sm font-bold">{label}</span>
-      <span className="tnum font-mono text-sm">
-        {value}
-        {target != null && <span className="text-muted-foreground"> / {target}</span>} {unit}
-      </span>
+    <div className="mb-1">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-bold">{label}</span>
+        <span className="tnum font-mono text-sm">
+          {value}
+          {target != null && <span className="text-muted-foreground"> / {target}</span>} {unit}
+        </span>
+      </div>
+      {target != null && target > 0 && <Measure value={value} target={target} />}
+    </div>
+  );
+}
+
+/** Progress as the sheet already draws everything: rule weight. The hairline
+ * is the day's full measure, the ink stroke is what's eaten, and past the
+ * target the tick shows where the target sat. Decorative to a screen reader —
+ * the figures above carry the data — and deliberately monochrome: honey is
+ * reserved for actions and today, and this is neither. */
+function Measure({ value, target }: { value: number; target: number }) {
+  const scale = Math.max(value, target);
+  const eaten = Math.max(0, Math.min(1, value / scale));
+  const tick = target / scale;
+  return (
+    <div aria-hidden className="relative mt-1 mb-1.5 h-[3px]">
+      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+      <div
+        className="absolute left-0 top-1/2 h-[3px] -translate-y-1/2 bg-foreground"
+        style={{ width: `${eaten * 100}%` }}
+      />
+      {value > target && (
+        <div
+          className="absolute top-1/2 h-[7px] w-[2px] -translate-y-1/2 -translate-x-1/2 bg-background"
+          style={{ left: `${tick * 100}%` }}
+        />
+      )}
     </div>
   );
 }
