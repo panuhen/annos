@@ -18,6 +18,7 @@ from annos.domain import body as body_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
+from annos.domain import summary as summary_domain
 from annos.identity import AuthError, Caller, resolve_caller
 
 router = APIRouter()
@@ -155,6 +156,18 @@ async def log_meal(session: SessionDep, who: CallerDep, body: MealLogCreate) -> 
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except meals_domain.UnknownFood as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+@router.get("/summary/daily")
+async def daily_summary(
+    session: SessionDep, who: CallerDep, date: Annotated[str | None, Query()] = None
+) -> dict:
+    try:
+        return await summary_domain.daily_summary(session, subject=who.subject, date=date)
+    except meals_domain.InvalidLog as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 

@@ -23,6 +23,7 @@ from annos.domain import body as body_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
+from annos.domain import summary as summary_domain
 from annos.identity import AuthError, Caller, resolve_caller
 
 
@@ -179,6 +180,23 @@ async def log_meal(
             input_mode=input_mode,
             notes=notes,
         )
+
+
+@mcp.tool
+async def daily_summary(date: str | None = None) -> dict[str, Any]:
+    """The whole day in one call: totals eaten, the active goal target,
+    what remains, and the day's logs.
+
+    No date means today, as the server defines it — never guess the date.
+    `meals` carries log_ids so a correction can go straight to revise_log.
+    Planned entries appear in the list but count toward no totals. day_type
+    is "rest" until exercise logging exists, so the rest-day kcal target is
+    the one in force. The numbers are facts; the judgment on them is yours,
+    guided by profile_context.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await summary_domain.daily_summary(session, subject=who.subject, date=date)
 
 
 @mcp.tool
