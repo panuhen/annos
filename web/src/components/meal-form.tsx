@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Minus, Plus, Search, X } from "lucide-react";
+import { MagnifyingGlass, Minus, Plus, X } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -197,7 +197,7 @@ export function MealForm(props: Props) {
           {t("searchLabel")}
         </Label>
         <div className="relative">
-          <Search
+          <MagnifyingGlass
             aria-hidden
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
           />

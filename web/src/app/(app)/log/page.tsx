@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
+import { CaretLeft } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -30,7 +30,7 @@ function LogNew() {
           aria-label={t("back")}
           className="-ml-2 flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
         >
-          <ChevronLeft aria-hidden className="size-5" />
+          <CaretLeft aria-hidden className="size-5" />
         </Link>
         <h1 className="text-lg font-bold">
           {t("title")}

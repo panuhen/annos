@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Dices } from "lucide-react";
+import { DiceFive } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -100,7 +100,7 @@ export default function WelcomePage() {
           disabled={rolling || creating}
           className="flex min-h-12 items-center justify-center gap-2 border border-input font-bold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <Dices aria-hidden className="size-5" />
+          <DiceFive aria-hidden className="size-5" />
           {rolling ? t("drawing") : t("draw")}
         </button>
         <button

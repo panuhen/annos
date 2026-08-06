@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -97,7 +97,7 @@ function DaySheet() {
           aria-label={t("prevDay")}
           className="-ml-2 flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
         >
-          <ChevronLeft aria-hidden className="size-5" />
+          <CaretLeft aria-hidden className="size-5" />
         </Link>
         <div className="text-center">
           <h1
@@ -125,7 +125,7 @@ function DaySheet() {
           aria-label={t("nextDay")}
           className="-mr-2 flex size-11 items-center justify-center text-muted-foreground hover:text-foreground"
         >
-          <ChevronRight aria-hidden className="size-5" />
+          <CaretRight aria-hidden className="size-5" />
         </Link>
       </div>
 
@@ -251,7 +251,7 @@ function DaySheet() {
           href={isToday ? "/log" : `/log?date=${day.date}`}
           className="flex min-h-12 w-full items-center justify-center gap-2 bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <Plus aria-hidden className="size-5" strokeWidth={2.5} />
+          <Plus aria-hidden weight="bold" className="size-5" />
           {t("logMeal")}
         </Link>
       </div>

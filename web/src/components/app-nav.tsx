@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleUserRound, ClipboardList, Crosshair, Weight } from "lucide-react";
+import { ClipboardText, Crosshair, Scales, UserCircle } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,10 +8,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { href: "/", key: "today", icon: ClipboardList },
-  { href: "/weight", key: "weight", icon: Weight },
+  { href: "/", key: "today", icon: ClipboardText },
+  { href: "/weight", key: "weight", icon: Scales },
   { href: "/goal", key: "goal", icon: Crosshair },
-  { href: "/profile", key: "profile", icon: CircleUserRound },
+  { href: "/profile", key: "profile", icon: UserCircle },
 ] as const;
 
 /** The sheet's foot on a phone: a heavy rule with the app's four places
@@ -38,7 +38,7 @@ export function AppNav() {
                 active ? "text-primary" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <Icon aria-hidden strokeWidth={active ? 2.25 : 1.75} className="size-5" />
+              <Icon aria-hidden weight={active ? "bold" : "regular"} className="size-5" />
               {t(key)}
             </Link>
           );
