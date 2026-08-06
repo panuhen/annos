@@ -46,28 +46,65 @@ export default function GoalPage() {
   const [rate, setRate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [opened, setOpened] = useState<{ start_date: string } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  // The open phase is a draft of the future and revisable; closed phases are
+  // history. Revising reuses the form, prefilled from the open phase.
+  const [revising, setRevising] = useState(false);
 
   const valid = parseInt(kcalTraining) > 0 && parseInt(kcalRest) > 0 && parseInt(protein) > 0;
 
   const kindLabel = (value: string) =>
     (KINDS as readonly string[]).includes(value) ? tKinds(value) : value;
 
+  async function startRevising() {
+    const { data } = await api.GET("/api/goals/phases");
+    const open = data?.phases.find((phase) => phase.end_date == null);
+    if (!open) {
+      toast(t("noPhase"));
+      return;
+    }
+    setKind(open.kind);
+    setKcalTraining(String(open.kcal_target_training));
+    setKcalRest(String(open.kcal_target_rest));
+    setProtein(String(open.protein_target_g));
+    setRate(open.rate_target_kg_per_week != null ? String(open.rate_target_kg_per_week) : "");
+    setStartDate(open.start_date);
+    setNotice(null);
+    setRevising(true);
+  }
+
+  function stopRevising() {
+    setRevising(false);
+    setKind("deficit");
+    setKcalTraining("");
+    setKcalRest("");
+    setProtein("");
+    setRate("");
+    setStartDate("");
+  }
+
   async function submit() {
     setSubmitting(true);
     try {
-      const { data, error } = await api.POST("/api/goals/phase", {
-        body: {
-          kind,
-          kcal_training: parseInt(kcalTraining),
-          kcal_rest: parseInt(kcalRest),
-          protein_g: parseInt(protein),
-          rate_target: rate.trim() === "" ? null : parseFloat(rate),
-          start_date: startDate === "" ? null : startDate,
-        },
-      });
+      const payload = {
+        kind,
+        kcal_training: parseInt(kcalTraining),
+        kcal_rest: parseInt(kcalRest),
+        protein_g: parseInt(protein),
+        rate_target: rate.trim() === "" ? null : parseFloat(rate),
+      };
+      const { data, error } = revising
+        ? await api.PATCH("/api/goals/phase", {
+            body: { changes: { ...payload, ...(startDate ? { start_date: startDate } : {}) } },
+          })
+        : await api.POST("/api/goals/phase", {
+            body: { ...payload, start_date: startDate === "" ? null : startDate },
+          });
       if (error || !data) throw error ?? new Error("no response");
-      setOpened({ start_date: data.start_date });
+      setNotice(
+        t(revising ? "revised" : "opened", { date: sheetDate(data.start_date, locale) }),
+      );
+      if (revising) stopRevising();
       await queryClient.invalidateQueries({ queryKey: ["get", "/api/summary/daily"] });
       await queryClient.invalidateQueries({ queryKey: ["get", "/api/goals/phases"] });
     } catch (err) {
@@ -109,15 +146,35 @@ export default function GoalPage() {
         ) : (
           <p className="text-sm text-muted-foreground">{t("noPhase")}</p>
         )}
+        {target && !revising && (
+          <button
+            type="button"
+            onClick={startRevising}
+            className="mt-1 flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            {t("revisePhase")}
+          </button>
+        )}
       </div>
 
-      {opened && (
+      {notice && (
         <p className="stamp-in mt-4 border border-border px-3 py-2 text-sm" role="status">
-          {t("opened", { date: sheetDate(opened.start_date, locale) })}
+          {notice}
         </p>
       )}
 
-      <h2 className="mt-5 text-sm font-bold">{t("newPhase")}</h2>
+      <div className="mt-5 flex items-baseline justify-between">
+        <h2 className="text-sm font-bold">{t(revising ? "revisePhase" : "newPhase")}</h2>
+        {revising && (
+          <button
+            type="button"
+            onClick={stopRevising}
+            className="font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            {t("cancelRevise")}
+          </button>
+        )}
+      </div>
 
       <div className="mt-3">
         <Label htmlFor="goal-kind" className="mb-1.5 font-mono text-xs uppercase">
@@ -191,7 +248,7 @@ export default function GoalPage() {
 
       <div className="mt-3">
         <Label htmlFor="start-date" className="mb-1.5 font-mono text-xs uppercase">
-          {t("starts")}
+          {t(revising ? "startsKeep" : "starts")}
         </Label>
         <Input
           id="start-date"
@@ -261,7 +318,7 @@ export default function GoalPage() {
           onClick={submit}
           className="flex min-h-12 w-full items-center justify-center bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {submitting ? t("opening") : t("submit")}
+          {submitting ? t("opening") : t(revising ? "saveRevision" : "submit")}
         </button>
       </div>
     </>

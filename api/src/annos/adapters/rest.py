@@ -437,6 +437,26 @@ async def set_goal_phase(
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
 
+class GoalPhaseRevise(BaseModel):
+    changes: dict[str, Any]
+
+
+@router.patch("/goals/phase")
+async def revise_goal_phase(
+    session: SessionDep, who: CallerDep, body: GoalPhaseRevise
+) -> GoalPhaseResponse:
+    try:
+        return await body_domain.revise_goal_phase(
+            session, subject=who.subject, changes=body.changes
+        )
+    except body_domain.InvalidPhase as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except body_domain.NoOpenPhase as exc:
+        raise HTTPException(status_code=404, detail="no open phase to revise") from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
 @router.get("/goals/phases")
 async def list_goal_phases(session: SessionDep, who: CallerDep) -> GoalHistoryResponse:
     try:

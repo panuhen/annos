@@ -259,6 +259,22 @@ async def set_goal_phase(
 
 
 @mcp.tool
+async def revise_goal_phase(changes: dict[str, Any]) -> dict[str, Any]:
+    """Correct the open goal phase: kind, kcal_training, kcal_rest, protein_g,
+    rate_target, and/or start_date.
+
+    Only the open phase (end_date null) is revisable — closed phases are
+    history and the days they judged keep them. Moving start_date also moves
+    the previous phase's end to the day before, keeping the sequence gapless.
+    Use set_goal_phase for a genuinely new phase; this is for "I set that up
+    wrong".
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await body_domain.revise_goal_phase(session, subject=who.subject, changes=changes)
+
+
+@mcp.tool
 async def coaching_history() -> dict[str, Any]:
     """Every version the user's coaching notes have been, newest first.
 

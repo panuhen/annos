@@ -132,7 +132,12 @@
     "phaseTargets": "vila {kcalRest} · träning {kcalTraining} kcal · {protein} g protein",
     "showPhases": "Visa tidigare faser",
     "hidePhases": "Dölj tidigare faser",
-    "noPhases": "Inga faser ännu."
+    "noPhases": "Inga faser ännu.",
+    "revisePhase": "Ändra den öppna fasen",
+    "cancelRevise": "Avbryt",
+    "revised": "Fasen ändrad — börjar {date}.",
+    "saveRevision": "Spara ändringen",
+    "startsKeep": "Börjar — lämna som den är för att behålla"
   },
   "profile": {
     "title": "Profil",

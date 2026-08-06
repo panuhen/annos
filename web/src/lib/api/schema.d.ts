@@ -142,7 +142,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Revise Goal Phase */
+        patch: operations["revise_goal_phase_api_goals_phase_patch"];
         trace?: never;
     };
     "/api/goals/phases": {
@@ -335,6 +336,13 @@ export interface components {
             rate_target_kg_per_week: number | null;
             server_time: components["schemas"]["ServerTime"];
             closed_previous?: components["schemas"]["ClosedPhaseOut"] | null;
+        };
+        /** GoalPhaseRevise */
+        GoalPhaseRevise: {
+            /** Changes */
+            changes: {
+                [key: string]: unknown;
+            };
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -911,6 +919,41 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalPhaseResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revise_goal_phase_api_goals_phase_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoalPhaseRevise"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

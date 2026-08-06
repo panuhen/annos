@@ -210,6 +210,119 @@ async def test_phases_are_scoped_by_subject(session, profile):
     assert still_open.end_date is None
 
 
+# --- revise_goal_phase -------------------------------------------------------
+
+
+async def test_revising_the_open_phase_changes_its_targets(session, profile):
+    await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="surplus",
+        kcal_training=3000,
+        kcal_rest=2800,
+        protein_g=170,
+        start_date="2026-08-01",
+    )
+
+    revised = await body_domain.revise_goal_phase(
+        session, subject=SUBJECT, changes={"kind": "deficit", "kcal_rest": 2100}
+    )
+
+    assert revised["kind"] == "deficit"
+    assert revised["kcal_target_rest"] == 2100
+    assert revised["kcal_target_training"] == 3000  # untouched fields stay
+    assert revised["end_date"] is None
+
+
+async def test_moving_the_start_recloses_the_previous_phase(session, profile):
+    first = await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="deficit",
+        kcal_training=2400,
+        kcal_rest=2100,
+        protein_g=160,
+        start_date="2026-07-01",
+    )
+    await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="maintenance",
+        kcal_training=2800,
+        kcal_rest=2500,
+        protein_g=150,
+        start_date="2026-08-05",
+    )
+
+    revised = await body_domain.revise_goal_phase(
+        session, subject=SUBJECT, changes={"start_date": "2026-08-01"}
+    )
+
+    assert revised["start_date"] == "2026-08-01"
+    previous = await session.get(GoalPhase, first["phase_id"])
+    assert previous.end_date == date(2026, 7, 31)
+
+
+async def test_the_open_phase_cannot_move_onto_the_previous_one(session, profile):
+    await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="deficit",
+        kcal_training=2400,
+        kcal_rest=2100,
+        protein_g=160,
+        start_date="2026-07-01",
+    )
+    await body_domain.set_goal_phase(
+        session,
+        subject=SUBJECT,
+        kind="maintenance",
+        kcal_training=2800,
+        kcal_rest=2500,
+        protein_g=150,
+        start_date="2026-08-05",
+    )
+
+    with pytest.raises(body_domain.InvalidPhase, match="must start after"):
+        await body_domain.revise_goal_phase(
+            session, subject=SUBJECT, changes={"start_date": "2026-07-01"}
+        )
+
+
+async def test_revising_with_no_open_phase_is_refused(session, profile):
+    with pytest.raises(body_domain.NoOpenPhase):
+        await body_domain.revise_goal_phase(session, subject=SUBJECT, changes={"kind": "deficit"})
+
+
+async def test_revising_unknown_fields_is_refused(session, profile):
+    await body_domain.set_goal_phase(
+        session, subject=SUBJECT, kind="deficit", kcal_training=2400, kcal_rest=2100, protein_g=160
+    )
+
+    with pytest.raises(body_domain.InvalidPhase, match="not revisable"):
+        await body_domain.revise_goal_phase(
+            session, subject=SUBJECT, changes={"end_date": "2026-08-31"}
+        )
+
+
+async def test_rest_revises_the_open_phase(api, profile):
+    await api.post(
+        "/api/goals/phase",
+        json={"kind": "surplus", "kcal_training": 3000, "kcal_rest": 2800, "protein_g": 170},
+    )
+
+    response = await api.patch("/api/goals/phase", json={"changes": {"kind": "maintenance"}})
+
+    assert response.status_code == 200
+    assert response.json()["kind"] == "maintenance"
+
+
+async def test_rest_answers_404_when_nothing_is_open(api, profile):
+    response = await api.patch("/api/goals/phase", json={"changes": {"kind": "maintenance"}})
+
+    assert response.status_code == 404
+
+
 # --- list_goal_phases --------------------------------------------------------
 
 

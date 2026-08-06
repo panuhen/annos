@@ -132,7 +132,12 @@
     "phaseTargets": "lepo {kcalRest} · treeni {kcalTraining} kcal · {protein} g proteiinia",
     "showPhases": "Näytä aiemmat jaksot",
     "hidePhases": "Piilota aiemmat jaksot",
-    "noPhases": "Ei vielä jaksoja."
+    "noPhases": "Ei vielä jaksoja.",
+    "revisePhase": "Muokkaa avointa jaksoa",
+    "cancelRevise": "Peruuta",
+    "revised": "Jakso muokattu — alkaa {date}.",
+    "saveRevision": "Tallenna muutos",
+    "startsKeep": "Alkaa — jätä ennalleen säilyttääksesi"
   },
   "profile": {
     "title": "Profiili",

@@ -18,6 +18,7 @@ EXPECTED_TOOLS = {
     "revise_log",
     "log_weight",
     "set_goal_phase",
+    "revise_goal_phase",
     "goal_history",
     "daily_summary",
 }

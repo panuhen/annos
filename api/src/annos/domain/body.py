@@ -30,6 +30,10 @@ class InvalidPhase(Exception):
     """The phase targets or dates don't make sense."""
 
 
+class NoOpenPhase(Exception):
+    """Nothing to revise: every phase is closed (or none exists)."""
+
+
 def _parse_date(value: str | date_type | None, tz: str) -> date_type:
     """A stated calendar date, or today in the profile timezone."""
     if value is None:
@@ -208,3 +212,77 @@ async def set_goal_phase(
         else None
     )
     return payload
+
+
+# What revise_goal_phase accepts — the same vocabulary set_goal_phase takes.
+REVISABLE_PHASE_FIELDS = frozenset(
+    {"kind", "kcal_training", "kcal_rest", "protein_g", "rate_target", "start_date"}
+)
+
+
+async def revise_goal_phase(session: AsyncSession, *, subject: str, changes: dict) -> dict:
+    """Correct the open phase: "that was meant to be a deficit, from Monday".
+
+    The open phase is a draft of the future and revisable the way a meal log
+    is; closed phases are history — the days they judged keep them — and there
+    is deliberately no way to touch one. Moving `start_date` keeps the no-gap
+    invariant with the previous phase: its end moves to the day before the new
+    start, exactly as set_goal_phase would have closed it.
+    """
+    unknown = set(changes) - REVISABLE_PHASE_FIELDS
+    if unknown:
+        raise InvalidPhase(f"not revisable: {', '.join(sorted(unknown))}")
+    if not changes:
+        raise InvalidPhase("nothing to revise: changes is empty")
+
+    profile = await profile_domain.get_profile(session, subject=subject)
+    tz = profile.timezone
+
+    phase = await session.scalar(
+        select(GoalPhase).where(GoalPhase.subject == subject, GoalPhase.end_date.is_(None))
+    )
+    if phase is None:
+        raise NoOpenPhase(subject)
+
+    kind = changes.get("kind", phase.kind)
+    if kind not in GOAL_KINDS:
+        raise InvalidPhase(f"kind must be one of {', '.join(GOAL_KINDS)}")
+    kcal_training = changes.get("kcal_training", phase.kcal_target_training)
+    kcal_rest = changes.get("kcal_rest", phase.kcal_target_rest)
+    protein_g = changes.get("protein_g", phase.protein_target_g)
+    if min(kcal_training, kcal_rest, protein_g) <= 0:
+        raise InvalidPhase("targets must be positive")
+
+    if "start_date" in changes:
+        try:
+            start = _parse_date(changes["start_date"], tz)
+        except InvalidMetric as exc:
+            raise InvalidPhase(str(exc)) from exc
+        previous = await session.scalar(
+            select(GoalPhase)
+            .where(GoalPhase.subject == subject, GoalPhase.end_date.is_not(None))
+            .order_by(GoalPhase.start_date.desc())
+            .limit(1)
+        )
+        if previous is not None:
+            if start <= previous.start_date:
+                raise InvalidPhase(
+                    f"the previous phase started {previous.start_date.isoformat()}; "
+                    "the open phase must start after that"
+                )
+            # Only re-close the neighbour this phase's opening closed; a first
+            # phase (or one after a deleted account's gap) has nothing to move.
+            if previous.end_date == phase.start_date - timedelta(days=1):
+                previous.end_date = start - timedelta(days=1)
+        phase.start_date = start
+
+    phase.kind = kind
+    phase.kcal_target_training = kcal_training
+    phase.kcal_target_rest = kcal_rest
+    phase.protein_target_g = protein_g
+    if "rate_target" in changes:
+        phase.rate_target_kg_per_week = changes["rate_target"]
+
+    await session.commit()
+    await session.refresh(phase)
+    return phase_payload(phase, tz)

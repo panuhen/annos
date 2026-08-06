@@ -132,7 +132,12 @@
     "phaseTargets": "rest {kcalRest} · training {kcalTraining} kcal · {protein} g protein",
     "showPhases": "Show earlier phases",
     "hidePhases": "Hide earlier phases",
-    "noPhases": "No phases yet."
+    "noPhases": "No phases yet.",
+    "revisePhase": "Revise the open phase",
+    "cancelRevise": "Cancel",
+    "revised": "Phase revised — starts {date}.",
+    "saveRevision": "Save revision",
+    "startsKeep": "Starts — leave as is to keep"
   },
   "profile": {
     "title": "Profile",
