@@ -311,7 +311,7 @@ async def update_profile(
         profile = await profile_domain.update_profile(
             session, subject=who.subject, changes=body.changes
         )
-    except profile_domain.UnknownField as exc:
+    except (profile_domain.UnknownField, profile_domain.InvalidValue) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc

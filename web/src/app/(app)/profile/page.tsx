@@ -8,7 +8,6 @@ import { useTheme } from "next-themes";
 import { useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -34,6 +33,23 @@ const LANGUAGE_NAMES: Record<string, string> = {
   sv: "svenska",
   en: "English",
 };
+
+/** Closed lists instead of free text: the values are validated by being the
+ * only ones offered. Ranges mirror the server's own checks. */
+const CURRENT_YEAR = new Date().getFullYear();
+const BIRTH_YEARS = Array.from({ length: CURRENT_YEAR - 1900 + 1 }, (_, i) =>
+  String(CURRENT_YEAR - i),
+);
+const HEIGHTS_CM = Array.from({ length: 231 - 100 }, (_, i) => String(230 - i));
+
+function timezoneOptions(current: string): string[] {
+  try {
+    const zones = Intl.supportedValuesOf("timeZone");
+    return zones.includes(current) ? zones : [current, ...zones];
+  } catch {
+    return [current];
+  }
+}
 
 export default function ProfilePage() {
   const profile = useProfile();
@@ -166,13 +182,18 @@ export default function ProfilePage() {
         <Label htmlFor="timezone" className="mb-1.5 font-mono text-xs uppercase">
           {t("timezone")}
         </Label>
-        <Input
-          id="timezone"
-          value={timezone}
-          onChange={(e) => setTimezone(e.target.value)}
-          autoComplete="off"
-          className="h-11 font-mono text-sm"
-        />
+        <Select value={timezone} onValueChange={setTimezone}>
+          <SelectTrigger id="timezone" className="h-11 w-full font-mono text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timezoneOptions(profile.timezone).map((zone) => (
+              <SelectItem key={zone} value={zone} className="font-mono text-sm">
+                {zone}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <p className="mt-1.5 text-xs text-muted-foreground">{t("tzNote")}</p>
 
@@ -183,25 +204,43 @@ export default function ProfilePage() {
           <Label htmlFor="birth-year" className="mb-1.5 font-mono text-xs uppercase">
             {t("born")}
           </Label>
-          <Input
-            id="birth-year"
-            inputMode="numeric"
-            value={birthYear}
-            onChange={(e) => setBirthYear(e.target.value)}
-            className="tnum h-11 text-right font-mono"
-          />
+          <Select
+            value={birthYear === "" ? "unset" : birthYear}
+            onValueChange={(value) => setBirthYear(value === "unset" ? "" : value)}
+          >
+            <SelectTrigger id="birth-year" className="tnum h-11 w-full font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unset">—</SelectItem>
+              {BIRTH_YEARS.map((year) => (
+                <SelectItem key={year} value={year} className="tnum font-mono">
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label htmlFor="height-cm" className="mb-1.5 font-mono text-xs uppercase">
             {t("height")}
           </Label>
-          <Input
-            id="height-cm"
-            inputMode="numeric"
-            value={height}
-            onChange={(e) => setHeight(e.target.value)}
-            className="tnum h-11 text-right font-mono"
-          />
+          <Select
+            value={height === "" ? "unset" : height}
+            onValueChange={(value) => setHeight(value === "unset" ? "" : value)}
+          >
+            <SelectTrigger id="height-cm" className="tnum h-11 w-full font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unset">—</SelectItem>
+              {HEIGHTS_CM.map((cm) => (
+                <SelectItem key={cm} value={cm} className="tnum font-mono">
+                  {cm}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label htmlFor="sex" className="mb-1.5 font-mono text-xs uppercase">

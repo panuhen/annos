@@ -156,7 +156,7 @@
     "tzNote": "The timezone decides when your day rolls over — a 00:30 snack belongs to the new day.",
     "bodyFacts": "Body facts",
     "bodyNote": "Optional. Used for energy arithmetic later; never judged.",
-    "born": "Born",
+    "born": "Birth year",
     "height": "Height cm",
     "sex": "Sex",
     "female": "female",

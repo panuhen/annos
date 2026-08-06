@@ -113,6 +113,43 @@ async def test_update_before_registration_raises(session):
 # --- REST surface -----------------------------------------------------------
 
 
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"timezone": "Europe/Nowhere"},
+        {"birth_year": 1850},
+        {"birth_year": "1985"},
+        {"height_cm": 30},
+        {"height_cm": 400},
+    ],
+)
+async def test_impossible_profile_values_are_refused(session, changes):
+    """The web pickers only offer valid values; an MCP client can send
+    anything, so the domain refuses cleanly instead of hitting a constraint."""
+    await profile_domain.create_profile(session, subject=SUBJECT)
+
+    with pytest.raises(profile_domain.InvalidValue):
+        await profile_domain.update_profile(session, subject=SUBJECT, changes=changes)
+
+
+async def test_a_real_timezone_is_accepted(session):
+    await profile_domain.create_profile(session, subject=SUBJECT)
+
+    profile = await profile_domain.update_profile(
+        session, subject=SUBJECT, changes={"timezone": "America/New_York"}
+    )
+
+    assert profile.timezone == "America/New_York"
+
+
+async def test_rest_rejects_an_impossible_value_with_422(api):
+    await api.post("/api/profile", json={})
+
+    response = await api.patch("/api/profile", json={"changes": {"timezone": "Mars/Olympus"}})
+
+    assert response.status_code == 422
+
+
 async def test_coaching_notes_changes_append_to_the_history(session):
     await profile_domain.create_profile(session, subject=SUBJECT)
     await profile_domain.update_profile(

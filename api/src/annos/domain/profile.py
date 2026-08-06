@@ -5,6 +5,8 @@ it — that string is effectively the user's system prompt, and interpreting it
 here would pull judgment server-side, which is explicitly rejected.
 """
 
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,6 +50,29 @@ class UnknownField(Exception):
     def __init__(self, names: set[str]) -> None:
         super().__init__(f"not updatable: {', '.join(sorted(names))}")
         self.names = names
+
+
+class InvalidValue(Exception):
+    """A recognised field carrying a value the profile cannot hold."""
+
+
+def _validate(changes: dict) -> None:
+    """Refuse impossible values on both surfaces — the web UI offers only
+    valid options, but an MCP client can send anything. Mirrors (and fronts)
+    the database checks, so a bad value is a clean 422 rather than a
+    constraint error."""
+    tz = changes.get("timezone")
+    if tz is not None:
+        try:
+            ZoneInfo(tz)
+        except (ZoneInfoNotFoundError, ValueError, TypeError) as exc:
+            raise InvalidValue(f"unknown timezone: {tz!r}") from exc
+    birth_year = changes.get("birth_year")
+    if birth_year is not None and not (isinstance(birth_year, int) and 1900 <= birth_year <= 2100):
+        raise InvalidValue("birth_year must be a year between 1900 and 2100")
+    height = changes.get("height_cm")
+    if height is not None and not (isinstance(height, int) and 50 <= height <= 300):
+        raise InvalidValue("height_cm must be between 50 and 300")
 
 
 async def get_profile(session: AsyncSession, *, subject: str) -> UserProfile:
@@ -96,6 +121,7 @@ async def update_profile(session: AsyncSession, *, subject: str, changes: dict) 
     unknown = set(changes) - UPDATABLE
     if unknown:
         raise UnknownField(unknown)
+    _validate(changes)
 
     profile = await get_profile(session, subject=subject)
     # Coaching notes keep their history: every actual change appends what the
