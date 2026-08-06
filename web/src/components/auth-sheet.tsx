@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 import { FineliFooter } from "@/components/fineli-footer";
+import { AnnosMark } from "@/components/logo";
 
-/** The letterhead shell shared by the pages outside the app gate. */
+/** The letterhead shell shared by the pages outside the app gate: the mark
+ * and wordmark centered above the sheet's opening rule. */
 export function AuthSheet({
   title,
   children,
@@ -12,9 +14,10 @@ export function AuthSheet({
 }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col px-4">
-      <header className="pt-10 pb-2">
-        <Link href="/" className="text-sm font-bold tracking-tight">
-          Annos
+      <header className="flex flex-col items-center pt-10 pb-4">
+        <Link href="/" className="flex flex-col items-center">
+          <AnnosMark className="w-20" />
+          <span className="mt-2 text-2xl font-bold tracking-tight">Annos</span>
         </Link>
       </header>
       <div className="border-t-2 border-foreground" />

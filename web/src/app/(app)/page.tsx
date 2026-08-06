@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { AnnosMark } from "@/components/logo";
 import { $api } from "@/lib/api/hooks";
 import {
   addDays,
@@ -77,9 +78,12 @@ function DaySheet() {
 
   return (
     <>
-      <header className="flex items-baseline justify-between pt-5 pb-2">
-        <span className="text-sm font-bold tracking-tight">Annos</span>
-        <span className="font-mono text-xs text-muted-foreground uppercase">
+      <header className="flex items-end justify-between pt-5 pb-2">
+        <span className="flex items-center gap-2">
+          <AnnosMark className="h-8 w-auto" />
+          <span className="text-xl font-bold tracking-tight">Annos</span>
+        </span>
+        <span className="pb-1 font-mono text-xs text-muted-foreground uppercase">
           {t("week")} {isoWeek(day.date)}
         </span>
       </header>
