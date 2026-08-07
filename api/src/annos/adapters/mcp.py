@@ -22,6 +22,7 @@ from annos.db import SessionLocal
 from annos.domain import body as body_domain
 from annos.domain import days as days_domain
 from annos.domain import exercise as exercise_domain
+from annos.domain import export as export_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -635,3 +636,22 @@ async def weight_history(days: int = 30) -> dict[str, Any]:
     who = await _caller()
     async with SessionLocal() as session:
         return await stats_domain.weight_history(session, subject=who.subject, days=days)
+
+
+@mcp.tool
+async def export_my_data() -> dict[str, Any]:
+    """Everything this account owns, as one structured JSON dataset: profile,
+    coaching-note history, every meal with its log-time snapshots, exercise
+    sessions with sets, weights, goal phases, day-type marks, templates, own
+    foods, and the movement catalog.
+
+    This is the complete archive (GDPR data portability) and the migration
+    path out — suitable for saving to a file or transforming for another
+    service, not for answering day-to-day questions: the read tools
+    (daily_summary, weekly_review, weight_history…) are the right size for
+    those. `counts` states row counts per table. The same dataset is
+    downloadable in the web UI as a zip of CSVs plus this JSON.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await export_domain.export_account(session, subject=who.subject)

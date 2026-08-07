@@ -37,6 +37,7 @@ EXPECTED_TOOLS = {
     "get_tdee",
     "training_history",
     "weight_history",
+    "export_my_data",
 }
 
 

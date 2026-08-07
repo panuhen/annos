@@ -14,7 +14,7 @@ the route tests and the cross-surface parity tests then catch.
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +26,7 @@ from annos.domain import account as account_domain
 from annos.domain import body as body_domain
 from annos.domain import days as days_domain
 from annos.domain import exercise as exercise_domain
+from annos.domain import export as export_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -1072,6 +1073,30 @@ class AccountDeletedResponse(BaseModel):
     nickname: str
     erased: dict[str, int]
     server_time: ServerTime
+
+
+@router.get("/export")
+async def export_account(session: SessionDep, who: CallerDep) -> Response:
+    """The whole account as a zip: manifest, lossless data.json, and CSVs.
+
+    The one deliberately untyped response in this file: it is a binary
+    download, excluded from the generated client by nature — the profile page
+    fetches it by hand with the same bearer header. The MCP twin
+    `export_my_data` returns the identical dataset as JSON; both are
+    renderings of `domain/export.py`'s one dataset. Read-only, so unlike
+    DELETE /account there is no credential-shape guard: either surface's
+    credential may export.
+    """
+    try:
+        dataset = await export_domain.export_account(session, subject=who.subject)
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+    content, filename = export_domain.build_zip(dataset)
+    return Response(
+        content=content,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.delete("/account")

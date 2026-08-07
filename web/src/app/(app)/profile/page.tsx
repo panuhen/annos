@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { CaretDown, CaretRight } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, DownloadSimple } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,7 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import { $api } from "@/lib/api/hooks";
-import { clearApiToken } from "@/lib/api/token";
+import { apiToken, clearApiToken } from "@/lib/api/token";
 import { authClient } from "@/lib/auth-client";
 import { clockTime, localeFor, sheetDate } from "@/lib/format";
 import { useProfile } from "@/lib/profile";
@@ -196,8 +196,60 @@ export default function ProfilePage() {
         {t("signOut")}
       </button>
 
+      <ExportData />
       <DeleteAccount />
     </>
+  );
+}
+
+/** The other GDPR verb, sitting right above deletion — the natural "export
+ * before you delete" order. The generated client doesn't do binary, so this
+ * is the one hand-written fetch: same bearer header, blob out, a click on a
+ * synthesized anchor hands the zip to the browser's own download UI. */
+function ExportData() {
+  const t = useTranslations("profile");
+  const [busy, setBusy] = useState(false);
+
+  async function download() {
+    setBusy(true);
+    try {
+      const res = await fetch("/annos/api/export", {
+        headers: { Authorization: `Bearer ${await apiToken()}` },
+      });
+      if (!res.ok) throw new Error(`export answered ${res.status}`);
+      const blob = await res.blob();
+      const filename =
+        res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ??
+        "annos-export.zip";
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t("exportFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-8 border-t border-border pt-2 pb-1">
+      <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+        {t("exportTitle")}
+      </h2>
+      <p className="mt-1.5 text-xs text-muted-foreground">{t("exportNote")}</p>
+      <button
+        type="button"
+        onClick={download}
+        disabled={busy}
+        className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 border border-input font-bold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <DownloadSimple aria-hidden className="size-4.5" />
+        {busy ? t("exporting") : t("exportButton")}
+      </button>
+    </div>
   );
 }
 

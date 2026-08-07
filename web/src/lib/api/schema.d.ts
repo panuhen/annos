@@ -356,6 +356,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Account
+         * @description The whole account as a zip: manifest, lossless data.json, and CSVs.
+         *
+         *     The one deliberately untyped response in this file: it is a binary
+         *     download, excluded from the generated client by nature — the profile page
+         *     fetches it by hand with the same bearer header. The MCP twin
+         *     `export_my_data` returns the identical dataset as JSON; both are
+         *     renderings of `domain/export.py`'s one dataset. Read-only, so unlike
+         *     DELETE /account there is no credential-shape guard: either surface's
+         *     credential may export.
+         */
+        get: operations["export_account_api_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account": {
         parameters: {
             query?: never;
@@ -2302,6 +2330,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrainingHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_account_api_export_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
