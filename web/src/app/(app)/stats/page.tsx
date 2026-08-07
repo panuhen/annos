@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -343,12 +344,15 @@ function TdeeBlock({ tdee, locale }: { tdee: Tdee; locale: string }) {
 
   return (
     <>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm font-bold">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center text-sm font-bold">
           TDEE{" "}
-          <span className="font-mono text-xs font-normal text-muted-foreground">
+          <span className="ml-1 font-mono text-xs font-normal text-muted-foreground">
             ({t("measured")})
           </span>
+          {/* The acronym explains itself the way the nickname does: a quiet
+           * info glyph, the note on tap. */}
+          <InfoTip label={t("tdeeTipLabel")}>{t("tdeeTip")}</InfoTip>
         </span>
         <span className="tnum font-mono text-2xl">
           {tdee.tdee_kcal != null ? tdee.tdee_kcal : "–"}
@@ -389,7 +393,6 @@ function TdeeBlock({ tdee, locale }: { tdee: Tdee; locale: string }) {
           </p>
         </>
       )}
-      <p className="mt-1 text-xs text-muted-foreground">{t("tdeeWhat")}</p>
     </>
   );
 }
