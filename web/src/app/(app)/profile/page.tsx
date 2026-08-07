@@ -201,21 +201,25 @@ export default function ProfilePage() {
 }
 
 /** The end of the account, off the sheet until asked for. Two confirmations,
- * each verified by the side it protects: the typed nickname is checked by
- * the API before it erases the Annos data, the password by Better Auth
- * before it removes the sign-in. The API goes first — its route only accepts
- * the web's own credential shape — and Better Auth's user row cascades the
- * sessions and OAuth grants when it falls. */
+ * each verified before anything falls: the typed nickname by the API, and
+ * the password *first of all* — re-proven against Better Auth with a plain
+ * sign-in, which destroys nothing — so a wrong password stops the whole
+ * thing with every row intact. Only then does the API erase the Annos data
+ * and Better Auth remove the identity, whose user row cascades the sessions
+ * and OAuth grants. */
 function DeleteAccount() {
   const profile = useProfile();
+  const { data: session } = authClient.useSession();
   const t = useTranslations("profile");
   const [open, setOpen] = useState(false);
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  // The Annos wipe succeeded but the sign-in still stands (wrong password):
-  // don't wipe again on retry, and say plainly what state things are in.
+  // The narrow half-state: the Annos wipe succeeded but the sign-in still
+  // stands (a failure in the seconds after the password was already proven).
+  // Don't wipe again on retry, and say plainly what state things are in.
   const [dataErased, setDataErased] = useState(false);
+  const [identityRemains, setIdentityRemains] = useState(false);
 
   const armed = nickname.trim() === profile.nickname && password !== "";
 
@@ -223,6 +227,16 @@ function DeleteAccount() {
     setBusy(true);
     try {
       if (!dataErased) {
+        // Prove the password before destroying anything. A wrong password
+        // ends here, with all data intact.
+        const email = session?.user.email;
+        if (email) {
+          const verified = await authClient.signIn.email({ email, password });
+          if (verified.error) {
+            toast.error(t("deleteBadPassword"));
+            return;
+          }
+        }
         const { error } = await api.DELETE("/api/account", {
           body: { nickname: nickname.trim() },
         });
@@ -231,6 +245,7 @@ function DeleteAccount() {
       }
       const { error } = await authClient.deleteUser({ password });
       if (error) {
+        setIdentityRemains(true);
         toast.error(t("deleteWrongPassword"));
         return;
       }
@@ -266,7 +281,7 @@ function DeleteAccount() {
       {open && (
         <div className="mt-1 space-y-3">
           <p className="text-xs text-muted-foreground">{t("deleteWarning")}</p>
-          {dataErased && (
+          {identityRemains && (
             <p className="border border-destructive px-3 py-2 text-xs text-destructive" role="alert">
               {t("deleteWrongPassword")}
             </p>

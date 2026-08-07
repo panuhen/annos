@@ -295,6 +295,7 @@
     "deleteNicknameLabel": "Bekräfta genom att skriva ditt smeknamn",
     "deletePasswordLabel": "Lösenord",
     "deleteConfirm": "Radera allt",
+    "deleteBadPassword": "Fel lösenord — inget raderades.",
     "deleting": "Raderar…",
     "deleteFailed": "Kontot kunde inte raderas",
     "deleteWrongPassword": "Fel lösenord — inloggningen togs inte bort. Dina Annos-data är redan raderade; ange rätt lösenord för att slutföra."

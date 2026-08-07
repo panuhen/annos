@@ -295,6 +295,7 @@
     "deleteNicknameLabel": "Type your nickname to confirm",
     "deletePasswordLabel": "Password",
     "deleteConfirm": "Delete everything",
+    "deleteBadPassword": "Wrong password — nothing was deleted.",
     "deleting": "Deleting…",
     "deleteFailed": "Could not delete the account",
     "deleteWrongPassword": "Wrong password — the sign-in was not removed. Your Annos data is already erased; enter the correct password to finish."
