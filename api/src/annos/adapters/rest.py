@@ -531,6 +531,36 @@ async def list_goal_phases(session: SessionDep, who: CallerDep) -> GoalHistoryRe
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 
 
+class RecentMealOut(BaseModel):
+    log_id: int
+    date: str
+    ts: str
+    meal: str | None
+    planned: bool
+    notes: str | None
+    kcal: float
+    items: list[SummaryItemOut]
+
+
+class RecentMealsResponse(BaseModel):
+    days: int
+    meals: list[RecentMealOut]
+    language: str
+    server_time: ServerTime
+
+
+@router.get("/logs/meals")
+async def recent_meals(
+    session: SessionDep,
+    who: CallerDep,
+    days: Annotated[int, Query(ge=1, le=summary_domain.MAX_RECENT_DAYS)] = 7,
+) -> RecentMealsResponse:
+    try:
+        return await summary_domain.recent_meals(session, subject=who.subject, days=days)
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
 class LogDeletedResponse(BaseModel):
     deleted_log_id: int
     day_totals: DayTotals

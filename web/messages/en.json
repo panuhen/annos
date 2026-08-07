@@ -110,6 +110,7 @@
     "manageTemplates": "Manage",
     "moreTemplates": "+{count} more",
     "fewerTemplates": "Show fewer",
+    "recent": "Recent meals",
     "time": "Time",
     "timeNow": "Time — empty means now"
   },

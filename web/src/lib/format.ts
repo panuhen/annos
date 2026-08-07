@@ -20,6 +20,14 @@ export function weekday(dateISO: string, locale: string): string {
   }).format(new Date(`${dateISO}T00:00:00Z`));
 }
 
+/** The weekday shrunk to its margin-note form: "ke", "ons", "Wed". */
+export function weekdayShort(dateISO: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    timeZone: "UTC",
+  }).format(new Date(`${dateISO}T00:00:00Z`));
+}
+
 /** Numeric date the way the menu sheet prints it: 6.8.2026 */
 export function sheetDate(dateISO: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {

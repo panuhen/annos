@@ -205,6 +205,24 @@ async def daily_summary(date: str | None = None) -> dict[str, Any]:
 
 
 @mcp.tool
+async def recent_meals(days: int = 7) -> dict[str, Any]:
+    """What the user has been eating lately: the last days' meals (default 7,
+    max 31), newest first, today included.
+
+    This is the context call for "the usual", "same as Tuesday" or "what have
+    I eaten this week" — each meal carries its local calendar date, its
+    log_id (usable with revise_log and delete_log without having created the
+    log in this conversation), and its items with food_ids and grams, so a
+    past meal re-logs through log_meal with no find_food round trip. Planned
+    entries are flagged planned. For one day's totals against its target,
+    daily_summary is the call.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await summary_domain.recent_meals(session, subject=who.subject, days=days)
+
+
+@mcp.tool
 async def set_day_type(day_type: str, date: str | None = None) -> dict[str, Any]:
     """Mark a day "training" or "rest" — the user's own say on which of the
     goal phase's targets the day gets.

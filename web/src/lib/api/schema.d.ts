@@ -84,7 +84,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Recent Meals */
+        get: operations["recent_meals_api_logs_meals_get"];
         put?: never;
         /** Log Meal */
         post: operations["log_meal_api_logs_meals_post"];
@@ -606,6 +607,35 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** RecentMealOut */
+        RecentMealOut: {
+            /** Log Id */
+            log_id: number;
+            /** Date */
+            date: string;
+            /** Ts */
+            ts: string;
+            /** Meal */
+            meal: string | null;
+            /** Planned */
+            planned: boolean;
+            /** Notes */
+            notes: string | null;
+            /** Kcal */
+            kcal: number;
+            /** Items */
+            items: components["schemas"]["SummaryItemOut"][];
+        };
+        /** RecentMealsResponse */
+        RecentMealsResponse: {
+            /** Days */
+            days: number;
+            /** Meals */
+            meals: components["schemas"]["RecentMealOut"][];
+            /** Language */
+            language: string;
+            server_time: components["schemas"]["ServerTime"];
+        };
         /** RemainingOut */
         RemainingOut: {
             /** Kcal */
@@ -1011,6 +1041,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachingHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recent_meals_api_logs_meals_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentMealsResponse"];
                 };
             };
             /** @description Validation Error */

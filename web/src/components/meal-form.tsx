@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaretRight, MagnifyingGlass, Minus, Plus, X } from "@phosphor-icons/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -26,14 +26,17 @@ import {
   grams as fmtGrams,
   kcal as fmtKcal,
   localDate,
+  localeFor,
   sourceCode,
   timeValue,
+  weekdayShort,
 } from "@/lib/format";
 import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
 type FoodCandidate = components["schemas"]["FoodCandidateOut"];
 type SummaryMeal = components["schemas"]["SummaryMealOut"];
+type RecentMeal = components["schemas"]["RecentMealOut"];
 type Template = components["schemas"]["TemplateOut"];
 type Per100 = components["schemas"]["Per100g"];
 
@@ -97,6 +100,9 @@ export function MealForm(props: Props) {
   const t = useTranslations("logForm");
   const tMeals = useTranslations("meals");
   const profile = useProfile();
+  // Chrome (weekdays on the recent chips) follows the app language; food
+  // names follow profile.language and arrive pre-resolved, as everywhere.
+  const locale = localeFor(useLocale());
   const editing = props.mode === "edit";
 
   const [items, setItems] = useState<FormItem[]>(editing ? itemsFromLog(props.log) : []);
@@ -127,6 +133,35 @@ export function MealForm(props: Props) {
   const [tplName, setTplName] = useState("");
   const [tplSaving, setTplSaving] = useState(false);
   const [allChips, setAllChips] = useState(false);
+
+  // Last week's plates, one tap from being this one — the web twin of the
+  // recent_meals MCP tool. Only a fresh log starts from a past meal.
+  const recent = useQuery({
+    queryKey: ["recent-meals"],
+    enabled: !editing,
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/logs/meals");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const recentChips = useMemo(() => {
+    const chips: RecentMeal[] = [];
+    const seen = new Set<string>();
+    for (const meal of recent.data?.meals ?? []) {
+      if (meal.planned) continue; // a plan is not a meal eaten
+      const plate = meal.items
+        .map((item) => `${item.food_id}:${item.grams}`)
+        .sort()
+        .join("|");
+      // The same breakfast six mornings running earns one chip, the newest.
+      if (seen.has(plate)) continue;
+      seen.add(plate);
+      chips.push(meal);
+      if (chips.length === 6) break;
+    }
+    return chips;
+  }, [recent.data]);
 
   const debounced = useDebounced(query.trim(), 250);
   const search = useQuery({
@@ -169,6 +204,12 @@ export function MealForm(props: Props) {
     ]);
     setQuery("");
     searchRef.current?.focus();
+  }
+
+  function addRecent(meal: RecentMeal) {
+    // A recent meal re-plates through the same snapshot recovery as a
+    // revision: per-100g divided back out of the logged portions.
+    setItems((prev) => [...prev, ...itemsFromLog(meal)]);
   }
 
   function addTemplate(template: Template) {
@@ -405,6 +446,35 @@ export function MealForm(props: Props) {
                 </>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Last week's meals, deduped: re-plate one instead of rebuilding it.
+       * The weekday is the handle — "same as Tuesday" — so it leads the chip. */}
+      {!editing && recentChips.length > 0 && (
+        <div>
+          <p className="mb-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            {t("recent")}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {recentChips.map((meal) => (
+              <button
+                key={meal.log_id}
+                type="button"
+                onClick={() => addRecent(meal)}
+                className="inline-flex min-h-11 max-w-full items-center border border-input px-3 font-mono text-xs hover:bg-secondary"
+              >
+                +<span className="ml-0.5 text-muted-foreground">{weekdayShort(meal.date, locale)}</span>
+                <span className="ml-1.5 max-w-44 truncate">
+                  {meal.items[0]?.name ?? `#${meal.items[0]?.food_id}`}
+                  {meal.items.length > 1 && ` +${meal.items.length - 1}`}
+                </span>
+                <span className="tnum ml-1.5 text-muted-foreground">
+                  {Math.round(meal.kcal)}&#8239;kcal
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       )}

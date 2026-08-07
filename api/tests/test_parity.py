@@ -28,6 +28,7 @@ EXPECTED_TOOLS = {
     "delete_goal_phase",
     "goal_history",
     "daily_summary",
+    "recent_meals",
 }
 
 

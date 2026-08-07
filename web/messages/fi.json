@@ -110,6 +110,7 @@
     "manageTemplates": "Hallinnoi",
     "moreTemplates": "+{count} lisää",
     "fewerTemplates": "Näytä vähemmän",
+    "recent": "Viimeisimmät ateriat",
     "time": "Aika",
     "timeNow": "Aika — tyhjä tarkoittaa nyt"
   },

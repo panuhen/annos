@@ -110,6 +110,7 @@
     "manageTemplates": "Hantera",
     "moreTemplates": "+{count} till",
     "fewerTemplates": "Visa färre",
+    "recent": "Senaste måltiderna",
     "time": "Tid",
     "timeNow": "Tid — tomt betyder nu"
   },
