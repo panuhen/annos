@@ -16,6 +16,16 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    // Account deletion is two-sided: the profile page first has the API
+    // erase every Annos row (nickname-confirmed, web-credential-only), then
+    // calls deleteUser with the password — Better Auth verifies it before
+    // touching anything, then removes the user and its sessions. The two
+    // schemas share no foreign key, so each side deletes its own.
+    deleteUser: {
+      enabled: true,
+    },
+  },
   plugins: [
     jwt({
       jwt: {

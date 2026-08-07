@@ -20,7 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from annos import nickname as nickname_mod
 from annos import servertime
+from annos.config import settings
 from annos.db import get_session
+from annos.domain import account as account_domain
 from annos.domain import body as body_domain
 from annos.domain import days as days_domain
 from annos.domain import exercise as exercise_domain
@@ -42,7 +44,26 @@ async def caller(authorization: Annotated[str | None, Header()] = None) -> Calle
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
+async def web_caller(authorization: Annotated[str | None, Header()] = None) -> Caller:
+    """A caller wearing the web UI's credential shape — a JWT, never an
+    opaque OAuth token.
+
+    Account destruction is web-only in *mechanism*, not just by absence from
+    the tool list: an MCP client's opaque token is refused by shape before
+    any validation, so no chain of tool calls can reach this route with the
+    credentials MCP clients hold. (The dev bypass passes, as everywhere.)
+    """
+    if not settings.dev_subject:
+        scheme, _, token = (authorization or "").partition(" ")
+        if scheme.lower() == "bearer" and token and token.count(".") != 2:
+            raise HTTPException(
+                status_code=403, detail="this endpoint accepts web credentials only"
+            )
+    return await caller(authorization)
+
+
 CallerDep = Annotated[Caller, Depends(caller)]
+WebCallerDep = Annotated[Caller, Depends(web_caller)]
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
@@ -1035,5 +1056,36 @@ async def training_history(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except stats_domain.UnknownExercise as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class AccountDeleteRequest(BaseModel):
+    nickname: str = Field(
+        description="The account's nickname, typed by the user as confirmation. "
+        "Checked server-side; a mismatch deletes nothing."
+    )
+
+
+class AccountDeletedResponse(BaseModel):
+    deleted: bool
+    nickname: str
+    erased: dict[str, int]
+    server_time: ServerTime
+
+
+@router.delete("/account")
+async def delete_account(
+    session: SessionDep, who: WebCallerDep, body: AccountDeleteRequest
+) -> AccountDeletedResponse:
+    """The Annos half of account deletion — the web page calls this first,
+    then has Better Auth delete the identity (user, sessions, OAuth grants)
+    on its own side. Web-only by credential shape; no MCP tool exists."""
+    try:
+        return await account_domain.delete_account(
+            session, subject=who.subject, nickname=body.nickname
+        )
+    except account_domain.NicknameMismatch as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc

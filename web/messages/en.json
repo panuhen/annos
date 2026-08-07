@@ -289,7 +289,15 @@
     "notesCleared": "(cleared)",
     "currentNote": "current",
     "nicknameNote": "Random on purpose — the app never sees your name or email, so the nickname is the only name an account has.",
-    "nicknameWhy": "Why this nickname?"
+    "nicknameWhy": "Why this nickname?",
+    "deleteTitle": "Delete account",
+    "deleteWarning": "Permanent and immediate: every log, weight, goal phase, template and own food is erased, the sign-in is removed, and connected AI clients lose access. No grace period. Deleted data lingers only in encrypted backups, which rotate out within 30 days.",
+    "deleteNicknameLabel": "Type your nickname to confirm",
+    "deletePasswordLabel": "Password",
+    "deleteConfirm": "Delete everything",
+    "deleting": "Deleting…",
+    "deleteFailed": "Could not delete the account",
+    "deleteWrongPassword": "Wrong password — the sign-in was not removed. Your Annos data is already erased; enter the correct password to finish."
   },
   "welcome": {
     "title": "One name, drawn for you",

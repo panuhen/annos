@@ -289,7 +289,15 @@
     "notesCleared": "(tyhjennetty)",
     "currentNote": "nykyinen",
     "nicknameNote": "Tarkoituksella satunnainen — sovellus ei koskaan näe nimeäsi tai sähköpostiasi, joten lempinimi on tilin ainoa nimi.",
-    "nicknameWhy": "Miksi tämä lempinimi?"
+    "nicknameWhy": "Miksi tämä lempinimi?",
+    "deleteTitle": "Poista tili",
+    "deleteWarning": "Pysyvä ja välitön: kaikki kirjaukset, painot, tavoitejaksot, pohjat ja omat ruoat poistetaan, kirjautuminen poistetaan ja kytketyt AI-asiakkaat menettävät pääsyn. Ei varoaikaa. Poistettu tieto säilyy vain salatuissa varmuuskopioissa, jotka kiertyvät pois 30 päivässä.",
+    "deleteNicknameLabel": "Vahvista kirjoittamalla nimimerkkisi",
+    "deletePasswordLabel": "Salasana",
+    "deleteConfirm": "Poista kaikki",
+    "deleting": "Poistetaan…",
+    "deleteFailed": "Tiliä ei voitu poistaa",
+    "deleteWrongPassword": "Väärä salasana — kirjautumista ei poistettu. Annos-tietosi on jo poistettu; anna oikea salasana viedäksesi poiston loppuun."
   },
   "welcome": {
     "title": "Yksi nimi, arvottu sinulle",

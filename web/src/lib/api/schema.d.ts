@@ -356,6 +356,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Account
+         * @description The Annos half of account deletion — the web page calls this first,
+         *     then has Better Auth delete the identity (user, sessions, OAuth grants)
+         *     on its own side. Web-only by credential shape; no MCP tool exists.
+         */
+        delete: operations["delete_account_api_account_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -377,6 +399,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AccountDeleteRequest */
+        AccountDeleteRequest: {
+            /**
+             * Nickname
+             * @description The account's nickname, typed by the user as confirmation. Checked server-side; a mismatch deletes nothing.
+             */
+            nickname: string;
+        };
+        /** AccountDeletedResponse */
+        AccountDeletedResponse: {
+            /** Deleted */
+            deleted: boolean;
+            /** Nickname */
+            nickname: string;
+            /** Erased */
+            erased: {
+                [key: string]: number;
+            };
+            server_time: components["schemas"]["ServerTime"];
+        };
         /** ActivityOut */
         ActivityOut: {
             /** Id */
@@ -2260,6 +2302,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrainingHistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_account_api_account_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletedResponse"];
                 };
             };
             /** @description Validation Error */

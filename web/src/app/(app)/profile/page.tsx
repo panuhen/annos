@@ -8,6 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { InfoTip } from "@/components/ui/info-tip";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -193,7 +194,120 @@ export default function ProfilePage() {
       >
         {t("signOut")}
       </button>
+
+      <DeleteAccount />
     </>
+  );
+}
+
+/** The end of the account, off the sheet until asked for. Two confirmations,
+ * each verified by the side it protects: the typed nickname is checked by
+ * the API before it erases the Annos data, the password by Better Auth
+ * before it removes the sign-in. The API goes first — its route only accepts
+ * the web's own credential shape — and Better Auth's user row cascades the
+ * sessions and OAuth grants when it falls. */
+function DeleteAccount() {
+  const profile = useProfile();
+  const t = useTranslations("profile");
+  const [open, setOpen] = useState(false);
+  const [nickname, setNickname] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  // The Annos wipe succeeded but the sign-in still stands (wrong password):
+  // don't wipe again on retry, and say plainly what state things are in.
+  const [dataErased, setDataErased] = useState(false);
+
+  const armed = nickname.trim() === profile.nickname && password !== "";
+
+  async function destroy() {
+    setBusy(true);
+    try {
+      if (!dataErased) {
+        const { error } = await api.DELETE("/api/account", {
+          body: { nickname: nickname.trim() },
+        });
+        if (error) throw error;
+        setDataErased(true);
+      }
+      const { error } = await authClient.deleteUser({ password });
+      if (error) {
+        toast.error(t("deleteWrongPassword"));
+        return;
+      }
+      clearApiToken();
+      window.location.href = "/sign-in";
+    } catch (err) {
+      const detail =
+        typeof err === "object" && err !== null && "detail" in err
+          ? String((err as { detail: unknown }).detail)
+          : undefined;
+      toast.error(t("deleteFailed"), { description: detail });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-8 border-t border-border pt-1 pb-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex min-h-11 items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-destructive"
+      >
+        {open ? (
+          <CaretDown aria-hidden className="size-3.5" />
+        ) : (
+          <CaretRight aria-hidden className="size-3.5" />
+        )}
+        {t("deleteTitle")}
+      </button>
+
+      {open && (
+        <div className="mt-1 space-y-3">
+          <p className="text-xs text-muted-foreground">{t("deleteWarning")}</p>
+          {dataErased && (
+            <p className="border border-destructive px-3 py-2 text-xs text-destructive" role="alert">
+              {t("deleteWrongPassword")}
+            </p>
+          )}
+          <div>
+            <Label htmlFor="delete-nickname" className="mb-1.5 font-mono text-xs uppercase">
+              {t("deleteNicknameLabel")}
+            </Label>
+            <Input
+              id="delete-nickname"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder={profile.nickname}
+              autoComplete="off"
+              className="h-11 font-mono"
+            />
+          </div>
+          <div>
+            <Label htmlFor="delete-password" className="mb-1.5 font-mono text-xs uppercase">
+              {t("deletePasswordLabel")}
+            </Label>
+            <Input
+              id="delete-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              className="h-11"
+            />
+          </div>
+          <button
+            type="button"
+            disabled={!armed || busy}
+            onClick={destroy}
+            className="flex min-h-12 w-full items-center justify-center bg-destructive font-bold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {busy ? t("deleting") : t("deleteConfirm")}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
