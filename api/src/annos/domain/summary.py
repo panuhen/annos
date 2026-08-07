@@ -28,10 +28,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from annos import servertime
 from annos.domain import body as body_domain
 from annos.domain import days as days_domain
+from annos.domain import exercise as exercise_domain
 from annos.domain import language as language_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
-from annos.models import LANGUAGES, Food, MealLog
+from annos.models import LANGUAGES, ExerciseLog, Food, MealLog
 
 
 def _parse_date(value: str | date_type | None, tz: str) -> date_type:
@@ -137,7 +138,25 @@ async def daily_summary(
 
     phase = await body_domain.active_phase(session, subject=subject, on=day)
 
-    day_type, day_type_source = await days_domain.resolve_day_type(session, subject=subject, on=day)
+    day_type, day_type_source = await days_domain.resolve_day_type(
+        session, subject=subject, on=day, tz=tz
+    )
+
+    exercise_logs = (
+        (
+            await session.execute(
+                select(ExerciseLog)
+                .where(
+                    ExerciseLog.subject == subject,
+                    ExerciseLog.ts >= start,
+                    ExerciseLog.ts < end,
+                )
+                .order_by(ExerciseLog.ts)
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     if phase is not None:
         training = day_type == "training"
@@ -169,6 +188,11 @@ async def daily_summary(
         "target": target,
         "remaining": remaining,
         "meals": [_meal_payload(log, foods, language) for log in logs],
+        # The day's sessions ride along like its meals, in full — sets and
+        # activity included, so a client revising a session it didn't create
+        # sees its current contents without a second call (the same reason
+        # meals carry their items).
+        "exercise": [exercise_domain.session_payload(ex) for ex in exercise_logs],
         "profile_context": {
             "dietary_prefs": profile.dietary_prefs,
             "coaching_notes": profile.coaching_notes,

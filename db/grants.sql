@@ -18,7 +18,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON
     coaching_note_revisions,
     meal_templates,
     meal_template_items,
-    day_types
+    day_types,
+    activities,
+    exercises,
+    exercise_logs,
+    strength_sets
 TO annos_api;
 
 GRANT USAGE, SELECT ON
@@ -29,7 +33,11 @@ GRANT USAGE, SELECT ON
     goal_phases_id_seq,
     coaching_note_revisions_id_seq,
     meal_templates_id_seq,
-    meal_template_items_id_seq
+    meal_template_items_id_seq,
+    activities_id_seq,
+    exercises_id_seq,
+    exercise_logs_id_seq,
+    strength_sets_id_seq
 TO annos_api;
 
 -- Belt and braces. Better Auth's tables are created by its own CLI, so they may

@@ -29,6 +29,10 @@ EXPECTED_TOOLS = {
     "goal_history",
     "daily_summary",
     "recent_meals",
+    "find_activity",
+    "log_exercise",
+    "revise_exercise",
+    "delete_exercise",
 }
 
 

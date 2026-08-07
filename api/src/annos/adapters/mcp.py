@@ -21,6 +21,7 @@ from annos.config import settings
 from annos.db import SessionLocal
 from annos.domain import body as body_domain
 from annos.domain import days as days_domain
+from annos.domain import exercise as exercise_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -68,8 +69,11 @@ mcp: FastMCP = FastMCP(
         "Resolve foods with find_food before logging anything, and ask before "
         "assuming a meal type. Food names exist in Finnish, Swedish and English; "
         "search works in all three and results come back in the language set on "
-        "the user's profile. Food data from the Finnish Institute for Health "
-        "and Welfare, Fineli (CC-BY 4.0)."
+        "the user's profile. The exercise activity catalog is English-only — "
+        "translate before searching it ('juoksu' → 'running'); strength movement "
+        "names are the user's own words in any language. Food data from the "
+        "Finnish Institute for Health and Welfare, Fineli (CC-BY 4.0); MET values "
+        "from the 2024 Adult Compendium of Physical Activities."
     ),
 )
 
@@ -220,6 +224,102 @@ async def recent_meals(days: int = 7) -> dict[str, Any]:
     who = await _caller()
     async with SessionLocal() as session:
         return await summary_domain.recent_meals(session, subject=who.subject, days=days)
+
+
+@mcp.tool
+async def find_activity(query: str, limit: int = 10) -> dict[str, Any]:
+    """Search the exercise activity catalog (Compendium of Physical
+    Activities MET values) before calling log_exercise.
+
+    The catalog is ENGLISH-ONLY: whatever language the user speaks, translate
+    the activity into English before searching — "juoksu" or "löpning" is
+    searched as "running", "kuntosali" as "resistance training". Returns
+    candidates with their MET values; pick the one matching the user's stated
+    intensity, or ask. Only cardio/other sessions need an activity — strength
+    movements are named freely in the user's own words in log_exercise sets.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        results = await exercise_domain.find_activity(
+            session, subject=who.subject, query=query, limit=limit
+        )
+    return {"results": results, "server_time": servertime.echo("UTC")}
+
+
+@mcp.tool
+async def log_exercise(
+    kind: str,
+    activity_id: int | None = None,
+    duration_min: float | None = None,
+    sets: list[dict[str, Any]] | None = None,
+    ts: str | None = None,
+    planned: bool = False,
+    source: str = "user",
+    notes: str | None = None,
+) -> dict[str, Any]:
+    """Log one training session. kind is cardio, strength, or other.
+
+    Cardio/other: resolve activity_id with find_activity first (catalog is
+    English-only — translate before searching); duration_min gives the kcal
+    estimate, computed as MET x bodyweight x hours from the user's latest
+    logged weight and null if they never logged one. Strength: sets as
+    {exercise, reps, weight_kg, rpe?} — exercise is the user's own name for
+    the movement in any language ("penkki" is fine), created on first
+    mention; weight_kg 0 means a bodyweight set. Set source to "ai_estimate"
+    when you guessed the duration or activity rather than the user stating it.
+
+    Omit ts unless the user stated a time. planned records an intention that
+    counts toward nothing until confirmed via revise_exercise. A non-planned
+    session makes the day a training day (day_type "derived") unless the
+    user's own mark says otherwise — the response carries the day's resolved
+    type, so never call set_day_type just because a session was logged.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await exercise_domain.log_exercise(
+            session,
+            subject=who.subject,
+            kind=kind,
+            activity_id=activity_id,
+            duration_min=duration_min,
+            sets=sets,
+            ts=ts,
+            planned=planned,
+            source=source,
+            notes=notes,
+        )
+
+
+@mcp.tool
+async def revise_exercise(log_id: int, changes: dict[str, Any]) -> dict[str, Any]:
+    """Correct an existing exercise session: "that was 45 minutes, not 30".
+
+    changes may carry ts, kind, activity_id, duration_min, planned, notes,
+    and/or sets. sets replaces the whole list — restate every set, not just
+    the changed one. {"planned": false} confirms a planned session, which is
+    the moment it starts counting as training. The kcal estimate is
+    recomputed from the bodyweight snapshotted when the session was logged.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await exercise_domain.revise_exercise(
+            session, subject=who.subject, log_id=log_id, changes=changes
+        )
+
+
+@mcp.tool
+async def delete_exercise(log_id: int) -> dict[str, Any]:
+    """Erase an exercise session entirely — a duplicate, a test entry, a
+    session that never happened. Permanent, sets and all.
+
+    Use this only when the user explicitly asks for the session to be
+    removed; a wrong duration or activity is revise_exercise. The response
+    carries the day's re-resolved type — deleting the only session of a
+    derived training day turns it back into a rest day.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await exercise_domain.delete_exercise(session, subject=who.subject, log_id=log_id)
 
 
 @mcp.tool

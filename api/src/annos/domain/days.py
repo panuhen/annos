@@ -71,16 +71,38 @@ async def set_day_type(
 
 
 async def resolve_day_type(
-    session: AsyncSession, *, subject: str, on: date_type
+    session: AsyncSession, *, subject: str, on: date_type, tz: str
 ) -> tuple[str, str]:
     """The day's type and where it came from: ("training"|"rest",
-    "manual"|"default"). "derived" joins the sources when exercise logging
-    lands (an exercise_log with a training kind makes a training day); until
-    then an unmarked day is rest by assumption, and the source says so.
+    "manual"|"derived"|"default").
+
+    A manual mark wins in both directions. Unmarked, a day with any
+    non-planned exercise session resolves as derived training — the session
+    is a fact, not an assumption, so the source says "derived". A planned
+    session derives nothing: a plan is not training until confirmed. Only
+    then does the day fall to rest by default, labelled as the assumption
+    it is. The day boundary is the profile timezone's, same as everywhere.
     """
+    from annos.domain import meals as meals_domain
+    from annos.models import ExerciseLog
+
     mark = await session.scalar(
         select(DayTypeMark).where(DayTypeMark.subject == subject, DayTypeMark.date == on)
     )
     if mark is not None:
         return mark.day_type, "manual"
+
+    start, end = meals_domain._day_window(on.isoformat(), tz)
+    trained = await session.scalar(
+        select(ExerciseLog.id)
+        .where(
+            ExerciseLog.subject == subject,
+            ExerciseLog.planned.is_(False),
+            ExerciseLog.ts >= start,
+            ExerciseLog.ts < end,
+        )
+        .limit(1)
+    )
+    if trained is not None:
+        return "training", "derived"
     return "rest", "default"

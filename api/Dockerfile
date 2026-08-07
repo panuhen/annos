@@ -12,6 +12,10 @@ COPY pyproject.toml ./
 COPY src ./src
 COPY alembic.ini ./
 COPY alembic ./alembic
+# Vendored seed data (the Compendium MET catalog) — small and static, and
+# copying it in keeps `python -m annos.seed_activities` runnable in the
+# container where the deploy has no repo checkout.
+COPY data ./data
 
 RUN uv sync
 

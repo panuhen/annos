@@ -49,6 +49,14 @@ GoalKind = Enum(*GOAL_KINDS, name="goal_kind")
 DAY_TYPES = ("training", "rest")
 DayType = Enum(*DAY_TYPES, name="day_type")
 
+EXERCISE_KINDS = ("cardio", "strength", "other")
+ExerciseKind = Enum(*EXERCISE_KINDS, name="exercise_kind")
+
+# Who stated the session's facts (duration, activity): the user, or a client's
+# guess. The kcal figure itself is always server arithmetic over these facts.
+EXERCISE_SOURCES = ("user", "ai_estimate")
+ExerciseSource = Enum(*EXERCISE_SOURCES, name="exercise_source")
+
 
 class UserProfile(Base):
     """One row per user. `subject` is the Better Auth user id.
@@ -62,9 +70,10 @@ class UserProfile(Base):
 
     subject: Mapped[str] = mapped_column(Text, primary_key=True)
 
-    # Denormalised from the token's `profile` claim on first contact. Safe to copy
-    # because the nickname is permanent after registration (re-roll is
-    # registration-only), so it cannot drift.
+    # Annos' own data, authored here at registration (the welcome roll flow ->
+    # POST /profile -> nickname.claim), never a copy of a token claim: the token
+    # carries only `subject` (definePayload pins the JWT to registered claims).
+    # This column IS the source of truth for the display identity everywhere.
     nickname: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
 
     # birth_year, not date of birth: Mifflin-St Jeor needs age to a year and
@@ -479,6 +488,142 @@ class DayTypeMark(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Activity(Base):
+    """The Compendium of Physical Activities MET catalog, seeded once.
+
+    English-only by decision (2026-08-07): the Compendium ships no
+    translations, so this catalog knowingly breaks the three-language rule —
+    MCP clients translate before calling, the web form leans on trigram
+    tolerance. `code` is the Compendium's own 5-digit id, kept so a future
+    Compendium revision can upsert instead of duplicating.
+    """
+
+    __tablename__ = "activities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(5), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(Text, nullable=False)
+    met: Mapped[float] = mapped_column(Numeric(4, 1), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("met > 0", name="ck_activities_met_positive"),
+        Index(
+            "ix_activities_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+    )
+
+
+class Exercise(Base):
+    """A strength movement in one user's own vocabulary.
+
+    User-grown and user-scoped (same rule as custom foods): the server creates
+    a row on first mention in a set, matching case-insensitively within the
+    owner's catalog, and one user's naming never leaks into another's.
+    """
+
+    __tablename__ = "exercises"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    owner_id: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    muscle_group: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_exercises_owner_lower_name",
+            "owner_id",
+            text("lower(name)"),
+            unique=True,
+        ),
+    )
+
+
+class ExerciseLog(Base):
+    """One training session. Scoped by `subject`, like meal_logs.
+
+    `weight_kg` is the bodyweight snapshot the estimate was computed from
+    (the latest logged weight at log time) — kept so a duration revision can
+    rescale from what was true then, the same discipline as macro snapshots.
+    `kcal_estimate` is MET x weight x hours and NULL whenever a factor is
+    honestly unknown: no weight ever logged, no duration, no MET basis.
+    """
+
+    __tablename__ = "exercise_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+
+    ts: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    kind: Mapped[str] = mapped_column(ExerciseKind, nullable=False)
+    activity_id: Mapped[int | None] = mapped_column(ForeignKey("activities.id"))
+    duration_min: Mapped[float | None] = mapped_column(Numeric(6, 1))
+
+    weight_kg: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    kcal_estimate: Mapped[float | None] = mapped_column(Numeric(8, 2))
+
+    planned: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    source: Mapped[str] = mapped_column(ExerciseSource, nullable=False, server_default="user")
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    activity: Mapped[Activity | None] = relationship(lazy="selectin")
+    sets: Mapped[list["StrengthSet"]] = relationship(
+        back_populates="log",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="StrengthSet.set_no",
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "duration_min IS NULL OR duration_min > 0", name="ck_exercise_logs_duration_positive"
+        ),
+        Index("ix_exercise_logs_subject_ts", "subject", "ts"),
+    )
+
+
+class StrengthSet(Base):
+    """One set of one movement. weight_kg 0 is a bodyweight set, not missing
+    data. Progression trends (e5RM, weekly volume) are queries over this
+    table, never stored columns."""
+
+    __tablename__ = "strength_sets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    log_id: Mapped[int] = mapped_column(
+        ForeignKey("exercise_logs.id", ondelete="CASCADE"), nullable=False
+    )
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id"), nullable=False)
+    set_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    reps: Mapped[int] = mapped_column(Integer, nullable=False)
+    weight_kg: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False)
+    rpe: Mapped[float | None] = mapped_column(Numeric(3, 1))
+
+    log: Mapped[ExerciseLog] = relationship(back_populates="sets")
+    exercise: Mapped[Exercise] = relationship(lazy="selectin")
+
+    __table_args__ = (
+        CheckConstraint("reps > 0", name="ck_strength_sets_reps_positive"),
+        CheckConstraint("weight_kg >= 0", name="ck_strength_sets_weight_not_negative"),
+        CheckConstraint("rpe IS NULL OR (rpe >= 1 AND rpe <= 10)", name="ck_strength_sets_rpe"),
+        Index("ix_strength_sets_log_id", "log_id"),
+        Index("ix_strength_sets_exercise_id", "exercise_id"),
     )
 
 

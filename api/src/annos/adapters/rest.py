@@ -23,6 +23,7 @@ from annos import servertime
 from annos.db import get_session
 from annos.domain import body as body_domain
 from annos.domain import days as days_domain
+from annos.domain import exercise as exercise_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
@@ -171,6 +172,34 @@ class ProfileContextOut(BaseModel):
     coaching_notes: str | None
 
 
+class ActivityOut(BaseModel):
+    id: int
+    name: str
+    category: str
+    met: float
+
+
+class StrengthSetOut(BaseModel):
+    set_no: int
+    exercise: str | None
+    reps: int
+    weight_kg: float
+    rpe: float | None
+
+
+class SummaryExerciseOut(BaseModel):
+    log_id: int
+    ts: str
+    kind: str
+    activity: ActivityOut | None
+    duration_min: float | None
+    kcal_estimate: float | None
+    planned: bool
+    source: str
+    notes: str | None
+    sets: list[StrengthSetOut]
+
+
 class DailySummaryResponse(BaseModel):
     date: str
     day_type: str
@@ -179,6 +208,7 @@ class DailySummaryResponse(BaseModel):
     target: TargetOut | None
     remaining: RemainingOut | None
     meals: list[SummaryMealOut]
+    exercise: list[SummaryExerciseOut]
     profile_context: ProfileContextOut
     server_time: ServerTime
 
@@ -527,6 +557,129 @@ async def delete_goal_phase(
 async def list_goal_phases(session: SessionDep, who: CallerDep) -> GoalHistoryResponse:
     try:
         return await body_domain.list_goal_phases(session, subject=who.subject)
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class ActivitySearchResponse(BaseModel):
+    results: list[ActivityOut]
+    server_time: ServerTime
+
+
+@router.get("/activities/search")
+async def search_activities(
+    session: SessionDep,
+    who: CallerDep,
+    q: Annotated[str, Query(min_length=1)],
+    limit: Annotated[int, Query(ge=1, le=50)] = 10,
+) -> ActivitySearchResponse:
+    results = await exercise_domain.find_activity(
+        session, subject=who.subject, query=q, limit=limit
+    )
+    return {"results": results, "server_time": servertime.echo("UTC")}
+
+
+class StrengthSetIn(BaseModel):
+    exercise: str
+    reps: int = Field(gt=0)
+    weight_kg: float = Field(ge=0, description="0 is a bodyweight set.")
+    rpe: float | None = Field(default=None, ge=1, le=10)
+
+
+class ExerciseLogCreate(BaseModel):
+    kind: str
+    activity_id: int | None = None
+    duration_min: float | None = Field(default=None, gt=0)
+    sets: list[StrengthSetIn] | None = None
+    ts: str | None = Field(
+        default=None,
+        description="Only when the user stated a time. Omitted means server now().",
+    )
+    planned: bool = False
+    source: str = "user"
+    notes: str | None = None
+
+
+class ExerciseLogRevise(BaseModel):
+    changes: dict[str, Any]
+
+
+class ExerciseLogResponse(BaseModel):
+    log_id: int
+    ts: str
+    kind: str
+    activity: ActivityOut | None
+    duration_min: float | None
+    kcal_estimate: float | None
+    planned: bool
+    source: str
+    notes: str | None
+    sets: list[StrengthSetOut]
+    date: str
+    day_type: str
+    day_type_source: str
+    server_time: ServerTime
+
+
+class ExerciseDeletedResponse(BaseModel):
+    deleted_log_id: int
+    date: str
+    day_type: str
+    day_type_source: str
+    server_time: ServerTime
+
+
+@router.post("/logs/exercise", status_code=201)
+async def log_exercise(
+    session: SessionDep, who: CallerDep, body: ExerciseLogCreate
+) -> ExerciseLogResponse:
+    try:
+        return await exercise_domain.log_exercise(
+            session,
+            subject=who.subject,
+            kind=body.kind,
+            activity_id=body.activity_id,
+            duration_min=body.duration_min,
+            sets=[s.model_dump() for s in body.sets] if body.sets is not None else None,
+            ts=body.ts,
+            planned=body.planned,
+            source=body.source,
+            notes=body.notes,
+        )
+    except exercise_domain.InvalidExercise as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except (exercise_domain.UnknownActivity, meals_domain.InvalidLog) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+@router.patch("/logs/exercise/{log_id}")
+async def revise_exercise(
+    session: SessionDep, who: CallerDep, log_id: int, body: ExerciseLogRevise
+) -> ExerciseLogResponse:
+    try:
+        return await exercise_domain.revise_exercise(
+            session, subject=who.subject, log_id=log_id, changes=body.changes
+        )
+    except (exercise_domain.InvalidExercise, meals_domain.InvalidLog) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except exercise_domain.UnknownActivity as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except exercise_domain.ExerciseLogNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+@router.delete("/logs/exercise/{log_id}")
+async def delete_exercise(
+    session: SessionDep, who: CallerDep, log_id: int
+) -> ExerciseDeletedResponse:
+    try:
+        return await exercise_domain.delete_exercise(session, subject=who.subject, log_id=log_id)
+    except exercise_domain.ExerciseLogNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc
 

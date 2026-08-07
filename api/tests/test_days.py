@@ -59,7 +59,7 @@ async def test_marks_are_scoped_by_subject(session, profile):
     )
 
     day_type, source = await days_domain.resolve_day_type(
-        session, subject=SUBJECT, on=date(2026, 8, 3)
+        session, subject=SUBJECT, on=date(2026, 8, 3), tz="Europe/Helsinki"
     )
 
     assert (day_type, source) == ("rest", "default")

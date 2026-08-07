@@ -61,6 +61,7 @@ function DaySheet() {
   const t = useTranslations("day");
   const tMeals = useTranslations("meals");
   const tKinds = useTranslations("kinds");
+  const tExercise = useTranslations("exerciseForm");
   const kindLabel = (kind: string) =>
     ["deficit", "maintenance", "surplus"].includes(kind) ? tKinds(kind) : kind;
   const date = params.get("date") ?? undefined;
@@ -234,6 +235,53 @@ function DaySheet() {
           ))}
         </ul>
       )}
+
+      {/* The day's training, ruled off from the meals like a menu's side
+       * column. Always present so the log affordance has a home. */}
+      <div className="mt-2 border-t border-border pt-2">
+        <div className="flex items-baseline justify-between">
+          <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            {t("exercise")}
+          </span>
+          <Link
+            href={isToday ? "/exercise" : `/exercise?date=${day.date}`}
+            className="flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            {t("logExercise")}
+          </Link>
+        </div>
+        {day.exercise.length > 0 && (
+          <ul className="-mt-1">
+            {day.exercise.map((session) => (
+              <li key={session.log_id} className={cn(`e${session.log_id}` === stamped && "stamp-in")}>
+                <Link
+                  href={`/exercise/${session.log_id}?date=${day.date}`}
+                  className="flex items-baseline gap-3 py-2 hover:bg-secondary focus-visible:bg-secondary"
+                >
+                  <span
+                    className={cn("min-w-0 flex-1 truncate", session.planned && "italic")}
+                  >
+                    {session.activity?.name ?? tExercise(session.kind)}
+                    {session.planned && (
+                      <span className="ml-1.5 font-mono text-xs not-italic text-muted-foreground">
+                        {t("planned")}
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground tnum">
+                    {session.sets.length > 0 &&
+                      t("setsCount", { count: session.sets.length }) + " · "}
+                    {session.duration_min != null && `${grams(session.duration_min)} min`}
+                  </span>
+                  <span className="tnum w-12 text-right font-mono text-sm">
+                    {session.kcal_estimate != null ? kcal(session.kcal_estimate) : "–"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* The foot of the sheet: the day ruled off against its target */}
       <div className="mt-2 border-t-2 border-foreground pt-3">
