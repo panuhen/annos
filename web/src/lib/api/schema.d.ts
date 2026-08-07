@@ -136,7 +136,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Weight History */
+        get: operations["weight_history_api_logs_weight_get"];
         put?: never;
         /** Log Weight */
         post: operations["log_weight_api_logs_weight_post"];
@@ -302,6 +303,57 @@ export interface paths {
         head?: never;
         /** Revise Template */
         patch: operations["revise_template_api_templates__template_id__patch"];
+        trace?: never;
+    };
+    "/api/stats/tdee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Tdee */
+        get: operations["get_tdee_api_stats_tdee_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stats/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Weekly Review */
+        get: operations["weekly_review_api_stats_review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stats/training": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Training History */
+        get: operations["training_history_api_stats_training_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/health": {
@@ -754,6 +806,18 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** ProgressionSessionOut */
+        ProgressionSessionOut: {
+            /** Date */
+            date: string;
+            /** Log Id */
+            log_id: number;
+            /** Sets */
+            sets: number;
+            top_set: components["schemas"]["TopSetOut"] | null;
+            /** E5Rm Kg */
+            e5rm_kg: number | null;
+        };
         /** RecentMealOut */
         RecentMealOut: {
             /** Log Id */
@@ -790,6 +854,47 @@ export interface components {
             /** Protein G */
             protein_g: number;
         };
+        /** ReviewWeekOut */
+        ReviewWeekOut: {
+            /** Week Start */
+            week_start: string;
+            /** Week End */
+            week_end: string;
+            /** Partial */
+            partial: boolean;
+            /** Days Logged */
+            days_logged: number;
+            /** Days In Week */
+            days_in_week: number;
+            /** Kcal Avg */
+            kcal_avg: number | null;
+            /** Kcal Target Avg */
+            kcal_target_avg: number | null;
+            /** Kcal Delta Avg */
+            kcal_delta_avg: number | null;
+            /** Targeted Days */
+            targeted_days: number;
+            /** Protein Avg G */
+            protein_avg_g: number | null;
+            /** Protein Target Avg G */
+            protein_target_avg_g: number | null;
+            /** Weight Trend Start Kg */
+            weight_trend_start_kg: number | null;
+            /** Weight Trend End Kg */
+            weight_trend_end_kg: number | null;
+            /** Weight Change Kg */
+            weight_change_kg: number | null;
+            /** Sessions */
+            sessions: number;
+            /** Cardio Min */
+            cardio_min: number;
+            /** Exercise Kcal */
+            exercise_kcal: number;
+            /** Strength Sets */
+            strength_sets: number;
+            /** Strength Volume Kg */
+            strength_volume_kg: number;
+        };
         /** ServerTime */
         ServerTime: {
             /** Utc */
@@ -807,6 +912,13 @@ export interface components {
             name: string;
             /** Grams */
             grams: number;
+        };
+        /** SmoothedPointOut */
+        SmoothedPointOut: {
+            /** Date */
+            date: string;
+            /** Weight Kg */
+            weight_kg: number;
         };
         /** StrengthSetIn */
         StrengthSetIn: {
@@ -905,6 +1017,60 @@ export interface components {
             protein_g: number;
             /** Rate Kg Per Week */
             rate_kg_per_week: number | null;
+        };
+        /** TdeeBlock */
+        TdeeBlock: {
+            /** Tdee Kcal */
+            tdee_kcal: number | null;
+            /** Confidence */
+            confidence: string | null;
+            /** Reasons */
+            reasons: string[];
+            window: components["schemas"]["TdeeWindowOut"];
+            coverage: components["schemas"]["TdeeCoverageOut"];
+            inputs: components["schemas"]["TdeeInputsOut"];
+        };
+        /** TdeeCoverageOut */
+        TdeeCoverageOut: {
+            /** Logged Days */
+            logged_days: number;
+            /** Required Days */
+            required_days: number;
+            /** Weigh In Days */
+            weigh_in_days: number;
+        };
+        /** TdeeInputsOut */
+        TdeeInputsOut: {
+            /** Intake Avg Kcal */
+            intake_avg_kcal: number | null;
+            /** Weight Trend Start Kg */
+            weight_trend_start_kg: number | null;
+            /** Weight Trend End Kg */
+            weight_trend_end_kg: number | null;
+            /** Weight Change Kg */
+            weight_change_kg: number | null;
+        };
+        /** TdeeResponse */
+        TdeeResponse: {
+            /** Tdee Kcal */
+            tdee_kcal: number | null;
+            /** Confidence */
+            confidence: string | null;
+            /** Reasons */
+            reasons: string[];
+            window: components["schemas"]["TdeeWindowOut"];
+            coverage: components["schemas"]["TdeeCoverageOut"];
+            inputs: components["schemas"]["TdeeInputsOut"];
+            server_time: components["schemas"]["ServerTime"];
+        };
+        /** TdeeWindowOut */
+        TdeeWindowOut: {
+            /** Start */
+            start: string;
+            /** End */
+            end: string;
+            /** Days */
+            days: number;
         };
         /** TemplateCreate */
         TemplateCreate: {
@@ -1005,6 +1171,50 @@ export interface components {
             language: string;
             server_time: components["schemas"]["ServerTime"];
         };
+        /** TopSetOut */
+        TopSetOut: {
+            /** Reps */
+            reps: number;
+            /** Weight Kg */
+            weight_kg: number;
+            /** Rpe */
+            rpe: number | null;
+        };
+        /** TrainingExerciseOut */
+        TrainingExerciseOut: {
+            /** Name */
+            name: string;
+            /** Sessions */
+            sessions: components["schemas"]["ProgressionSessionOut"][];
+        };
+        /** TrainingHistoryResponse */
+        TrainingHistoryResponse: {
+            /** Weeks */
+            weeks: components["schemas"]["TrainingWeekOut"][];
+            /** Exercises */
+            exercises: string[];
+            exercise: components["schemas"]["TrainingExerciseOut"] | null;
+            server_time: components["schemas"]["ServerTime"];
+        };
+        /** TrainingWeekOut */
+        TrainingWeekOut: {
+            /** Week Start */
+            week_start: string;
+            /** Week End */
+            week_end: string;
+            /** Partial */
+            partial: boolean;
+            /** Sessions */
+            sessions: number;
+            /** Cardio Min */
+            cardio_min: number;
+            /** Exercise Kcal */
+            exercise_kcal: number;
+            /** Strength Sets */
+            strength_sets: number;
+            /** Strength Volume Kg */
+            strength_volume_kg: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1017,6 +1227,27 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WeeklyReviewResponse */
+        WeeklyReviewResponse: {
+            /** Weeks */
+            weeks: components["schemas"]["ReviewWeekOut"][];
+            tdee: components["schemas"]["TdeeBlock"];
+            active_phase: components["schemas"]["GoalPhaseOut"] | null;
+            profile_context: components["schemas"]["ProfileContextOut"];
+            server_time: components["schemas"]["ServerTime"];
+        };
+        /** WeightHistoryResponse */
+        WeightHistoryResponse: {
+            /** Days */
+            days: number;
+            /** Points */
+            points: components["schemas"]["WeightPointOut"][];
+            /** Smoothed */
+            smoothed: components["schemas"]["SmoothedPointOut"][];
+            /** Rate Kg Per Week */
+            rate_kg_per_week: number | null;
+            server_time: components["schemas"]["ServerTime"];
         };
         /** WeightLogCreate */
         WeightLogCreate: {
@@ -1043,6 +1274,17 @@ export interface components {
             /** Notes */
             notes: string | null;
             server_time: components["schemas"]["ServerTime"];
+        };
+        /** WeightPointOut */
+        WeightPointOut: {
+            /** Date */
+            date: string;
+            /** Weight Kg */
+            weight_kg: number | null;
+            /** Waist Cm */
+            waist_cm: number | null;
+            /** Notes */
+            notes: string | null;
         };
     };
     responses: never;
@@ -1373,6 +1615,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DayTypeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    weight_history_api_logs_weight_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeightHistoryResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1887,6 +2162,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TemplateSavedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tdee_api_stats_tdee_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TdeeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    weekly_review_api_stats_review_get: {
+        parameters: {
+            query?: {
+                weeks?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyReviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    training_history_api_stats_training_get: {
+        parameters: {
+            query?: {
+                exercise?: string | null;
+                weeks?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingHistoryResponse"];
                 };
             };
             /** @description Validation Error */

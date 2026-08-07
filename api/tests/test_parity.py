@@ -33,6 +33,10 @@ EXPECTED_TOOLS = {
     "log_exercise",
     "revise_exercise",
     "delete_exercise",
+    "weekly_review",
+    "get_tdee",
+    "training_history",
+    "weight_history",
 }
 
 
@@ -162,6 +166,49 @@ async def test_goal_history_is_byte_identical_across_surfaces(api, mcp_client, s
 
     assert rest["phases"] == mcp["phases"]
     assert [phase["kind"] for phase in rest["phases"]] == ["maintenance", "deficit"]
+
+
+async def test_stats_are_byte_identical_across_surfaces(api, mcp_client, session, make_food):
+    """The stats views are pure computation, which makes drift especially
+    silent — same domain call, so same weeks, same TDEE block, same series."""
+    from datetime import date, timedelta
+
+    from annos import servertime
+    from annos.domain import body as body_domain
+    from annos.domain import meals as meals_domain
+
+    await profile_domain.create_profile(session, subject=SUBJECT)
+    food = await make_food(name_en="ration", kcal=1800)
+    today = date.fromisoformat(servertime.local_date("Europe/Helsinki"))
+    await meals_domain.log_meal(
+        session,
+        subject=SUBJECT,
+        items=[{"food_id": food.id, "grams": 100}],
+        ts=f"{(today - timedelta(days=1)).isoformat()}T12:00",
+    )
+    await body_domain.log_weight(
+        session, subject=SUBJECT, weight_kg=84.0, date=(today - timedelta(days=1)).isoformat()
+    )
+
+    rest_review = (await api.get("/api/stats/review", params={"weeks": 2})).json()
+    mcp_review = await mcp_call(mcp_client, "weekly_review", {"weeks": 2})
+    assert rest_review["weeks"] == mcp_review["weeks"]
+    assert rest_review["tdee"] == mcp_review["tdee"]
+
+    rest_tdee = (await api.get("/api/stats/tdee")).json()
+    mcp_tdee = await mcp_call(mcp_client, "get_tdee")
+    assert rest_tdee["reasons"] == mcp_tdee["reasons"]
+    assert rest_tdee["coverage"] == mcp_tdee["coverage"]
+
+    rest_weight = (await api.get("/api/logs/weight", params={"days": 14})).json()
+    mcp_weight = await mcp_call(mcp_client, "weight_history", {"days": 14})
+    assert rest_weight["points"] == mcp_weight["points"]
+    assert rest_weight["smoothed"] == mcp_weight["smoothed"]
+
+    rest_training = (await api.get("/api/stats/training", params={"weeks": 2})).json()
+    mcp_training = await mcp_call(mcp_client, "training_history", {"weeks": 2})
+    assert rest_training["weeks"] == mcp_training["weeks"]
+    assert rest_training["exercise"] is None and mcp_training["exercise"] is None
 
 
 async def test_mcp_scoping_matches_rest_scoping(api, mcp_client, make_food):

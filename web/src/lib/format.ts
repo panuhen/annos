@@ -38,6 +38,16 @@ export function sheetDate(dateISO: string, locale: string): string {
   }).format(new Date(`${dateISO}T00:00:00Z`));
 }
 
+/** d.M. without the year — for axis edges and week ranges where the year
+ * is obvious from context. */
+export function shortDate(dateISO: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${dateISO}T00:00:00Z`));
+}
+
 /** ISO 8601 week number — the sheet's letterhead. */
 export function isoWeek(dateISO: string): number {
   const d = new Date(`${dateISO}T00:00:00Z`);

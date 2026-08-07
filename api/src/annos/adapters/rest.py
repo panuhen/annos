@@ -27,6 +27,7 @@ from annos.domain import exercise as exercise_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
+from annos.domain import stats as stats_domain
 from annos.domain import summary as summary_domain
 from annos.domain import templates as templates_domain
 from annos.identity import AuthError, Caller, resolve_caller
@@ -860,5 +861,179 @@ async def delete_template(
 async def list_templates(session: SessionDep, who: CallerDep) -> TemplatesResponse:
     try:
         return await templates_domain.list_templates(session, subject=who.subject)
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class WeightPointOut(BaseModel):
+    date: str
+    weight_kg: float | None
+    waist_cm: float | None
+    notes: str | None
+
+
+class SmoothedPointOut(BaseModel):
+    date: str
+    weight_kg: float
+
+
+class WeightHistoryResponse(BaseModel):
+    days: int
+    points: list[WeightPointOut]
+    smoothed: list[SmoothedPointOut]
+    rate_kg_per_week: float | None
+    server_time: ServerTime
+
+
+@router.get("/logs/weight")
+async def weight_history(
+    session: SessionDep,
+    who: CallerDep,
+    days: Annotated[int, Query(ge=1, le=stats_domain.MAX_WEIGHT_DAYS)] = 30,
+) -> WeightHistoryResponse:
+    try:
+        return await stats_domain.weight_history(session, subject=who.subject, days=days)
+    except stats_domain.InvalidQuery as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class TdeeWindowOut(BaseModel):
+    start: str
+    end: str
+    days: int
+
+
+class TdeeCoverageOut(BaseModel):
+    logged_days: int
+    required_days: int
+    weigh_in_days: int
+
+
+class TdeeInputsOut(BaseModel):
+    intake_avg_kcal: float | None
+    weight_trend_start_kg: float | None
+    weight_trend_end_kg: float | None
+    weight_change_kg: float | None
+
+
+class TdeeBlock(BaseModel):
+    tdee_kcal: int | None
+    confidence: str | None
+    reasons: list[str]
+    window: TdeeWindowOut
+    coverage: TdeeCoverageOut
+    inputs: TdeeInputsOut
+
+
+class TdeeResponse(TdeeBlock):
+    server_time: ServerTime
+
+
+@router.get("/stats/tdee")
+async def get_tdee(session: SessionDep, who: CallerDep) -> TdeeResponse:
+    try:
+        return await stats_domain.get_tdee(session, subject=who.subject)
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class ReviewWeekOut(BaseModel):
+    week_start: str
+    week_end: str
+    partial: bool
+    days_logged: int
+    days_in_week: int
+    kcal_avg: float | None
+    kcal_target_avg: float | None
+    kcal_delta_avg: float | None
+    targeted_days: int
+    protein_avg_g: float | None
+    protein_target_avg_g: float | None
+    weight_trend_start_kg: float | None
+    weight_trend_end_kg: float | None
+    weight_change_kg: float | None
+    sessions: int
+    cardio_min: float
+    exercise_kcal: float
+    strength_sets: int
+    strength_volume_kg: float
+
+
+class WeeklyReviewResponse(BaseModel):
+    weeks: list[ReviewWeekOut]
+    tdee: TdeeBlock
+    active_phase: GoalPhaseOut | None
+    profile_context: ProfileContextOut
+    server_time: ServerTime
+
+
+@router.get("/stats/review")
+async def weekly_review(
+    session: SessionDep,
+    who: CallerDep,
+    weeks: Annotated[int, Query(ge=1, le=stats_domain.MAX_WEEKS)] = 4,
+) -> WeeklyReviewResponse:
+    try:
+        return await stats_domain.weekly_review(session, subject=who.subject, weeks=weeks)
+    except stats_domain.InvalidQuery as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except profile_domain.ProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail="no profile for this account") from exc
+
+
+class TrainingWeekOut(BaseModel):
+    week_start: str
+    week_end: str
+    partial: bool
+    sessions: int
+    cardio_min: float
+    exercise_kcal: float
+    strength_sets: int
+    strength_volume_kg: float
+
+
+class TopSetOut(BaseModel):
+    reps: int
+    weight_kg: float
+    rpe: float | None
+
+
+class ProgressionSessionOut(BaseModel):
+    date: str
+    log_id: int
+    sets: int
+    top_set: TopSetOut | None
+    e5rm_kg: float | None
+
+
+class TrainingExerciseOut(BaseModel):
+    name: str
+    sessions: list[ProgressionSessionOut]
+
+
+class TrainingHistoryResponse(BaseModel):
+    weeks: list[TrainingWeekOut]
+    exercises: list[str]
+    exercise: TrainingExerciseOut | None
+    server_time: ServerTime
+
+
+@router.get("/stats/training")
+async def training_history(
+    session: SessionDep,
+    who: CallerDep,
+    exercise: Annotated[str | None, Query()] = None,
+    weeks: Annotated[int, Query(ge=1, le=stats_domain.MAX_WEEKS)] = 8,
+) -> TrainingHistoryResponse:
+    try:
+        return await stats_domain.training_history(
+            session, subject=who.subject, exercise=exercise, weeks=weeks
+        )
+    except stats_domain.InvalidQuery as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except stats_domain.UnknownExercise as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except profile_domain.ProfileNotFound as exc:
         raise HTTPException(status_code=404, detail="no profile for this account") from exc

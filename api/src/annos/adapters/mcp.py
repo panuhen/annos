@@ -25,6 +25,7 @@ from annos.domain import exercise as exercise_domain
 from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
+from annos.domain import stats as stats_domain
 from annos.domain import summary as summary_domain
 from annos.domain import templates as templates_domain
 from annos.identity import AuthError, Caller, resolve_caller
@@ -558,3 +559,79 @@ async def delete_log(log_id: int) -> dict[str, Any]:
     who = await _caller()
     async with SessionLocal() as session:
         return await meals_domain.delete_log(session, subject=who.subject, log_id=log_id)
+
+
+@mcp.tool
+async def weekly_review(weeks: int = 4) -> dict[str, Any]:
+    """How the plan is going, week by week: the one-call answer to "how's my
+    cut/bulk going?".
+
+    ISO weeks (Monday–Sunday, default 4, max 26), newest first, the current
+    week flagged partial. Each row: days logged, average intake vs the
+    average target over those same logged days (each day judged against the
+    phase and day type in force *then*; targeted_days says how many logged
+    days had a phase), protein vs target, the smoothed weight trend across
+    the week, and training facts (sessions, cardio minutes, exercise kcal,
+    strength volume). The measured-TDEE block rides along. Exercise kcal is
+    a fact, never subtracted from anything — the measured TDEE already
+    contains all activity. The numbers are facts; the judgment on them is
+    yours, guided by profile_context.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await stats_domain.weekly_review(session, subject=who.subject, weeks=weeks)
+
+
+@mcp.tool
+async def get_tdee() -> dict[str, Any]:
+    """The user's measured TDEE: what they actually burn per day, computed
+    from logged intake against the smoothed weight trend over the last 21
+    complete days — no formula guessing.
+
+    tdee_kcal is null when the data cannot support an estimate; `reasons`
+    says why, machine-readably (insufficient_logging / insufficient_weight_data
+    / insufficient_history), and `coverage` shows the progress toward enough.
+    A computable estimate may still be flagged confidence "low"
+    (new_phase_water_shift, marginal_logging, sparse_weigh_ins) — show it
+    with the caveat, don't hide it. `inputs` carries the arithmetic's
+    ingredients so the number is auditable. Interpretation and coaching are
+    yours; this is arithmetic.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await stats_domain.get_tdee(session, subject=who.subject)
+
+
+@mcp.tool
+async def training_history(exercise: str | None = None, weeks: int = 8) -> dict[str, Any]:
+    """Training over the last ISO weeks (default 8, max 26), newest first:
+    sessions, cardio minutes, exercise kcal, sets and strength volume per
+    week.
+
+    `exercises` lists the movement names that appear in the window, exactly
+    as the user logs them ("penkki" stays "penkki"). Pass one back as
+    `exercise` (matched case-insensitively) to also get that movement's
+    progression: per-session top set and e5RM (Epley), the load trend.
+    Unknown names error rather than guess — check `exercises` or ask.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await stats_domain.training_history(
+            session, subject=who.subject, exercise=exercise, weeks=weeks
+        )
+
+
+@mcp.tool
+async def weight_history(days: int = 30) -> dict[str, Any]:
+    """The weight series, oldest first: raw daily points (weight, waist,
+    notes), the 7-day smoothed trend, and the trailing 14-day rate in
+    kg/week.
+
+    The window is the last `days` calendar days (default 30, max 365), today
+    included. This is also the read path before correcting a weigh-in:
+    log_weight upserts on date, so read here what a day currently says. The
+    smoothed series is the one to trend — the client may plot either.
+    """
+    who = await _caller()
+    async with SessionLocal() as session:
+        return await stats_domain.weight_history(session, subject=who.subject, days=days)
