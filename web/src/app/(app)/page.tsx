@@ -237,20 +237,13 @@ function DaySheet() {
       )}
 
       {/* The day's training, ruled off from the meals like a menu's side
-       * column. Always present so the log affordance has a home. */}
-      <div className="mt-2 border-t border-border pt-2">
-        <div className="flex items-baseline justify-between">
+       * column. Only what happened is printed — the bar below is where you
+       * act, so an empty day carries no empty section. */}
+      {day.exercise.length > 0 && (
+        <div className="mt-2 border-t border-border pt-2">
           <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
             {t("exercise")}
           </span>
-          <Link
-            href={isToday ? "/exercise" : `/exercise?date=${day.date}`}
-            className="flex min-h-11 items-center font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-          >
-            {t("logExercise")}
-          </Link>
-        </div>
-        {day.exercise.length > 0 && (
           <ul className="-mt-1">
             {day.exercise.map((session) => (
               <li key={session.log_id} className={cn(`e${session.log_id}` === stamped && "stamp-in")}>
@@ -280,8 +273,8 @@ function DaySheet() {
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* The foot of the sheet: the day ruled off against its target */}
       <div className="mt-2 border-t-2 border-foreground pt-3">
@@ -374,13 +367,24 @@ function DaySheet() {
         )}
       </div>
 
-      <div className="sticky bottom-[4.5rem] lg:bottom-4 mt-6 bg-background pb-1">
+      {/* The bar carries the day's two log actions: meals keep the wide honey
+       * press (they happen five times a day), exercise stands beside it as an
+       * inked square — the sheet's own training glyph, not a new icon. */}
+      <div className="sticky bottom-[4.5rem] lg:bottom-4 mt-6 flex gap-2 bg-background pb-1">
         <Link
           href={isToday ? "/log" : `/log?date=${day.date}`}
-          className="flex min-h-12 w-full items-center justify-center gap-2 bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="flex min-h-12 flex-1 items-center justify-center gap-2 bg-primary font-bold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Plus aria-hidden weight="bold" className="size-5" />
           {t("logMeal")}
+        </Link>
+        <Link
+          href={isToday ? "/exercise" : `/exercise?date=${day.date}`}
+          aria-label={t("logExercise")}
+          title={t("logExercise")}
+          className="flex min-h-12 w-12 items-center justify-center border border-foreground text-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <PersonSimpleRun aria-hidden weight="bold" className="size-5" />
         </Link>
       </div>
     </>

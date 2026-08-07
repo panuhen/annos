@@ -56,7 +56,7 @@
     "training": "Training",
     "dayType": "Day type",
     "exercise": "Exercise",
-    "logExercise": "+ log",
+    "logExercise": "Log exercise",
     "setsCount": "{count} sets"
   },
   "logPage": {

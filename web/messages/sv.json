@@ -56,7 +56,7 @@
     "training": "Träning",
     "dayType": "Dagens typ",
     "exercise": "Träning",
-    "logExercise": "+ logga",
+    "logExercise": "Logga träning",
     "setsCount": "{count} set"
   },
   "logPage": {

@@ -56,7 +56,7 @@
     "training": "Treeni",
     "dayType": "Päivän tyyppi",
     "exercise": "Liikunta",
-    "logExercise": "+ kirjaa",
+    "logExercise": "Kirjaa liikunta",
     "setsCount": "{count} sarjaa"
   },
   "logPage": {
