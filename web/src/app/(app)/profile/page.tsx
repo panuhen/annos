@@ -24,6 +24,7 @@ import { clearApiToken } from "@/lib/api/token";
 import { authClient } from "@/lib/auth-client";
 import { clockTime, localeFor, sheetDate } from "@/lib/format";
 import { useProfile } from "@/lib/profile";
+import { cn } from "@/lib/utils";
 
 /** Closed lists instead of free text: the values are validated by being the
  * only ones offered. Ranges mirror the server's own checks. */
@@ -220,6 +221,9 @@ function DeleteAccount() {
   // Don't wipe again on retry, and say plainly what state things are in.
   const [dataErased, setDataErased] = useState(false);
   const [identityRemains, setIdentityRemains] = useState(false);
+  // The house two-tap: the first press arms, the second one acts, leaving
+  // the button disarms — same as every other rye-red delete on the sheet.
+  const [confirming, setConfirming] = useState(false);
 
   const armed = nickname.trim() === profile.nickname && password !== "";
 
@@ -315,10 +319,21 @@ function DeleteAccount() {
           <button
             type="button"
             disabled={!armed || busy}
-            onClick={destroy}
-            className="flex min-h-12 w-full items-center justify-center bg-destructive font-bold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => {
+              if (!confirming) {
+                setConfirming(true);
+                return;
+              }
+              setConfirming(false);
+              destroy();
+            }}
+            onBlur={() => setConfirming(false)}
+            className={cn(
+              "flex min-h-12 w-full items-center justify-center bg-destructive font-bold text-white hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive disabled:cursor-not-allowed disabled:opacity-40",
+              confirming && "outline-2 outline-offset-2 outline-destructive",
+            )}
           >
-            {busy ? t("deleting") : t("deleteConfirm")}
+            {busy ? t("deleting") : confirming ? t("deleteConfirmFinal") : t("deleteConfirm")}
           </button>
         </div>
       )}

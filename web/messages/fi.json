@@ -295,6 +295,7 @@
     "deleteNicknameLabel": "Vahvista kirjoittamalla nimimerkkisi",
     "deletePasswordLabel": "Salasana",
     "deleteConfirm": "Poista kaikki",
+    "deleteConfirmFinal": "Paina uudelleen poistaaksesi — ei paluuta",
     "deleteBadPassword": "Väärä salasana — mitään ei poistettu.",
     "deleting": "Poistetaan…",
     "deleteFailed": "Tiliä ei voitu poistaa",

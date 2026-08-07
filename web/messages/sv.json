@@ -295,6 +295,7 @@
     "deleteNicknameLabel": "Bekräfta genom att skriva ditt smeknamn",
     "deletePasswordLabel": "Lösenord",
     "deleteConfirm": "Radera allt",
+    "deleteConfirmFinal": "Tryck igen för att radera — ingen väg tillbaka",
     "deleteBadPassword": "Fel lösenord — inget raderades.",
     "deleting": "Raderar…",
     "deleteFailed": "Kontot kunde inte raderas",

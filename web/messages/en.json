@@ -295,6 +295,7 @@
     "deleteNicknameLabel": "Type your nickname to confirm",
     "deletePasswordLabel": "Password",
     "deleteConfirm": "Delete everything",
+    "deleteConfirmFinal": "Press again to delete — no way back",
     "deleteBadPassword": "Wrong password — nothing was deleted.",
     "deleting": "Deleting…",
     "deleteFailed": "Could not delete the account",
