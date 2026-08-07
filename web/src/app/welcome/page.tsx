@@ -1,7 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DiceFive } from "@phosphor-icons/react";
+import {
+  DiceOne,
+  DiceTwo,
+  DiceThree,
+  DiceFour,
+  DiceFive,
+  DiceSix,
+} from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -23,6 +30,11 @@ export default function WelcomePage() {
   const { data: session, isPending: sessionPending } = authClient.useSession();
 
   const [creating, setCreating] = useState(false);
+
+  // Purely decorative: each draw shows a different face of the die.
+  const diceFaces = [DiceOne, DiceTwo, DiceThree, DiceFour, DiceFive, DiceSix];
+  const [diceFace, setDiceFace] = useState(4); // DiceFive, the resting face
+  const Dice = diceFaces[diceFace];
 
   useEffect(() => {
     if (!sessionPending && !session) router.replace("/sign-in");
@@ -46,6 +58,8 @@ export default function WelcomePage() {
   const rolling = rollQuery.isFetching;
 
   async function roll() {
+    // Land on a face other than the one showing, so every click visibly turns.
+    setDiceFace((face) => (face + 1 + Math.floor(Math.random() * 5)) % 6);
     const { error } = await rollQuery.refetch();
     if (error) {
       toast.error(t("drawFailed"), { description: t("drawFailedBody") });
@@ -100,7 +114,7 @@ export default function WelcomePage() {
           disabled={rolling || creating}
           className="flex min-h-12 items-center justify-center gap-2 border border-input font-bold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <DiceFive aria-hidden className="size-5" />
+          <Dice aria-hidden className="size-5" />
           {rolling ? t("drawing") : t("draw")}
         </button>
         <button
