@@ -129,7 +129,7 @@ async def test_the_api_role_cannot_read_better_auths_user_table():
     this grant is the whole mechanism, so it gets a test rather than trust."""
     async with engine.begin() as conn:
         await conn.execute(text(BETTER_AUTH_USER))
-        await conn.execute(text("INSERT INTO \"user\" VALUES ('u1', 'panu@example.com')"))
+        await conn.execute(text("INSERT INTO \"user\" VALUES ('u1', 'test@example.com')"))
 
     api_conn = await asyncpg.connect(dsn(URL.database, username="annos_api", password="annos"))
     try:

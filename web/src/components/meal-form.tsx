@@ -56,7 +56,7 @@ function portion(per100: number | null | undefined, grams: number): number | nul
 }
 
 /** The native picker's clock format follows the browser/OS language, not the
- * app's — accepted trade (Panu's call, 2026-08-06) for keeping the platform
+ * app's — accepted trade for keeping the platform
  * time UI on phones; the submitted value is always HH:MM regardless. */
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
