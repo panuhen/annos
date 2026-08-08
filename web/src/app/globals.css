@@ -163,3 +163,19 @@
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* --- The landing (one specimen day) -----------------------------------
+   Entries land on the sheet as they enter the viewport: the stamp scrubbed
+   by a view() timeline instead of the clock. Elements above the fold sit
+   past their entry range and render settled, so a page too short to scroll
+   never hides anything. Reduced motion and older engines skip straight to
+   the settled sheet. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .stamp-on-view {
+      animation: stamp-in 1ms linear both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 60%;
+    }
+  }
+}
