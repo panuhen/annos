@@ -36,9 +36,7 @@ async def _main() -> None:
         role = await conn.fetchval("SELECT quote_ident($1::text)", "annos_api")
         db = await conn.fetchval("SELECT quote_ident(current_database())")
 
-        exists = await conn.fetchval(
-            "SELECT 1 FROM pg_roles WHERE rolname = $1", "annos_api"
-        )
+        exists = await conn.fetchval("SELECT 1 FROM pg_roles WHERE rolname = $1", "annos_api")
         if exists:
             await conn.execute(f"ALTER ROLE {role} WITH LOGIN PASSWORD {pw}")
         else:

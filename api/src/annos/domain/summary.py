@@ -73,6 +73,7 @@ def _item_payload(item, foods: dict[int, Food], language: str) -> dict:
         "name": name,
         "source": food.source if food is not None else None,
         "grams": float(item.grams),
+        "estimated": item.estimated,
         "kcal": meals_domain._portion(item.kcal, item.grams),
         "protein_g": meals_domain._portion(item.protein_g, item.grams),
         "carbs_g": meals_domain._portion(item.carbs_g, item.grams),

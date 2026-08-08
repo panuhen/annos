@@ -211,7 +211,18 @@ function DaySheet() {
                             </span>
                           )}
                         </span>
-                        <span className="font-mono text-xs text-muted-foreground tnum">
+                        <span
+                          className="font-mono text-xs text-muted-foreground tnum"
+                          title={item.estimated ? t("estimatedPortion") : undefined}
+                        >
+                          {item.estimated && (
+                            <>
+                              <span className="sr-only">{t("estimatedPortion")}: </span>
+                              {/* Tilde, not ≈: U+2248 isn't in Fragment Mono and
+                                  would fall back off the price column. */}
+                              <span aria-hidden="true">~</span>
+                            </>
+                          )}
                           {grams(item.grams)}&#8239;g
                         </span>
                         <span className="tnum w-12 text-right font-mono text-sm">

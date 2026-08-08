@@ -1,10 +1,10 @@
 import { DeviceMobile, Plugs } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
 
 import { CopyButton } from "@/components/copy-button";
 import { AnnosWordmark } from "@/components/wordmark";
+import enMessages from "../../../messages/en.json";
 
 /**
  * One day on Annos — the logged-out front page (rewritten under / by the
@@ -33,9 +33,16 @@ const MCP_URL = (process.env.NEXT_PUBLIC_MCP_URL ?? "https://mcp.annos.app/mcp/"
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("landing");
-  return { title: t("metaTitle"), description: t("metaDescription") };
+// The landing is English-only by decision: a marketing surface where a
+// per-visitor translation read worse than one clean English page. The copy
+// lives in en.json's `landing` and is read directly here, bypassing the locale
+// machinery entirely, so every visitor gets the same English page while the
+// rest of the app stays trilingual. en.json is the only file carrying
+// `landing`; the two link-bearing lines are inlined below as JSX.
+const COPY = enMessages.landing;
+
+export function generateMetadata(): Metadata {
+  return { title: COPY.metaTitle, description: COPY.metaDescription };
 }
 
 /** One dish line: name (with optional provenance tag), portion in faded
@@ -147,9 +154,8 @@ function Beat({
   );
 }
 
-export default async function HelloPage() {
-  const t = await getTranslations("landing");
-  const auth = await getTranslations("auth");
+export default function HelloPage() {
+  const t = (key: keyof typeof COPY) => COPY[key];
 
   const github = (chunks: React.ReactNode) => (
     <a
@@ -320,7 +326,17 @@ export default async function HelloPage() {
       </Beat>
 
       {/* 21:00 — the day ruled off. */}
-      <Beat time="21:00" claim={t("totalsClaim")} body={t.rich("totalsBody", { github })}>
+      <Beat
+        time="21:00"
+        claim={t("totalsClaim")}
+        body={
+          <>
+            Annos adds up your day and hands you the numbers. No streaks, no badges, no pressure.
+            Any coaching is yours to ask your AI for. It&apos;s free, {github("open-source")}, and
+            shows no ads.
+          </>
+        }
+      >
         {/* The totals foot stays motionless — arithmetic is not a record
             landing. Labeled like every other specimen fragment. */}
         <div>
@@ -352,16 +368,16 @@ export default async function HelloPage() {
           {t("privacyLabel")}
         </h2>
         <p className="mt-3 text-base leading-relaxed lg:text-lg">
-          {t.rich("privacyBody", {
-            privacy: (chunks) => (
-              <Link
-                href="/privacy"
-                className={`underline underline-offset-2 hover:text-muted-foreground ${FOCUS}`}
-              >
-                {chunks}
-              </Link>
-            ),
-          })}
+          What you track here is health data, so Annos is built to know as little about you as it
+          can. Inside the app you&apos;re a generated nickname, your email never touches what you
+          log, and nothing is tracked or sold.{" "}
+          <Link
+            href="/privacy"
+            className={`underline underline-offset-2 hover:text-muted-foreground ${FOCUS}`}
+          >
+            Read how
+          </Link>
+          .
         </p>
       </aside>
 
@@ -450,10 +466,10 @@ export default async function HelloPage() {
       {/* The foot, same as every pre-auth sheet. */}
       <footer className="mt-20 flex justify-center gap-4 border-t border-border pt-5 font-mono text-xs uppercase tracking-wide text-muted-foreground">
         <Link href="/privacy" className={`hover:text-foreground ${FOCUS}`}>
-          {auth("privacyLink")}
+          Privacy
         </Link>
         <Link href="/terms" className={`hover:text-foreground ${FOCUS}`}>
-          {auth("termsLink")}
+          Terms
         </Link>
       </footer>
     </main>

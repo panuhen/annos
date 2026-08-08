@@ -198,8 +198,18 @@ async def log_meal(
     input_mode: str = "text",
     notes: str | None = None,
 ) -> dict[str, Any]:
-    """Log one eating event. Items are {food_id, grams} — resolve foods with
-    find_food and compute grams first.
+    """Log one eating event. Items are {food_id, grams, estimated?} — resolve
+    foods with find_food and compute grams first.
+
+    Mark each item's `estimated` honestly, because it records how much to trust
+    the amount, not the food. Set estimated true whenever the grams are a guess:
+    a portion eyeballed from a photo, or a vague phrase you turned into grams
+    ("a bowl of rice", "a handful of nuts", "some cheese"). Set it false only
+    when the amount is real: the user gave a weight, read it off a package, or
+    named a serving that maps to a known weight ("one 150 g pot", "2 slices").
+    This is about the amount, not the input channel — text can be just as much a
+    guess as a photo, and a photo of a label is exact. Default is false, so pass
+    true deliberately; when unsure whether an amount was measured, it is a guess.
 
     Omit ts unless the user stated a time; the server's clock is authoritative
     and "I just ate" needs no timestamp. Backdating takes ISO 8601; a timestamp
@@ -505,9 +515,12 @@ async def revise_log(log_id: int, changes: dict[str, Any]) -> dict[str, Any]:
     """Correct an existing meal log: "that was 250 g, not 400".
 
     changes may carry ts, meal, planned, notes, and/or items. items replaces
-    the whole list — restate everything eaten, not just the changed row.
-    {"planned": false} confirms a planned meal as eaten. There is no delete:
-    a log that shouldn't exist gets its items corrected instead.
+    the whole list — restate everything eaten, not just the changed row. Each
+    item takes the same {food_id, grams, estimated?} shape as log_meal; when the
+    user corrects an amount they have now measured it, so leave estimated off
+    (or false) and the guess flag clears for that item. {"planned": false}
+    confirms a planned meal as eaten. There is no delete: a log that shouldn't
+    exist gets its items corrected instead.
 
     Returns the revised log with that day's updated totals.
     """

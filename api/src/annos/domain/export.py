@@ -85,6 +85,7 @@ async def export_account(session: AsyncSession, *, subject: str) -> dict:
                     "food_name_language": name_language,
                     "food_source": item.food.source,
                     "grams": _num(item.grams),
+                    "portion_estimated": item.estimated,
                     # Portion macros, same arithmetic as every read view …
                     "kcal": meals_domain._portion(item.kcal, item.grams),
                     "protein_g": meals_domain._portion(item.protein_g, item.grams),
@@ -364,6 +365,7 @@ def render_csvs(dataset: dict) -> dict[str, str]:
             "food_name_language",
             "food_source",
             "grams",
+            "portion_estimated",
             "kcal",
             "protein_g",
             "carbs_g",
@@ -384,6 +386,7 @@ def render_csvs(dataset: dict) -> dict[str, str]:
                 i["food_name_language"],
                 i["food_source"],
                 i["grams"],
+                i["portion_estimated"],
                 i["kcal"],
                 i["protein_g"],
                 i["carbs_g"],

@@ -59,6 +59,7 @@ class McpPathNormalizer:
 
 app.add_middleware(McpPathNormalizer)
 
+
 # RFC 9728: the metadata for the resource {public_base_url}/mcp/ lives at
 # /.well-known/oauth-protected-resource/mcp/ on the ORIGIN — the exact URL the
 # 401's WWW-Authenticate advertises, not inside the /mcp mount where no client

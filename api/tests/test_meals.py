@@ -136,6 +136,43 @@ async def test_revising_grams_rescales_from_the_snapshot(session, profile, make_
     assert item["kcal"] == pytest.approx(325.0)  # 130/100g, not 999
 
 
+async def test_estimated_defaults_false_and_rides_per_item(session, profile, make_food):
+    """The portion-confidence flag is a fact about the amount, set per item.
+    An unflagged item reads as stated; only an explicit estimate is a guess."""
+    stated = await make_food(name_en="milk", kcal=50, protein_g=3, carbs_g=5, fat_g=2)
+    guessed = await make_food(name_en="stew", kcal=90, protein_g=6, carbs_g=8, fat_g=4)
+
+    payload = await log(
+        session,
+        items=[
+            {"food_id": stated.id, "grams": 200},
+            {"food_id": guessed.id, "grams": 250, "estimated": True},
+        ],
+    )
+
+    by_food = {item["food_id"]: item for item in payload["items"]}
+    assert by_food[stated.id]["estimated"] is False
+    assert by_food[guessed.id]["estimated"] is True
+
+
+async def test_correcting_an_amount_clears_the_guess(session, profile, make_food):
+    """ "That was 150 g, not 200" is a measurement now, so re-stating the item
+    without the flag clears it — the axis is decoupled from the food's source."""
+    food = await make_food(name_en="pasta", kcal=130, protein_g=5, carbs_g=25, fat_g=1)
+    payload = await log(session, items=[{"food_id": food.id, "grams": 200, "estimated": True}])
+    assert payload["items"][0]["estimated"] is True
+
+    revised = await meals_domain.revise_log(
+        session,
+        subject=SUBJECT,
+        log_id=payload["log_id"],
+        changes={"items": [{"food_id": food.id, "grams": 150}]},
+    )
+    (item,) = revised["items"]
+    assert item["grams"] == 150.0
+    assert item["estimated"] is False
+
+
 async def test_a_swapped_food_snapshots_todays_definition(session, profile, make_food):
     wrong = await make_food(name_en="cola", kcal=42, protein_g=0, carbs_g=10, fat_g=0)
     right = await make_food(name_en="cola zero", kcal=0.3, protein_g=0, carbs_g=0, fat_g=0)

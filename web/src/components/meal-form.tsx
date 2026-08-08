@@ -45,6 +45,7 @@ type FormItem = {
   name: string;
   source: string | null;
   grams: string;
+  estimated: boolean;
   per100: Per100 | null;
   units: { code: string; name: string; grams: number }[];
 };
@@ -83,6 +84,8 @@ function itemsFromLog(log: SummaryMeal): FormItem[] {
     name: item.name ?? `#${item.food_id}`,
     source: item.source,
     grams: fmtGrams(item.grams),
+    // Edit mode shows the log's real flag; recent re-plate resets it to off.
+    estimated: item.estimated,
     per100: {
       kcal: per100(item.kcal, item.grams),
       protein_g: per100(item.protein_g, item.grams),
@@ -198,6 +201,7 @@ export function MealForm(props: Props) {
         name: food.name,
         source: food.source,
         grams: fmtGrams(unit?.grams ?? 100),
+        estimated: false,
         per100: food.per_100g,
         units: food.serving_units,
       },
@@ -208,8 +212,13 @@ export function MealForm(props: Props) {
 
   function addRecent(meal: RecentMeal) {
     // A recent meal re-plates through the same snapshot recovery as a
-    // revision: per-100g divided back out of the logged portions.
-    setItems((prev) => [...prev, ...itemsFromLog(meal)]);
+    // revision: per-100g divided back out of the logged portions. The
+    // estimated flag resets to off — composing a new plate is stating it, and
+    // the toggle is there to re-mark a guess.
+    setItems((prev) => [
+      ...prev,
+      ...itemsFromLog(meal).map((it) => ({ ...it, estimated: false })),
+    ]);
   }
 
   function addTemplate(template: Template) {
@@ -220,6 +229,7 @@ export function MealForm(props: Props) {
         name: item.name ?? `#${item.food_id}`,
         source: null,
         grams: fmtGrams(item.grams),
+        estimated: false,
         per100: item.per_100g,
         units: [],
       })),
@@ -251,6 +261,12 @@ export function MealForm(props: Props) {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, grams } : item)));
   }
 
+  function toggleEstimated(index: number) {
+    setItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, estimated: !item.estimated } : item)),
+    );
+  }
+
   function nudgeGrams(index: number, delta: number) {
     setItems((prev) =>
       prev.map((item, i) => {
@@ -267,9 +283,13 @@ export function MealForm(props: Props) {
 
   async function submit() {
     setSubmitting(true);
+    // estimated rides from the per-row toggle: off by default (a stated
+    // amount), on when the user marks a portion a guess — the web twin of an
+    // MCP client flagging an eyeballed amount.
     const payloadItems = items.map((item) => ({
       food_id: item.food_id,
       grams: parseFloat(item.grams),
+      estimated: item.estimated,
     }));
     const mealValue = meal === "none" ? null : meal;
     const notesValue = notes.trim() === "" ? null : notes.trim();
@@ -534,8 +554,16 @@ export function MealForm(props: Props) {
                     value={item.grams}
                     onChange={(e) => setGrams(index, e.target.value)}
                     aria-invalid={!(parseFloat(item.grams) > 0)}
-                    className="tnum h-11 pr-7 text-right font-mono"
+                    className={cn("tnum h-11 pr-7 text-right font-mono", item.estimated && "pl-6")}
                   />
+                  {item.estimated && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 font-mono text-xs text-muted-foreground"
+                    >
+                      ~
+                    </span>
+                  )}
                   <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 font-mono text-xs text-muted-foreground">
                     g
                   </span>
@@ -549,6 +577,21 @@ export function MealForm(props: Props) {
                   <Plus aria-hidden className="size-4" />
                 </button>
                 <div className="flex-1" />
+                <button
+                  type="button"
+                  aria-pressed={item.estimated}
+                  aria-label={t("estimatedToggle", { name: item.name })}
+                  title={t("estimatedToggle", { name: item.name })}
+                  onClick={() => toggleEstimated(index)}
+                  className={cn(
+                    "flex size-11 items-center justify-center border font-mono text-sm hover:bg-secondary",
+                    item.estimated
+                      ? "border-foreground text-foreground"
+                      : "border-input text-muted-foreground",
+                  )}
+                >
+                  ~
+                </button>
                 <button
                   type="button"
                   aria-label={t("remove", { name: item.name })}

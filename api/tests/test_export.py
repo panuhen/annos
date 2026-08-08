@@ -120,6 +120,7 @@ async def test_dataset_carries_the_data_and_only_this_accounts(session, full_acc
     assert first["fiber_g"] == 3.75
     assert first["per_100g"]["kcal"] == 60.0
     assert first["food_source"] == "user"
+    assert first["portion_estimated"] is False  # measured/guessed, beside the source
 
     # The session with its sets, named as the user logs them.
     (workout,) = dataset["exercise_sessions"]

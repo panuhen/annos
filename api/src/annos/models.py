@@ -300,6 +300,16 @@ class MealLogItem(Base):
     food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"), nullable=False)
     grams: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
 
+    # Was this portion measured, or approximated? A second provenance axis,
+    # orthogonal to foods.source: source says where the per-100g numbers came
+    # from, this says whether the grams are a guess. True whenever the amount
+    # was eyeballed — a photo, or a vague phrase ("a bowl", "a handful") the
+    # client turned into grams — regardless of input_mode. False means the
+    # amount traces to something concrete: a weight, a package figure, a
+    # serving-unit conversion, or a stated correction. A grams correction via
+    # revise_log restates the amount, so the corrected item is no longer a guess.
+    estimated: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+
     kcal: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
     protein_g: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
     carbs_g: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)

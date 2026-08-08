@@ -127,6 +127,7 @@ class ProfileResponse(BaseModel):
 class LoggedItemOut(BaseModel):
     food_id: int
     grams: float
+    estimated: bool
     kcal: float | None
     protein_g: float | None
     carbs_g: float | None
@@ -161,6 +162,7 @@ class SummaryItemOut(BaseModel):
     name: str | None
     source: str | None
     grams: float
+    estimated: bool
     kcal: float | None
     protein_g: float | None
     carbs_g: float | None
@@ -401,6 +403,12 @@ async def coaching_history(session: SessionDep, who: CallerDep) -> CoachingHisto
 class MealItem(BaseModel):
     food_id: int
     grams: float = Field(gt=0)
+    estimated: bool = Field(
+        default=False,
+        description="True when the grams are a guess (eyeballed from a photo, or a "
+        "vague amount like 'a bowl' turned into grams); false when they trace to a "
+        "measurement, a package figure, or a serving-unit conversion.",
+    )
 
 
 class TemplateRef(BaseModel):

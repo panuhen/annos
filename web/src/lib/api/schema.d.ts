@@ -741,6 +741,8 @@ export interface components {
             food_id: number;
             /** Grams */
             grams: number;
+            /** Estimated */
+            estimated: boolean;
             /** Kcal */
             kcal: number | null;
             /** Protein G */
@@ -758,6 +760,12 @@ export interface components {
             food_id: number;
             /** Grams */
             grams: number;
+            /**
+             * Estimated
+             * @description True when the grams are a guess (eyeballed from a photo, or a vague amount like 'a bowl' turned into grams); false when they trace to a measurement, a package figure, or a serving-unit conversion.
+             * @default false
+             */
+            estimated: boolean;
         };
         /** MealLogCreate */
         MealLogCreate: {
@@ -1049,6 +1057,8 @@ export interface components {
             source: string | null;
             /** Grams */
             grams: number;
+            /** Estimated */
+            estimated: boolean;
             /** Kcal */
             kcal: number | null;
             /** Protein G */

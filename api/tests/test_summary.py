@@ -81,6 +81,7 @@ async def test_totals_target_and_remaining_line_up(session, deficit_phase, make_
     assert item["food_id"] == food.id
     assert item["name"] == "lunch bowl"
     assert item["source"] == "fineli"
+    assert item["estimated"] is False  # portion confidence, beside the food's source
     assert item["grams"] == pytest.approx(100.0)
     assert item["kcal"] == pytest.approx(550.0)
     # The macros ride per item, portion-scaled from the log-time snapshot,

@@ -138,7 +138,7 @@ async def _snapshot_items(
 
     rows = []
     for item in items:
-        unknown = set(item) - {"food_id", "grams"}
+        unknown = set(item) - {"food_id", "grams", "estimated"}
         if unknown:
             raise InvalidLog(f"unknown item fields: {', '.join(sorted(unknown))}")
         try:
@@ -148,6 +148,10 @@ async def _snapshot_items(
             raise InvalidLog("each item needs a food_id and grams") from exc
         if grams <= 0:
             raise InvalidLog("grams must be positive")
+        # Portion confidence rides on each item, not the macro snapshot: it is a
+        # fact about the amount the caller states now, so a revision that
+        # re-states an item sets it afresh rather than inheriting the old guess.
+        estimated = bool(item.get("estimated", False))
 
         snapshot = (keep or {}).get(food_id)
         if snapshot is None:
@@ -161,7 +165,7 @@ async def _snapshot_items(
                 raise UnknownFood(food_id)
             snapshot = {f: getattr(food, f) for f in MACRO_FIELDS}
 
-        rows.append(MealLogItem(food_id=food_id, grams=grams, **snapshot))
+        rows.append(MealLogItem(food_id=food_id, grams=grams, estimated=estimated, **snapshot))
     return rows
 
 
@@ -215,6 +219,7 @@ def log_payload(log: MealLog, totals: dict, tz: str) -> dict:
             {
                 "food_id": item.food_id,
                 "grams": float(item.grams),
+                "estimated": item.estimated,
                 "kcal": _portion(item.kcal, item.grams),
                 "protein_g": _portion(item.protein_g, item.grams),
                 "carbs_g": _portion(item.carbs_g, item.grams),
@@ -243,6 +248,10 @@ async def log_meal(
     The totals ride along so the client can react ("that puts you at 1 640
     kcal") without a second call. input_mode "plan" creates a planner entry:
     planned until revise_log confirms it eaten.
+
+    Each item may carry `estimated`: true when its grams are a guess (a photo,
+    or a vague amount turned into grams), false when they trace to a real
+    measurement. Defaults false. See _snapshot_items.
     """
     if meal is not None and meal not in MEALS:
         raise InvalidLog(f"meal must be one of {', '.join(MEALS)}")
@@ -280,9 +289,12 @@ async def revise_log(session: AsyncSession, *, subject: str, log_id: int, change
 
     `changes` may carry ts, meal, planned, notes, and/or items. Items replace
     the whole list and re-snapshot from today's definitions — a correction
-    states what was actually eaten. `planned: false` confirms a planner entry.
-    Unknown fields fail loudly; silently dropping one would let a client
-    believe it corrected something it didn't.
+    states what was actually eaten. Because items are re-stated, each carries
+    its own `estimated`: a corrected amount ("that was 150 g, not 200") is a
+    measurement now, so omit it (or pass false) and the guess flag clears.
+    `planned: false` confirms a planner entry. Unknown fields fail loudly;
+    silently dropping one would let a client believe it corrected something it
+    didn't.
     """
     unknown = set(changes) - REVISABLE
     if unknown:
