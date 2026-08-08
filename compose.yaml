@@ -71,6 +71,9 @@ services:
       args:
         NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:-http://localhost:8000/mcp/}
         NEXT_PUBLIC_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_ENABLED:-false}
+        # Baked into the rewrite manifest at build (see web/Dockerfile). The
+        # in-network address, since the Next server proxies /annos/* to the API.
+        ANNOS_API_URL: ${ANNOS_API_URL:-http://api:8000}
     image: annos-web:latest
     restart: unless-stopped
     environment:

@@ -14,8 +14,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # (see compose.yaml web.build.args).
 ARG NEXT_PUBLIC_MCP_URL=http://localhost:8000/mcp/
 ARG NEXT_PUBLIC_GOOGLE_ENABLED=false
+# ANNOS_API_URL is read by next.config.ts's rewrites() and baked into the
+# routes-manifest at build time — `next start` never re-reads it, so a runtime
+# env only reaches the override's `next dev`, not this standalone image. It must
+# be present at build. The localhost default keeps a plain `docker build`
+# working on the host; compose passes the in-network http://api:8000.
+ARG ANNOS_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_MCP_URL=${NEXT_PUBLIC_MCP_URL} \
-    NEXT_PUBLIC_GOOGLE_ENABLED=${NEXT_PUBLIC_GOOGLE_ENABLED}
+    NEXT_PUBLIC_GOOGLE_ENABLED=${NEXT_PUBLIC_GOOGLE_ENABLED} \
+    ANNOS_API_URL=${ANNOS_API_URL}
 RUN npm run build
 
 FROM node:24-alpine AS run
