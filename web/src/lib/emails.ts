@@ -45,6 +45,12 @@ const RESET: Copy = {
 // Literal hex, not the app's oklch tokens: mail clients understand neither CSS
 // variables nor oklch. Warm ink on paper white, the one honey accent — the
 // Ruokalista palette, flattened.
+// The wordmark ships as a hosted PNG, not text: web fonts and SVG are both
+// stripped by Gmail/Outlook, but an <img> renders everywhere images load and
+// degrades to the alt text "Annos" where they're blocked. Served from the app
+// origin at /wordmark-email.png.
+const ORIGIN = process.env.BETTER_AUTH_URL ?? "";
+
 const INK = "#2a2620";
 const HONEY = "#8a6d1f";
 const MUTED = "#6b6355";
@@ -53,12 +59,16 @@ const RULE = "#e4dfd6";
 function renderHtml(copy: Copy, url: string): string {
   return `<!doctype html>
 <html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+  </head>
   <body style="margin:0;padding:0;background:#ffffff;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
       <tr>
         <td align="center" style="padding:40px 20px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:420px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:${INK};">
-            <tr><td style="font-size:28px;font-weight:800;letter-spacing:-0.02em;padding-bottom:16px;">Annos</td></tr>
+            <tr><td style="padding-bottom:16px;"><img src="${ORIGIN}/wordmark-email.png" alt="Annos" width="155" height="50" style="display:block;width:155px;height:50px;border:0;outline:none;text-decoration:none;" /></td></tr>
             <tr><td style="border-top:2px solid ${INK};font-size:0;line-height:0;">&nbsp;</td></tr>
             <tr><td style="font-size:22px;font-weight:700;padding:24px 0 8px;">${copy.heading}</td></tr>
             <tr><td style="font-size:15px;line-height:1.5;color:${INK};padding-bottom:24px;">${copy.body}</td></tr>
