@@ -439,7 +439,7 @@
     "mcpClaudeNote": "In Claude, add this as a custom connector: Settings → Connectors → Add custom connector."
   },
   "landing": {
-    "metaTitle": "Annos — the food diary that lives in your AI chat",
+    "metaTitle": "Annos - the food diary that lives in your AI chat",
     "metaDescription": "Tell your AI what you ate; Annos logs it and keeps the day's numbers. Free, open-source, pseudonymous.",
     "heroTitle": "The food diary that lives in your AI chat.",
     "specimenDay": "Tuesday",
@@ -453,7 +453,7 @@
     "specimenLunch": "Lunch",
     "specimenSoup": "Salmon soup",
     "specimenWok": "Lunch-bar wok",
-    "lunchClaim": "It knows when it's guessing.",
+    "lunchClaim": "Measured food, honest estimates.",
     "lunchBody": "The built-in database is thousands of measured foods, each named in Finnish, Swedish and English, and you can add your own. When a dish is estimated by AI, the row says so: measured and guessed never blur.",
     "weightClaim": "Weight and goal on the same sheet.",
     "weightBody": "Open a goal phase — say −0.4 kg a week — and each day's target follows from it. A weigh-in is one row; the trend reads in weeks.",
