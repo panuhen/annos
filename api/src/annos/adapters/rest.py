@@ -309,7 +309,12 @@ class ProfileCreate(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    changes: dict[str, Any]
+    changes: dict[str, Any] = Field(
+        description="Partial update. Allowed keys: birth_year, height_cm, sex, "
+        "activity_baseline, timezone, units, language, ui_language, "
+        "show_item_macros, dietary_prefs, coaching_notes. nickname and subject "
+        "cannot be changed. Unknown keys are rejected.",
+    )
 
 
 def _profile_payload(profile) -> dict:
@@ -361,6 +366,8 @@ async def create_profile(
         profile = await profile_domain.create_profile(
             session, subject=who.subject, nickname=body.nickname
         )
+    except nickname_mod.InvalidNickname as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except nickname_mod.NicknameTaken as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except profile_domain.AlreadyRegistered as exc:
@@ -432,7 +439,11 @@ class MealLogCreate(BaseModel):
 
 
 class MealLogRevise(BaseModel):
-    changes: dict[str, Any]
+    changes: dict[str, Any] = Field(
+        description="Allowed keys: ts, meal, planned, notes, items. `items` "
+        "replaces the whole list — restate everything eaten, not just the "
+        "changed row. Unknown keys are rejected.",
+    )
 
 
 @router.post("/logs/meals", status_code=201)
@@ -501,6 +512,9 @@ class GoalPhaseCreate(BaseModel):
 
 @router.put("/days/type")
 async def set_day_type(session: SessionDep, who: CallerDep, body: DayTypeSet) -> DayTypeResponse:
+    """Mark a day training or rest. Upserts on the date — repeating replaces,
+    and a manual mark overrides what an exercise session would otherwise derive.
+    """
     try:
         return await days_domain.set_day_type(
             session, subject=who.subject, day_type=body.day_type, date=body.date
@@ -515,6 +529,10 @@ async def set_day_type(session: SessionDep, who: CallerDep, body: DayTypeSet) ->
 async def log_weight(
     session: SessionDep, who: CallerDep, body: WeightLogCreate
 ) -> WeightLogResponse:
+    """Record bodyweight (and optional waist) for a day. One row per day: a
+    second entry for the same date replaces the first, so re-logging corrects
+    rather than duplicates. Returns 201 whether it inserted or upserted.
+    """
     try:
         return await body_domain.log_weight(
             session,
@@ -553,7 +571,11 @@ async def set_goal_phase(
 
 
 class GoalPhaseRevise(BaseModel):
-    changes: dict[str, Any]
+    changes: dict[str, Any] = Field(
+        description="Allowed keys: kind, kcal_training, kcal_rest, "
+        "protein_training, protein_rest, rate_target, start_date. Unknown keys "
+        "are rejected.",
+    )
 
 
 @router.patch("/goals/phase")
@@ -576,6 +598,9 @@ async def revise_goal_phase(
 async def delete_goal_phase(
     session: SessionDep, who: CallerDep, phase_id: int
 ) -> GoalPhaseDeletedResponse:
+    """Delete a goal phase by id, scoped to the caller. For removing a phase
+    set in error; correcting an active phase's targets is revise_goal_phase.
+    """
     try:
         return await body_domain.delete_goal_phase(session, subject=who.subject, phase_id=phase_id)
     except body_domain.PhaseNotFound as exc:
@@ -632,7 +657,10 @@ class ExerciseLogCreate(BaseModel):
 
 
 class ExerciseLogRevise(BaseModel):
-    changes: dict[str, Any]
+    changes: dict[str, Any] = Field(
+        description="Allowed keys: ts, kind, activity_id, duration_min, planned, "
+        "notes, sets. `sets` replaces the whole list. Unknown keys are rejected.",
+    )
 
 
 class ExerciseLogResponse(BaseModel):
@@ -849,7 +877,10 @@ async def save_template(
 
 
 class TemplateRevise(BaseModel):
-    changes: dict[str, Any]
+    changes: dict[str, Any] = Field(
+        description="Allowed keys: name, items, total_grams. `items` replaces "
+        "the whole list. Unknown keys are rejected.",
+    )
 
 
 @router.patch("/templates/{template_id}")

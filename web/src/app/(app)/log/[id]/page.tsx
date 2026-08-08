@@ -22,9 +22,6 @@ export default function ReviseLogPage() {
   );
 }
 
-/** Revision works from the day summary — the log's current contents come
- * from there, so a deep link needs the day too (?date=). Without it we try
- * today. */
 /** Deletion, not correction: for the log that should never have existed.
  * Two taps — the second is armed in rye red and says it's permanent. */
 function DeleteLog({ logId, day }: { logId: number; day: string }) {
@@ -74,6 +71,9 @@ function DeleteLog({ logId, day }: { logId: number; day: string }) {
   );
 }
 
+/** Revision works from the day summary — the log's current contents come
+ * from there, so a deep link needs the day too (?date=). Without it we try
+ * today. */
 function ReviseLog() {
   const { id } = useParams<{ id: string }>();
   const params = useSearchParams();

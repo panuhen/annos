@@ -482,8 +482,8 @@ class DayTypeMark(Base):
     day rest silences a logged session, and marking training gets the training
     targets before the session is logged (the eating happens all day) or when
     the session lives outside Annos. Days without a row resolve at read time —
-    exercise-derived once exercise logging exists, rest until then — so the
-    table records only what the user actually said.
+    exercise-derived from a non-planned session that day, rest otherwise — so
+    the table records only what the user actually said.
     """
 
     __tablename__ = "day_types"

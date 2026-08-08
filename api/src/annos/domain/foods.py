@@ -1,4 +1,4 @@
-"""Food search and creation."""
+"""Food search and presentation."""
 
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -9,9 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from annos.domain import language as language_domain
 from annos.models import LANGUAGES, Food, UserProfile
 
-# pg_trgm's default similarity_threshold. Named here so the value the `%`
-# operator uses is visible rather than an invisible database setting.
+# pg_trgm's default similarity_threshold, recorded for the reader: the `%`
+# operator's cutoff is a database GUC (set_limit / pg_trgm.similarity_threshold),
+# not this constant. Informational only — changing it here changes nothing.
 SIMILARITY_THRESHOLD = 0.3
+
+# Upper bound on a search window, enforced in find_food so the MCP path (which
+# passes limit through unchecked) can't request an unbounded result set.
+MAX_SEARCH_LIMIT = 50
 
 
 @dataclass(frozen=True)
@@ -138,6 +143,11 @@ async def find_food(
     query = query.strip()
     if not query:
         return []
+
+    # Bound the window in the domain, not just at the REST edge: the MCP tool
+    # passes limit straight through, so an unbounded value would otherwise be a
+    # cheap way to ask for the whole table.
+    limit = max(1, min(limit, MAX_SEARCH_LIMIT))
 
     name_columns = [getattr(Food, f"name_{lang}") for lang in LANGUAGES]
 

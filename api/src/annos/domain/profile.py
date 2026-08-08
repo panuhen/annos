@@ -5,6 +5,7 @@ it — that string is effectively the user's system prompt, and interpreting it
 here would pull judgment server-side, which is explicitly rejected.
 """
 
+import json
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
@@ -14,6 +15,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from annos import nickname as nickname_mod
 from annos import servertime
 from annos.models import CoachingNoteRevision, UserProfile
+
+# Mirror the model's CheckConstraints so a bad value from an MCP client is a
+# clean 422 rather than an IntegrityError surfacing as a 500. Keep in step with
+# models.py's __table_args__. `nullable` is whether the column accepts None
+# (which clears it): sex/ui_language may be cleared, units/language may not.
+_ALLOWED = {
+    "sex": ({"female", "male", "other"}, True),
+    "units": ({"metric", "imperial"}, False),
+    "language": ({"fi", "sv", "en"}, False),
+    "ui_language": ({"fi", "sv", "en"}, True),
+}
+
+# dietary_prefs is opaque JSONB that rides along in every profile read; cap it
+# so one account can't bloat its own every-request payload without bound.
+_DIETARY_PREFS_MAX_BYTES = 8192
 
 # Fields a caller may change. `nickname` and `subject` are absent on purpose:
 # there is no rename surface anywhere in the product, and identity comes from
@@ -77,6 +93,23 @@ def _validate(changes: dict) -> None:
     show_macros = changes.get("show_item_macros")
     if show_macros is not None and not isinstance(show_macros, bool):
         raise InvalidValue("show_item_macros must be true or false")
+    for field, (allowed, nullable) in _ALLOWED.items():
+        if field not in changes:
+            continue
+        value = changes[field]
+        # None clears a nullable field; on a NOT NULL one it would trip the
+        # constraint, so reject it here as a clean 422 rather than a 500.
+        if value is None:
+            if not nullable:
+                raise InvalidValue(f"{field} cannot be null")
+        elif value not in allowed:
+            raise InvalidValue(f"{field} must be one of {', '.join(sorted(allowed))}")
+    prefs = changes.get("dietary_prefs")
+    if prefs is not None:
+        if not isinstance(prefs, dict):
+            raise InvalidValue("dietary_prefs must be an object")
+        if len(json.dumps(prefs)) > _DIETARY_PREFS_MAX_BYTES:
+            raise InvalidValue("dietary_prefs is too large")
 
 
 async def get_profile(session: AsyncSession, *, subject: str) -> UserProfile:

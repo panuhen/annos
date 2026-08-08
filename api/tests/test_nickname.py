@@ -71,8 +71,24 @@ async def test_a_duplicate_subject_is_not_mistaken_for_a_nickname_collision(sess
 
 
 async def test_rest_reports_a_taken_nickname_as_409(api, session):
-    await profile_domain.create_profile(session, subject=OTHER_SUBJECT, nickname="taken-name-here")
+    await profile_domain.create_profile(
+        session, subject=OTHER_SUBJECT, nickname="nimble-amber-heron"
+    )
 
-    response = await api.post("/api/profile", json={"nickname": "taken-name-here"})
+    response = await api.post("/api/profile", json={"nickname": "nimble-amber-heron"})
 
     assert response.status_code == 409
+
+
+async def test_a_candidate_outside_the_vocabulary_is_rejected(session):
+    """The UI only submits rolled candidates, but the endpoint takes any bearer
+    token — "generated only" has to be enforced here, not trusted from the client.
+    A real name is exactly what this keeps out of the identity layer."""
+    with pytest.raises(nickname_mod.InvalidNickname):
+        await profile_domain.create_profile(session, subject=SUBJECT, nickname="john-q-public")
+
+
+async def test_rest_rejects_a_hand_picked_nickname_with_422(api):
+    response = await api.post("/api/profile", json={"nickname": "definitely-my-realname"})
+
+    assert response.status_code == 422

@@ -77,7 +77,13 @@ services:
     image: annos-web:latest
     restart: unless-stopped
     environment:
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-in-production-0000}
+      # Empty default, never a real one: this is Better Auth's master secret (it
+      # signs session cookies and OAuth artifacts), so a committed fallback would
+      # silently boot a real deploy with a public value — total account-takeover
+      # risk. Blank in prod makes auth.ts refuse to start on an https origin; the
+      # dev value lives in compose.override.yaml. (`:-` keeps `docker compose`
+      # from warning on the unset variable without supplying a usable secret.)
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       # Where the /annos/* rewrite proxies API calls — the browser itself
       # only ever talks to this origin.

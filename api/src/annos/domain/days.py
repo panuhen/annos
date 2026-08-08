@@ -2,9 +2,10 @@
 
 A day's target is the phase in force on that date plus the day's type. The
 type resolves in order: a manual mark wins (the user saying what the day is
-beats any derivation, in both directions), then exercise-derived once
-exercise logging exists, then rest. The resolution's source travels with the
-answer so a client never has to guess whether "rest" was said or assumed.
+beats any derivation, in both directions), then exercise-derived (a
+non-planned session logged that day), then rest. The resolution's source
+travels with the answer so a client never has to guess whether "rest" was
+said or assumed.
 """
 
 from datetime import date as date_type

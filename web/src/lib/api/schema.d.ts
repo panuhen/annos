@@ -120,7 +120,11 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Set Day Type */
+        /**
+         * Set Day Type
+         * @description Mark a day training or rest. Upserts on the date — repeating replaces,
+         *     and a manual mark overrides what an exercise session would otherwise derive.
+         */
         put: operations["set_day_type_api_days_type_put"];
         post?: never;
         delete?: never;
@@ -139,7 +143,12 @@ export interface paths {
         /** Weight History */
         get: operations["weight_history_api_logs_weight_get"];
         put?: never;
-        /** Log Weight */
+        /**
+         * Log Weight
+         * @description Record bodyweight (and optional waist) for a day. One row per day: a
+         *     second entry for the same date replaces the first, so re-logging corrects
+         *     rather than duplicates. Returns 201 whether it inserted or upserted.
+         */
         post: operations["log_weight_api_logs_weight_post"];
         delete?: never;
         options?: never;
@@ -175,7 +184,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete Goal Phase */
+        /**
+         * Delete Goal Phase
+         * @description Delete a goal phase by id, scoped to the caller. For removing a phase
+         *     set in error; correcting an active phase's targets is revise_goal_phase.
+         */
         delete: operations["delete_goal_phase_api_goals_phase__phase_id__delete"];
         options?: never;
         head?: never;
@@ -608,7 +621,10 @@ export interface components {
         };
         /** ExerciseLogRevise */
         ExerciseLogRevise: {
-            /** Changes */
+            /**
+             * Changes
+             * @description Allowed keys: ts, kind, activity_id, duration_min, planned, notes, sets. `sets` replaces the whole list. Unknown keys are rejected.
+             */
             changes: {
                 [key: string]: unknown;
             };
@@ -718,7 +734,10 @@ export interface components {
         };
         /** GoalPhaseRevise */
         GoalPhaseRevise: {
-            /** Changes */
+            /**
+             * Changes
+             * @description Allowed keys: kind, kcal_training, kcal_rest, protein_training, protein_rest, rate_target, start_date. Unknown keys are rejected.
+             */
             changes: {
                 [key: string]: unknown;
             };
@@ -727,6 +746,11 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** Health */
+        Health: {
+            /** Status */
+            status: string;
         };
         /** LogDeletedResponse */
         LogDeletedResponse: {
@@ -807,7 +831,10 @@ export interface components {
         };
         /** MealLogRevise */
         MealLogRevise: {
-            /** Changes */
+            /**
+             * Changes
+             * @description Allowed keys: ts, meal, planned, notes, items. `items` replaces the whole list — restate everything eaten, not just the changed row. Unknown keys are rejected.
+             */
             changes: {
                 [key: string]: unknown;
             };
@@ -879,7 +906,10 @@ export interface components {
         };
         /** ProfileUpdate */
         ProfileUpdate: {
-            /** Changes */
+            /**
+             * Changes
+             * @description Partial update. Allowed keys: birth_year, height_cm, sex, activity_baseline, timezone, units, language, ui_language, show_item_macros, dietary_prefs, coaching_notes. nickname and subject cannot be changed. Unknown keys are rejected.
+             */
             changes: {
                 [key: string]: unknown;
             };
@@ -1224,7 +1254,10 @@ export interface components {
         };
         /** TemplateRevise */
         TemplateRevise: {
-            /** Changes */
+            /**
+             * Changes
+             * @description Allowed keys: name, items, total_grams. `items` replaces the whole list. Unknown keys are rejected.
+             */
             changes: {
                 [key: string]: unknown;
             };
@@ -2434,9 +2467,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["Health"];
                 };
             };
         };

@@ -19,6 +19,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from annos import servertime
+from annos.domain import foods as foods_domain
 from annos.domain import meals as meals_domain
 from annos.domain import profile as profile_domain
 from annos.models import (
@@ -72,6 +73,9 @@ async def find_activity(
     query = query.strip()
     if not query:
         return []
+
+    # Bounded in the domain like find_food: the MCP tool passes limit through.
+    limit = max(1, min(limit, foods_domain.MAX_SEARCH_LIMIT))
 
     escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     score = func.word_similarity(query, Activity.name).label("score")

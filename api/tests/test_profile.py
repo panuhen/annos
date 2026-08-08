@@ -122,6 +122,13 @@ async def test_update_before_registration_raises(session):
         {"height_cm": 30},
         {"height_cm": 400},
         {"show_item_macros": "yes"},
+        {"sex": "banana"},
+        {"units": "furlongs"},
+        {"language": "de"},
+        {"ui_language": "de"},
+        {"units": None},
+        {"dietary_prefs": "not-an-object"},
+        {"dietary_prefs": {"note": "x" * 9000}},
     ],
 )
 async def test_impossible_profile_values_are_refused(session, changes):

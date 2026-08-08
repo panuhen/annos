@@ -4,6 +4,23 @@ import { jwt, mcp } from "better-auth/plugins";
 import { pool } from "@/lib/db";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/emails";
 
+// BETTER_AUTH_SECRET signs session cookies and OAuth artifacts; a weak or
+// public value means any session can be forged. The dev default is fine on
+// http://localhost, catastrophic on a real origin — so refuse to start when the
+// public origin is https and the secret is missing or still the dev placeholder.
+// A loud boot failure beats a silent takeover surface. See compose.yaml.
+const DEV_SECRET_PLACEHOLDER = "dev-only-secret-change-in-production-0000";
+const authUrl = process.env.BETTER_AUTH_URL ?? "";
+const authSecret = process.env.BETTER_AUTH_SECRET ?? "";
+if (
+  authUrl.startsWith("https://") &&
+  (authSecret === "" || authSecret === DEV_SECRET_PLACEHOLDER)
+) {
+  throw new Error(
+    "BETTER_AUTH_SECRET must be set to a real secret when BETTER_AUTH_URL is https",
+  );
+}
+
 /**
  * Better Auth is the identity system and the OAuth 2.1 authorization server.
  * The Python API is only a resource server; it validates opaque OAuth access
@@ -86,6 +103,36 @@ export const auth = betterAuth({
     // schemas share no foreign key, so each side deletes its own.
     deleteUser: {
       enabled: true,
+      // deleteUser cascades sessions, accounts and OAuth grants, but not the
+      // `verification` table (no FK to user). Its rows carry no email — email
+      // verification is a stateless signed token, and a password-reset row is
+      // keyed by a random token with the user id as its value — but a pending
+      // reset token still points at the now-deleted user until it expires.
+      // Clear those so nothing outlives the account.
+      afterDelete: async (user) => {
+        await pool.query('DELETE FROM "verification" WHERE value = $1', [user.id]);
+      },
+    },
+  },
+  databaseHooks: {
+    session: {
+      // Better Auth stamps the client IP and user-agent onto every session row
+      // by default, for the whole life of the session — more than a pseudonymous
+      // tracker should retain. Blank them before the row is written (and on
+      // refresh). Rate limiting still sees the real IP: getIp runs on the
+      // request, independent of what the session row stores, so brute-force
+      // protection is untouched. See db/grants.sql for the email quarantine that
+      // keeps even this blanked row out of the API's reach.
+      create: {
+        before: async (session) => ({
+          data: { ...session, ipAddress: "", userAgent: "" },
+        }),
+      },
+      update: {
+        before: async (session) => ({
+          data: { ...session, ipAddress: "", userAgent: "" },
+        }),
+      },
     },
   },
   // Brute-force protection. Better Auth's own limiter, persisted to Postgres

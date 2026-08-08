@@ -79,6 +79,34 @@ def _cache_put(token: str, caller: Caller) -> None:
     _cache[token] = (time.monotonic() + settings.token_cache_ttl_seconds, caller)
 
 
+# Rejected opaque tokens, token -> expires_at_monotonic. Only successes used to
+# be cached, which meant every request with a garbage bearer token cost one
+# outbound call to /mcp/get-session — a flood of unique invalid tokens became
+# a request-for-request amplification against the Next.js app, which sits on
+# the MCP critical path. A rejected token never becomes valid, so caching the
+# rejection is safe. Bounded because the attacker controls the key space.
+_NEGATIVE_CACHE_MAX = 10_000
+_negative_cache: dict[str, float] = {}
+
+
+def _negative_get(token: str) -> bool:
+    expires_at = _negative_cache.get(token)
+    if expires_at is None:
+        return False
+    if expires_at < time.monotonic():
+        del _negative_cache[token]
+        return False
+    return True
+
+
+def _negative_put(token: str) -> None:
+    if len(_negative_cache) >= _NEGATIVE_CACHE_MAX:
+        # Crude but bounded: a flood pays a full refill, we never grow past
+        # the cap.
+        _negative_cache.clear()
+    _negative_cache[token] = time.monotonic() + settings.token_cache_ttl_seconds
+
+
 async def _get_session(token: str) -> Caller:
     """Validate an opaque OAuth access token against Better Auth.
 
@@ -91,19 +119,23 @@ async def _get_session(token: str) -> Caller:
         response = await client.get(url, headers={"Authorization": f"Bearer {token}"})
 
     if response.status_code == 401:
+        _negative_put(token)
         raise AuthError("token rejected by authorization server")
     if response.status_code >= 400:
         # Upstream trouble is not the caller's fault; surface it as such rather
-        # than telling them their token is bad.
+        # than telling them their token is bad — and never cache it against the
+        # token, or an outage would keep rejecting valid credentials after it.
         log.error("get_session_failed", status=response.status_code)
         raise AuthError(f"authorization server returned {response.status_code}")
 
     data = response.json()
     if data is None:
+        _negative_put(token)
         raise AuthError("token rejected by authorization server")
 
     subject = data.get("userId")
     if not subject:
+        _negative_put(token)
         raise AuthError("session response carried no subject")
 
     return Caller(subject=subject)
@@ -197,8 +229,12 @@ async def resolve_caller(authorization: str | None) -> Caller:
         return cached
 
     if token.count(".") == 2:
+        # JWTs are verified offline; there is nothing upstream to protect,
+        # so they skip the negative cache.
         caller = await _verify_jwt(token)
     else:
+        if _negative_get(token):
+            raise AuthError("token rejected by authorization server")
         caller = await _get_session(token)
     _cache_put(token, caller)
     return caller

@@ -11,16 +11,43 @@ import logging
 import structlog
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from annos.adapters.mcp import mcp
 from annos.adapters.rest import router as rest_router
 from annos.config import settings
 
+# The logging counterpart of the email quarantine: only these keys reach the
+# renderer, so a future `log.error("x", user=some_object)` drops the object
+# instead of serialising PII into a log line. Widen deliberately, per field.
+_LOG_FIELDS = {"event", "level", "timestamp", "status", "error"}
+
+
+def _allowlist_fields(logger, method_name, event_dict):  # noqa: ANN001 — structlog processor signature
+    return {key: value for key, value in event_dict.items() if key in _LOG_FIELDS}
+
+
 structlog.configure(
+    processors=[
+        structlog.processors.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        _allowlist_fields,
+        structlog.processors.JSONRenderer(),
+    ],
     wrapper_class=structlog.make_filtering_bound_logger(
         logging.getLevelNamesMapping()[settings.log_level.upper()]
     ),
 )
+
+# ANNOS_DEV_SUBJECT disables all token validation (see identity.py) — fine on
+# localhost, catastrophic anywhere real: every caller would silently become
+# that one account. An https public origin means this is not local dev, so
+# refuse to boot rather than run open.
+if settings.dev_subject and settings.public_base_url.startswith("https://"):
+    raise RuntimeError(
+        "ANNOS_DEV_SUBJECT is set but ANNOS_PUBLIC_BASE_URL is https — "
+        "refusing to start with token validation disabled outside local dev"
+    )
 
 # FastMCP's Streamable HTTP app owns a session manager that must be started and
 # stopped with the process, so its lifespan has to be handed to FastAPI.
@@ -87,6 +114,10 @@ async def protected_resource_metadata() -> JSONResponse:
     )
 
 
+class Health(BaseModel):
+    status: str
+
+
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health() -> Health:
+    return Health(status="ok")

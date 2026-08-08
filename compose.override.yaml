@@ -34,6 +34,9 @@ services:
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
       WATCHPACK_POLLING: "true"
+      # The dev-only Better Auth secret lives here, never in compose.yaml, so a
+      # production deploy (compose.yaml alone) cannot inherit a public value.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-in-production-0000}
     volumes:
       - ./web:/app
       - annos-web-node-modules:/app/node_modules

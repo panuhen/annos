@@ -41,8 +41,10 @@ class Settings(BaseSettings):
     # returns this subject. Must be unset in production — see identity.py.
     dev_subject: str | None = None
 
-    # Seconds to cache a successful userinfo lookup, keyed by token. Keeps the
-    # Next.js app off the hot path for every MCP tool call.
+    # Seconds to cache a token validation result, keyed by token. Successful
+    # /mcp/get-session lookups are cached to keep the Next.js app off the hot
+    # path for every MCP tool call; rejections are cached too, so a flood of
+    # garbage tokens can't be amplified into upstream requests.
     token_cache_ttl_seconds: int = 60
 
     log_level: str = "INFO"

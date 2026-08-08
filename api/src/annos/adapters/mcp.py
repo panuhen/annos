@@ -73,9 +73,9 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 # field), served by the custom routes below. Both sit under the /mcp mount, so
 # their public URLs are {origin}/mcp/…. The theme-adaptive SVG is listed first
 # (a client that renders it gets the mark correct on light or dark chrome); the
-# paper-white PNG is a raster fallback for clients that don't. Claude.ai today
-# brands the connector from the OAuth authorization server's own page and
-# favicon (the Next.js /consent route) rather than this field — this is the
+# paper-white PNG is a raster fallback for clients that don't. As of 2026-08,
+# Claude.ai brands the connector from the OAuth authorization server's own page
+# and favicon (the Next.js /consent route) rather than this field — this is the
 # spec-correct mechanism regardless, for clients that read it.
 _icon_base = f"{settings.public_base_url.rstrip('/')}/mcp"
 MCP_ICONS = [
@@ -94,7 +94,9 @@ mcp: FastMCP = FastMCP(
         "search works in all three and results come back in the language set on "
         "the user's profile. The exercise activity catalog is English-only — "
         "translate before searching it ('juoksu' → 'running'); strength movement "
-        "names are the user's own words in any language. Food data from the "
+        "names are the user's own words in any language. Registering an account "
+        "and deleting one are done in the web app, not here — there is no tool "
+        "for either; point the user to the website. Food data from the "
         "Finnish Institute for Health and Welfare, Fineli (CC-BY 4.0); MET values "
         "from the 2024 Adult Compendium of Physical Activities."
     ),
@@ -152,8 +154,10 @@ async def find_food(query: str, limit: int = 10) -> dict[str, Any]:
 async def get_profile() -> dict[str, Any]:
     """Current stats, preferences, and standing coaching notes for this account.
 
-    `coaching_notes` is the user's own standing instruction about how they want
-    to be coached — follow it.
+    Every field here is settable through update_profile except nickname, which
+    is fixed at registration. `coaching_notes` is the user's own standing
+    instruction about how they want to be coached — follow it. `show_item_macros`
+    is a web-UI presentation toggle, reported for parity with update_profile.
     """
     who = await _caller()
     async with SessionLocal() as session:
@@ -167,7 +171,9 @@ async def get_profile() -> dict[str, Any]:
             "units": profile.units,
             "language": profile.language,
             "ui_language": profile.ui_language,
+            "show_item_macros": profile.show_item_macros,
             "profile_context": {
+                "activity_baseline": profile.activity_baseline,
                 "dietary_prefs": profile.dietary_prefs,
                 "coaching_notes": profile.coaching_notes,
             },
@@ -198,8 +204,12 @@ async def log_meal(
     input_mode: str = "text",
     notes: str | None = None,
 ) -> dict[str, Any]:
-    """Log one eating event. Items are {food_id, grams, estimated?} — resolve
-    foods with find_food and compute grams first.
+    """Log one eating event. Each item is either {food_id, grams, estimated?}
+    — resolve foods with find_food and compute grams first — or
+    {template_id, portions?, grams?} to log a saved template: `portions`
+    multiplies the saved amounts (default 1, the whole template) and `grams`
+    overrides its total; give one or the other, not both. Mix item shapes freely
+    in one call. list_templates returns the template_ids.
 
     Mark each item's `estimated` honestly, because it records how much to trust
     the amount, not the food. Set estimated true whenever the grams are a guess:
@@ -215,8 +225,9 @@ async def log_meal(
     and "I just ate" needs no timestamp. Backdating takes ISO 8601; a timestamp
     without an offset is read in the user's own timezone. meal is
     breakfast/lunch/dinner/snack — ask rather than assume, or leave it out.
-    input_mode "plan" records an intention, counted in no totals until
-    revise_log confirms it with {"planned": false}.
+    input_mode is text (the default), photo (the item came from a picture the
+    client read), or plan — a plan records an intention, counted in no totals
+    until revise_log confirms it with {"planned": false}.
 
     The response carries the updated day totals, so no follow-up call is needed
     to react to the new state of the day.
@@ -244,9 +255,10 @@ async def daily_summary(date: str | None = None) -> dict[str, Any]:
     Planned entries appear in the list but count toward no totals. day_type
     picks which of the phase's targets (kcal and protein) is in force;
     day_type_source says how it was resolved — "manual" is the user's own
-    mark via set_day_type, "default" means unmarked days count as rest until
-    exercise logging exists. The numbers are facts; the judgment on them is
-    yours, guided by profile_context.
+    mark via set_day_type, "derived" is training inferred from a non-planned
+    exercise session that day, and "default" is the rest-day assumption for a
+    day with neither. The numbers are facts; the judgment on them is yours,
+    guided by profile_context.
     """
     who = await _caller()
     async with SessionLocal() as session:
@@ -519,8 +531,8 @@ async def revise_log(log_id: int, changes: dict[str, Any]) -> dict[str, Any]:
     item takes the same {food_id, grams, estimated?} shape as log_meal; when the
     user corrects an amount they have now measured it, so leave estimated off
     (or false) and the guess flag clears for that item. {"planned": false}
-    confirms a planned meal as eaten. There is no delete: a log that shouldn't
-    exist gets its items corrected instead.
+    confirms a planned meal as eaten. A meal that never happened at all is
+    delete_log, not a revision.
 
     Returns the revised log with that day's updated totals.
     """

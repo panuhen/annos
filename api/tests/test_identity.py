@@ -28,9 +28,11 @@ def production_like(monkeypatch):
     """Turn off the Phase 0 bypass, and start from cold caches."""
     monkeypatch.setattr(settings, "dev_subject", None)
     identity._cache.clear()
+    identity._negative_cache.clear()
     identity._jwks_cache = None
     yield
     identity._cache.clear()
+    identity._negative_cache.clear()
     identity._jwks_cache = None
 
 
@@ -110,6 +112,64 @@ async def test_rejected_token_is_an_auth_error(monkeypatch):
 
     with pytest.raises(identity.AuthError, match="rejected"):
         await identity.resolve_caller("Bearer tok-123")
+
+
+async def test_a_rejected_token_is_negatively_cached(monkeypatch):
+    """A garbage bearer token must cost at most one upstream call. Without the
+    negative cache, a flood of unique invalid tokens is amplified request-for-
+    request into /mcp/get-session — an attack on the identity provider, which is
+    on the MCP critical path."""
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, content=json.dumps(None))
+
+    mock_authorization_server(monkeypatch, handler)
+
+    for _ in range(3):
+        with pytest.raises(identity.AuthError, match="rejected"):
+            await identity.resolve_caller("Bearer tok-garbage")
+
+    assert len(calls) == 1
+
+
+async def test_the_negative_cache_expires(monkeypatch):
+    """A rejection cached forever would outlive a token that later becomes
+    valid — impossible for opaque tokens today, but the TTL keeps the negative
+    cache from being a correctness trap if that ever changes."""
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, content=json.dumps(None))
+
+    mock_authorization_server(monkeypatch, handler)
+    monkeypatch.setattr(settings, "token_cache_ttl_seconds", -1)
+
+    for _ in range(2):
+        with pytest.raises(identity.AuthError):
+            await identity.resolve_caller("Bearer tok-garbage")
+
+    assert len(calls) == 2
+
+
+async def test_upstream_failure_is_not_negatively_cached(monkeypatch):
+    """A 503 is the server's problem, not the token's. Caching it would keep
+    rejecting a valid credential after the outage cleared."""
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(503, content=json.dumps({}))
+
+    mock_authorization_server(monkeypatch, handler)
+
+    for _ in range(2):
+        with pytest.raises(identity.AuthError, match="503"):
+            await identity.resolve_caller("Bearer tok-123")
+
+    assert len(calls) == 2
 
 
 async def test_upstream_failure_is_not_blamed_on_the_caller(monkeypatch):

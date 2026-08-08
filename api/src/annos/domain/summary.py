@@ -7,9 +7,10 @@ and facts: totals, the active phase's target, what remains. Whether the number
 is good news is the client's judgment, fed by `profile_context`.
 
 The day's type (training or rest) picks which of the phase's targets is in
-force; it resolves in annos.domain.days — a manual mark wins, an unmarked day
-is rest until exercise logging exists — and the payload carries the source of
-the resolution, so a wrong-but-labelled assumption beats a hidden one.
+force; it resolves in annos.domain.days — a manual mark wins, else a
+non-planned exercise session that day derives training, else rest — and the
+payload carries the source of the resolution, so a wrong-but-labelled
+assumption beats a hidden one.
 
 recent_meals is the memory a stateless client lacks: what the user has been
 eating lately, so "the usual" and "same as Tuesday" resolve into food ids and

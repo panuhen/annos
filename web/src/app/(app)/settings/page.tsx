@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { LOCALE_COOKIE, LOCALES } from "@/i18n/config";
 import { api } from "@/lib/api/client";
+import { MCP_URL } from "@/lib/mcp";
 import { useProfile } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
@@ -32,10 +33,6 @@ const LANGUAGE_NAMES: Record<string, string> = {
   sv: "Svenska",
   en: "English",
 };
-
-/** The MCP endpoint is the API's public origin, which only deploy config
- * knows — the rewrite the web app uses internally is not the public URL. */
-const MCP_URL = process.env.NEXT_PUBLIC_MCP_URL ?? "http://localhost:8000/mcp/";
 
 /** "GMT+3" for Europe/Helsinki in summer — the current offset, DST included,
  * from the browser's own tz database. */

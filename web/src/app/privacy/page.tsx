@@ -62,9 +62,11 @@ export default function PrivacyPage() {
           see Section 4.
         </p>
         <p>
-          <strong>Automatically.</strong> Ordinary server logs, and your IP address held briefly to
-          rate-limit and prevent abuse. There is no analytics, tracking, or advertising technology
-          anywhere in Annos.
+          <strong>Automatically.</strong> Ordinary server logs, which record no IP address. Your IP
+          address is used only transiently, at the security layer, to rate-limit sign-in and
+          account-recovery attempts and prevent abuse — it is never attached to your account or to
+          anything you log. There is no analytics, tracking, or advertising technology anywhere in
+          Annos.
         </p>
       </section>
 
@@ -123,7 +125,7 @@ export default function PrivacyPage() {
           <li>Your account and everything in it are kept while your account exists.</li>
           <li>When you delete your account, it and all your data are erased immediately and permanently — there is no soft delete and no grace period.</li>
           <li>Encrypted backups are kept for up to 30 days and then overwritten; they are never restored for one person.</li>
-          <li>Server logs are short-lived; the IP address used for rate-limiting is discarded within minutes.</li>
+          <li>Server logs are short-lived and record no IP address. Your IP is used only to rate-limit sign-in and recovery, in short windows, and is never linked to your account or the data you log. The network layer in front of the service (Section 7) processes IP addresses under its own retention.</li>
         </ul>
       </section>
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { CopyButton } from "@/components/copy-button";
 import { AnnosWordmark } from "@/components/wordmark";
+import { MCP_URL_DISPLAY } from "@/lib/mcp";
 import enMessages from "../../../messages/en.json";
 
 /**
@@ -23,13 +24,6 @@ import enMessages from "../../../messages/en.json";
  * stamp keeps its one meaning — a record landing — timed in the hero,
  * scroll-scrubbed in the beats.
  */
-
-// The address a connecting client needs — the one hard fact on the page.
-// Display form drops the trailing slash; both spellings serve.
-const MCP_URL = (process.env.NEXT_PUBLIC_MCP_URL ?? "https://mcp.annos.app/mcp/").replace(
-  /\/$/,
-  "",
-);
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
@@ -421,10 +415,10 @@ export default function HelloPage() {
                 {t("connect2")}
                 <span className="mt-2 flex items-stretch gap-2">
                   <code className="tnum flex min-w-0 flex-1 items-center truncate border border-border px-3 font-mono text-xs">
-                    {MCP_URL}
+                    {MCP_URL_DISPLAY}
                   </code>
                   <CopyButton
-                    value={MCP_URL}
+                    value={MCP_URL_DISPLAY}
                     label={t("copyAddress")}
                     idleText={t("copy")}
                     copiedText={t("copied")}
