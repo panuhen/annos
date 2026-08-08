@@ -425,6 +425,8 @@
     "copyEndpoint": "Kopioi osoite",
     "copyConfig": "Kopioi asetus",
     "aboutTitle": "Tietoja",
+    "privacyLink": "Tietosuoja",
+    "termsLink": "Käyttöehdot",
     "aboutBody": "Annos on ruoka-, liikunta- ja painokirjanpito. Voit käyttää sitä täällä tai MCP:llä yhdistetystä tekoälysovelluksesta; molemmat käyttävät samoja tietoja ja osaavat samat asiat. Se näyttää päiväsi tavoitteita vasten eikä anna neuvoja. Tilit ovat pseudonyymejä: luotu lempinimi on sovelluksen ainoa nimi. Annos on ilmainen ja <repo>avointa lähdekoodia</repo>.",
     "theme": "Teema",
     "light": "Vaalea",

@@ -425,6 +425,8 @@
     "copyEndpoint": "Kopiera adressen",
     "copyConfig": "Kopiera konfigurationen",
     "aboutTitle": "Om",
+    "privacyLink": "Integritet",
+    "termsLink": "Villkor",
     "aboutBody": "Annos är en dagbok för mat, träning och vikt. Du kan använda den här eller från en AI-klient ansluten via MCP; båda arbetar med samma data och kan göra samma saker. Den visar din dag mot dina mål och ger inga råd. Konton är pseudonyma: ett genererat smeknamn är det enda namnet i appen. Annos är gratis och <repo>öppen källkod</repo>.",
     "theme": "Tema",
     "light": "Ljust",

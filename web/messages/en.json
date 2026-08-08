@@ -426,6 +426,8 @@
     "copyConfig": "Copy configuration",
     "aboutTitle": "About",
     "aboutBody": "Annos tracks food, exercise and weight. You can use it here or from an AI client connected over MCP; both work on the same data and can do the same things. It shows your day against your targets and gives no advice. Accounts are pseudonymous: a generated nickname is the only name inside the app. Annos is free and <repo>open source</repo>.",
+    "privacyLink": "Privacy",
+    "termsLink": "Terms",
     "theme": "Theme",
     "light": "Light",
     "dark": "Dark",

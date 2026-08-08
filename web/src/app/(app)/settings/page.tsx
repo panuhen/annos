@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Monitor, Moon, Sun } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
@@ -108,6 +109,15 @@ export default function SettingsPage() {
         <FineliFooter className="mt-3 text-sm leading-relaxed text-muted-foreground" />
         <CompendiumFooter className="mt-2 text-sm leading-relaxed text-muted-foreground" />
       </section>
+
+      <footer className="mt-8 flex gap-4 border-t border-border pt-4 pb-4 font-mono text-xs uppercase tracking-wide text-muted-foreground">
+        <Link href="/privacy" className="hover:text-foreground">
+          {t("privacyLink")}
+        </Link>
+        <Link href="/terms" className="hover:text-foreground">
+          {t("termsLink")}
+        </Link>
+      </footer>
     </>
   );
 }
