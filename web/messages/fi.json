@@ -8,7 +8,8 @@
   },
   "footer": {
     "prefix": "Ruoan koostumustiedot:",
-    "institute": "Terveyden ja hyvinvoinnin laitos"
+    "institute": "Terveyden ja hyvinvoinnin laitos",
+    "activityPrefix": "Liikunnan energiankulutus:"
   },
   "gate": {
     "errorTitle": "Keittiö ei vastaa",
@@ -335,7 +336,31 @@
     "signUpFailed": "Tilin luonti epäonnistui",
     "noAccount": "Ei tiliä?",
     "haveAccount": "Onko sinulla jo tili?",
-    "quarantine": "Sähköpostisi jää kirjautumisjärjestelmään — itse sovellus ei koskaan näe sitä. Annoksessa olet vain nimimerkkisi, joka arvotaan seuraavalla sivulla."
+    "quarantine": "Sähköpostisi jää kirjautumisjärjestelmään — itse sovellus ei koskaan näe sitä. Annoksessa olet vain nimimerkkisi, joka arvotaan seuraavalla sivulla.",
+    "forgotPassword": "Unohtuiko salasana?",
+    "checkEmailTitle": "Tarkista sähköpostisi",
+    "checkEmailBody": "Lähetimme vahvistuslinkin sähköpostiisi. Avaa se viimeistelläksesi tilin ja arpoaksesi nimimerkkisi.",
+    "resend": "Lähetä vahvistus uudelleen",
+    "resendSent": "Lähetetty — tarkista sähköpostisi.",
+    "notVerified": "Vahvista ensin sähköpostisi. Lähetimme linkin rekisteröityessäsi — avaa se tai lähetä uudelleen alta.",
+    "forgotTitle": "Palauta salasanasi",
+    "forgotBody": "Anna sähköpostisi, niin lähetämme linkin uuden salasanan valintaan.",
+    "sendResetLink": "Lähetä palautuslinkki",
+    "sending": "Lähetetään…",
+    "resetSent": "Jos osoitteella on tili, palautuslinkki on matkalla. Tarkista sähköpostisi.",
+    "backToSignIn": "Takaisin kirjautumiseen",
+    "resetTitle": "Valitse uusi salasana",
+    "newPassword": "Uusi salasana",
+    "resetSubmit": "Päivitä salasana",
+    "resetting": "Päivitetään…",
+    "resetDone": "Salasana päivitetty. Voit nyt kirjautua sisään.",
+    "resetInvalid": "Tämä palautuslinkki on virheellinen tai vanhentunut. Pyydä uusi.",
+    "resetFailed": "Salasanan palautus epäonnistui",
+    "continueWithGoogle": "Jatka Googlella",
+    "or": "tai",
+    "termsLink": "Käyttöehdot",
+    "privacyLink": "Tietosuoja",
+    "agree": "Jatkamalla hyväksyt <terms>käyttöehdot</terms> ja <privacy>tietosuojakäytännön</privacy>."
   },
   "templates": {
     "title": "Pohjat",
@@ -385,7 +410,7 @@
     "copyEndpoint": "Kopioi osoite",
     "copyConfig": "Kopioi asetus",
     "aboutTitle": "Tietoja",
-    "aboutBody": "Annos on ruoka- ja painokirjanpito. Voit käyttää sitä täällä tai MCP:llä yhdistetystä tekoälysovelluksesta; molemmat käyttävät samoja tietoja ja osaavat samat asiat. Se näyttää päiväsi tavoitteita vasten eikä anna neuvoja. Tilit ovat pseudonyymejä: luotu lempinimi on sovelluksen ainoa nimi.",
+    "aboutBody": "Annos on ruoka-, liikunta- ja painokirjanpito. Voit käyttää sitä täällä tai MCP:llä yhdistetystä tekoälysovelluksesta; molemmat käyttävät samoja tietoja ja osaavat samat asiat. Se näyttää päiväsi tavoitteita vasten eikä anna neuvoja. Tilit ovat pseudonyymejä: luotu lempinimi on sovelluksen ainoa nimi. Annos on ilmainen ja <repo>avointa lähdekoodia</repo>.",
     "theme": "Teema",
     "light": "Vaalea",
     "dark": "Tumma",

@@ -8,7 +8,8 @@
   },
   "footer": {
     "prefix": "Livsmedelsdata:",
-    "institute": "Institutet för hälsa och välfärd"
+    "institute": "Institutet för hälsa och välfärd",
+    "activityPrefix": "Aktiviteters energiåtgång:"
   },
   "gate": {
     "errorTitle": "Köket svarar inte",
@@ -335,7 +336,31 @@
     "signUpFailed": "Kontot kunde inte skapas",
     "noAccount": "Inget konto?",
     "haveAccount": "Redan registrerad?",
-    "quarantine": "Din e-post stannar hos inloggningssystemet — själva appen ser den aldrig. I Annos är du bara ditt smeknamn, som dras på nästa sida."
+    "quarantine": "Din e-post stannar hos inloggningssystemet — själva appen ser den aldrig. I Annos är du bara ditt smeknamn, som dras på nästa sida.",
+    "forgotPassword": "Glömt lösenordet?",
+    "checkEmailTitle": "Kontrollera din e-post",
+    "checkEmailBody": "Vi har skickat en bekräftelselänk till din e-post. Öppna den för att slutföra kontot och dra ditt smeknamn.",
+    "resend": "Skicka bekräftelsen igen",
+    "resendSent": "Skickat — kontrollera din inkorg.",
+    "notVerified": "Bekräfta din e-post först. Vi skickade en länk när du registrerade dig — öppna den eller skicka igen nedan.",
+    "forgotTitle": "Återställ ditt lösenord",
+    "forgotBody": "Ange din e-post så skickar vi en länk för att välja ett nytt lösenord.",
+    "sendResetLink": "Skicka återställningslänk",
+    "sending": "Skickar…",
+    "resetSent": "Om adressen har ett konto är en återställningslänk på väg. Kontrollera din inkorg.",
+    "backToSignIn": "Tillbaka till inloggning",
+    "resetTitle": "Välj ett nytt lösenord",
+    "newPassword": "Nytt lösenord",
+    "resetSubmit": "Uppdatera lösenord",
+    "resetting": "Uppdaterar…",
+    "resetDone": "Lösenordet uppdaterat. Du kan logga in nu.",
+    "resetInvalid": "Den här återställningslänken är ogiltig eller har gått ut. Begär en ny.",
+    "resetFailed": "Kunde inte återställa lösenordet",
+    "continueWithGoogle": "Fortsätt med Google",
+    "or": "eller",
+    "termsLink": "Villkor",
+    "privacyLink": "Integritet",
+    "agree": "Genom att fortsätta godkänner du <terms>villkoren</terms> och <privacy>integritetspolicyn</privacy>."
   },
   "templates": {
     "title": "Mallar",
@@ -385,7 +410,7 @@
     "copyEndpoint": "Kopiera adressen",
     "copyConfig": "Kopiera konfigurationen",
     "aboutTitle": "Om",
-    "aboutBody": "Annos är en dagbok för mat och vikt. Du kan använda den här eller från en AI-klient ansluten via MCP; båda arbetar med samma data och kan göra samma saker. Den visar din dag mot dina mål och ger inga råd. Konton är pseudonyma: ett genererat smeknamn är det enda namnet i appen.",
+    "aboutBody": "Annos är en dagbok för mat, träning och vikt. Du kan använda den här eller från en AI-klient ansluten via MCP; båda arbetar med samma data och kan göra samma saker. Den visar din dag mot dina mål och ger inga råd. Konton är pseudonyma: ett genererat smeknamn är det enda namnet i appen. Annos är gratis och <repo>öppen källkod</repo>.",
     "theme": "Tema",
     "light": "Ljust",
     "dark": "Mörkt",

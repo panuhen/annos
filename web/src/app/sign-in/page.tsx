@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { AuthSheet } from "@/components/auth-sheet";
+import { GoogleButton } from "@/components/google-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
@@ -22,33 +23,56 @@ function SignInForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Set when sign-in fails on an unverified address, so the page can offer to
+  // resend the confirmation link to exactly that address.
+  const [unverified, setUnverified] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
 
   const oauthFlow = searchParams.has("client_id");
+  const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === "true";
+  // Where a completed sign-in should land — the OAuth continuation when this
+  // page is standing in as the MCP login page, otherwise the app root. Google
+  // sign-in uses the same target.
+  const destination = oauthFlow
+    ? `/api/auth/mcp/authorize?${searchParams.toString()}`
+    : "/";
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setError(null);
+    setUnverified(null);
+    setResent(false);
     // The values come from the form, not component state: credentials the
     // browser autofills never fire React's onChange, so a submit reading
     // state posts empty strings — the "enter it twice" bug.
     const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "");
     const { error } = await authClient.signIn.email({
-      email: String(form.get("email") ?? ""),
+      email,
       password: String(form.get("password") ?? ""),
     });
     if (error) {
-      setError(error.message ?? t("signInFailed"));
+      // Verification is required: an unverified account can't sign in. Say so
+      // plainly and let them resend, rather than the generic failure.
+      if (error.code === "EMAIL_NOT_VERIFIED") {
+        setUnverified(email);
+        setError(t("notVerified"));
+      } else {
+        setError(error.message ?? t("signInFailed"));
+      }
       setPending(false);
       return;
     }
-    if (oauthFlow) {
-      window.location.href = `/api/auth/mcp/authorize?${searchParams.toString()}`;
-    } else {
-      // A full navigation, not router.push: crossing the auth boundary is
-      // where the client-side session store must be rebuilt, not trusted.
-      window.location.href = "/";
-    }
+    // A full navigation, not router.push: crossing the auth boundary is where
+    // the client-side session store must be rebuilt, not trusted.
+    window.location.href = destination;
+  }
+
+  async function resendVerification() {
+    if (!unverified) return;
+    await authClient.sendVerificationEmail({ email: unverified, callbackURL: "/welcome" });
+    setResent(true);
   }
 
   return (
@@ -57,6 +81,16 @@ function SignInForm() {
         <p className="mb-4 border border-border px-3 py-2 text-sm">
           {t("oauthNotice")}
         </p>
+      )}
+      {googleEnabled && (
+        <>
+          <GoogleButton callbackURL={destination} />
+          <div className="my-4 flex items-center gap-3 text-xs uppercase text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            {t("or")}
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
       )}
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
         <div>
@@ -84,12 +118,30 @@ function SignInForm() {
             autoComplete="current-password"
             className="h-12 text-base"
           />
+          <Link
+            href="/forgot-password"
+            className="mt-1.5 inline-block text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            {t("forgotPassword")}
+          </Link>
         </div>
         {error && (
           <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
         )}
+        {unverified &&
+          (resent ? (
+            <p className="text-sm text-muted-foreground">{t("resendSent")}</p>
+          ) : (
+            <button
+              type="button"
+              onClick={resendVerification}
+              className="self-start text-sm text-primary underline underline-offset-2"
+            >
+              {t("resend")}
+            </button>
+          ))}
         <button
           type="submit"
           disabled={pending}

@@ -8,7 +8,8 @@
   },
   "footer": {
     "prefix": "Food composition data:",
-    "institute": "Finnish Institute for Health and Welfare"
+    "institute": "Finnish Institute for Health and Welfare",
+    "activityPrefix": "Activity energy costs:"
   },
   "gate": {
     "errorTitle": "The kitchen is not answering",
@@ -335,7 +336,31 @@
     "signUpFailed": "Sign-up failed",
     "noAccount": "No account?",
     "haveAccount": "Already registered?",
-    "quarantine": "Your email stays with the sign-in system — the tracker itself never sees it. Inside Annos you are only your nickname, drawn on the next page."
+    "quarantine": "Your email stays with the sign-in system — the tracker itself never sees it. Inside Annos you are only your nickname, drawn on the next page.",
+    "forgotPassword": "Forgot password?",
+    "checkEmailTitle": "Check your email",
+    "checkEmailBody": "We've sent a confirmation link to your email. Open it to finish creating your account and draw your nickname.",
+    "resend": "Resend confirmation",
+    "resendSent": "Sent — check your inbox.",
+    "notVerified": "Confirm your email first. We sent a link when you signed up — open it, or resend below.",
+    "forgotTitle": "Reset your password",
+    "forgotBody": "Enter your email and we'll send a link to choose a new password.",
+    "sendResetLink": "Send reset link",
+    "sending": "Sending…",
+    "resetSent": "If that address has an account, a reset link is on its way. Check your inbox.",
+    "backToSignIn": "Back to sign in",
+    "resetTitle": "Choose a new password",
+    "newPassword": "New password",
+    "resetSubmit": "Update password",
+    "resetting": "Updating…",
+    "resetDone": "Password updated. You can sign in now.",
+    "resetInvalid": "This reset link is invalid or has expired. Request a new one.",
+    "resetFailed": "Could not reset the password",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "termsLink": "Terms",
+    "privacyLink": "Privacy",
+    "agree": "By continuing you agree to the <terms>Terms</terms> and <privacy>Privacy Policy</privacy>."
   },
   "templates": {
     "title": "Templates",
@@ -385,7 +410,7 @@
     "copyEndpoint": "Copy endpoint",
     "copyConfig": "Copy configuration",
     "aboutTitle": "About",
-    "aboutBody": "Annos tracks food and weight. You can use it here or from an AI client connected over MCP; both work on the same data and can do the same things. It shows your day against your targets and gives no advice. Accounts are pseudonymous: a generated nickname is the only name inside the app.",
+    "aboutBody": "Annos tracks food, exercise and weight. You can use it here or from an AI client connected over MCP; both work on the same data and can do the same things. It shows your day against your targets and gives no advice. Accounts are pseudonymous: a generated nickname is the only name inside the app. Annos is free and <repo>open source</repo>.",
     "theme": "Theme",
     "light": "Light",
     "dark": "Dark",

@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { CompendiumFooter } from "@/components/compendium-footer";
 import { FineliFooter } from "@/components/fineli-footer";
 import { Label } from "@/components/ui/label";
 import {
@@ -90,8 +91,21 @@ export default function SettingsPage() {
 
       <section className="mt-8 border-t border-border pt-4 pb-4">
         <h2 className="text-sm font-bold">{t("aboutTitle")}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{t("aboutBody")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t.rich("aboutBody", {
+            repo: (chunks) => (
+              <a
+                href="https://github.com/panuhen/annos"
+                rel="noopener"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                {chunks}
+              </a>
+            ),
+          })}
+        </p>
         <FineliFooter className="mt-3 text-sm leading-relaxed text-muted-foreground" />
+        <CompendiumFooter className="mt-2 text-sm leading-relaxed text-muted-foreground" />
       </section>
     </>
   );

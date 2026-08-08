@@ -71,6 +71,17 @@ services:
       # Owner role: Better Auth migrates and owns its tables; annos_api has
       # no SELECT on them — that grant is the email quarantine.
       DATABASE_URL: postgres://annos:annos@db:5432/annos
+      # Resend lives here, not in the API — email leaves the system only from
+      # the identity layer that already holds it. Sourced from the repo-root
+      # .env (untracked); blank in dev makes the senders log the link instead.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      # Google sign-in. Enabled only when the credentials are present; the
+      # public flag gates the button in the browser. Annos keeps neither the
+      # name nor the photo Google returns — only the quarantined email.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      NEXT_PUBLIC_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_ENABLED:-false}
     ports:
       - "3000:3000"
     depends_on:
