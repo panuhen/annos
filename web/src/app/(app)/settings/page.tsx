@@ -1,14 +1,15 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Monitor, Moon, Sun } from "@phosphor-icons/react";
+import { Monitor, Moon, Sun } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import { CompendiumFooter } from "@/components/compendium-footer";
+import { CopyButton } from "@/components/copy-button";
 import { FineliFooter } from "@/components/fineli-footer";
 import { Label } from "@/components/ui/label";
 import {
@@ -305,7 +306,12 @@ function McpSection() {
           <span className="font-mono text-xs uppercase text-muted-foreground">
             {t("mcpEndpoint")}
           </span>
-          <CopyButton value={MCP_URL} label={t("copyEndpoint")} />
+          <CopyButton
+            value={MCP_URL}
+            label={t("copyEndpoint")}
+            idleText={t("copy")}
+            copiedText={t("copied")}
+          />
         </div>
         <code className="tnum mt-1.5 block truncate border border-input px-3 py-2 font-mono text-xs">
           {MCP_URL}
@@ -318,7 +324,12 @@ function McpSection() {
           <span className="font-mono text-xs uppercase text-muted-foreground">
             {t("mcpConfig")}
           </span>
-          <CopyButton value={config} label={t("copyConfig")} />
+          <CopyButton
+            value={config}
+            label={t("copyConfig")}
+            idleText={t("copy")}
+            copiedText={t("copied")}
+          />
         </div>
         <pre className="mt-1.5 overflow-x-auto border border-input px-3 py-2 font-mono text-xs leading-relaxed">
           {config}
@@ -340,27 +351,3 @@ function McpSection() {
   );
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
-  const t = useTranslations("settings");
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={() => {
-        navigator.clipboard.writeText(value).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        });
-      }}
-      className="flex min-h-11 items-center gap-1 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
-    >
-      {copied ? (
-        <Check aria-hidden className="size-3.5" />
-      ) : (
-        <Copy aria-hidden className="size-3.5" />
-      )}
-      {copied ? t("copied") : t("copy")}
-    </button>
-  );
-}

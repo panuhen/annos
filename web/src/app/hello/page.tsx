@@ -1,7 +1,9 @@
+import { DeviceMobile, Plugs } from "@phosphor-icons/react/dist/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { CopyButton } from "@/components/copy-button";
 import { AnnosWordmark } from "@/components/wordmark";
 
 /**
@@ -179,7 +181,7 @@ export default async function HelloPage() {
 
       {/* 08:12 — the hero: say it, and it's on the sheet. The first beat of
           the spine, so the timeline starts where the day does. */}
-      <section className="relative border-l border-border pt-6 pb-20 pl-6 sm:pl-10 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-x-20 lg:pt-12 lg:pb-28">
+      <section className="relative mt-8 border-l border-border pt-6 pb-20 pl-6 sm:pl-10 lg:mt-14 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-x-20 lg:pt-12 lg:pb-28">
         <span className="absolute -left-px top-0 -translate-x-1/2 bg-background py-1 font-mono text-xs text-muted-foreground">
           08:12
         </span>
@@ -187,17 +189,18 @@ export default async function HelloPage() {
           <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
             {t("heroTitle")}
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground lg:text-lg">
-            {t("heroSub")}
-          </p>
-          <div className="mt-6 max-w-md lg:mt-8">
+          {/* No subtitle — the specimen demo carries the hero; the title goes
+              straight to the action. A contained button (not the close's
+              full-width row) with sign-in beside it, so the two CTAs read as
+              deliberately different moments. */}
+          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center lg:mt-10">
             <Link
               href="/sign-up"
-              className={`flex min-h-12 w-full items-center justify-center bg-primary text-base font-bold text-primary-foreground hover:opacity-90 ${FOCUS}`}
+              className={`flex min-h-12 w-full items-center justify-center bg-primary px-8 text-base font-bold text-primary-foreground hover:opacity-90 sm:w-auto ${FOCUS}`}
             >
               {t("cta")}
             </Link>
-            <p className="pt-2.5 text-center text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {t("haveAccount")}{" "}
               <Link href="/sign-in" className={`font-bold text-primary hover:opacity-90 ${FOCUS}`}>
                 {t("signIn")}
@@ -222,7 +225,7 @@ export default async function HelloPage() {
             <div className="pt-2">
               <Dish
                 name={t("specimenEgg")}
-                portion="2 kpl · 110 g"
+                portion={t("specimenEggPortion")}
                 kcal={171}
                 className="stamp-in"
                 style={{ animationDelay: "400ms" }}
@@ -267,6 +270,27 @@ export default async function HelloPage() {
           <Dish name={t("specimenBread")} portion="35 g" kcal={86} />
           <Dish name={t("specimenWok")} tag="AI" portion="350 g" kcal={480} />
         </Entry>
+      </Beat>
+
+      {/* 16:30 — exercise, estimated and kept out of the food maths. */}
+      <Beat time="16:30" claim={t("exerciseClaim")} body={t("exerciseBody")}>
+        <div className="stamp-on-view border-y border-border py-4">
+          <div className="flex items-baseline justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {t("specimenExercise")}
+            </span>
+            <span className="font-mono text-xs text-muted-foreground">
+              16:30 · ({t("specimenExample")})
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 pt-2">
+            <span className="truncate">{t("specimenRun")}</span>
+            <span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">32 min</span>
+            {/* ≈ marks the estimate, the way (AI) marks a guessed dish; it never
+                joins the day's energy total. */}
+            <span className="tnum shrink-0 text-right font-mono text-sm">≈ 390 kcal</span>
+          </div>
+        </div>
       </Beat>
 
       {/* 17:30 — weight and goal. */}
@@ -344,25 +368,30 @@ export default async function HelloPage() {
       {/* The close: one big action, then the two how-tos. */}
       <section className="pt-4 lg:pt-8">
         <h2 className="text-4xl font-bold tracking-tight sm:text-5xl">{t("closeTitle")}</h2>
-        <div className="mt-8 max-w-md">
+        {/* Both doors, co-equal and full-width. Sign-in leads here (the close
+            is where a returning reader looks for it), the secondary in the
+            system's outline block; create-account keeps the ochre and the
+            visual weight, since acquisition is still the page's job. */}
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/sign-in"
+            className={`flex min-h-14 flex-1 items-center justify-center border border-input text-base font-bold hover:bg-secondary ${FOCUS}`}
+          >
+            {t("signIn")}
+          </Link>
           <Link
             href="/sign-up"
-            className={`flex min-h-12 w-full items-center justify-center bg-primary text-base font-bold text-primary-foreground hover:opacity-90 ${FOCUS}`}
+            className={`flex min-h-14 flex-1 items-center justify-center bg-primary text-base font-bold text-primary-foreground hover:opacity-90 ${FOCUS}`}
           >
             {t("cta")}
           </Link>
-          <p className="pt-2.5 text-center text-sm text-muted-foreground">
-            {t("haveAccount")}{" "}
-            <Link href="/sign-in" className={`font-bold text-primary hover:opacity-90 ${FOCUS}`}>
-              {t("signIn")}
-            </Link>
-          </p>
         </div>
       </section>
 
       <div className="mt-16 gap-x-20 lg:grid lg:grid-cols-2">
         <section>
-          <h3 className="border-b-2 border-foreground pb-2 font-mono text-xs uppercase tracking-wider">
+          <h3 className="flex items-center gap-2 border-b-2 border-foreground pb-2 font-mono text-xs uppercase tracking-wider">
+            <Plugs size={16} aria-hidden />
             {t("connectTitle")}
           </h3>
           <ol className="list-none">
@@ -374,9 +403,17 @@ export default async function HelloPage() {
               <span className="font-mono text-sm text-muted-foreground">2</span>
               <span className="min-w-0 text-sm leading-relaxed">
                 {t("connect2")}
-                <code className="mt-2 block break-all border border-border px-3 py-2 font-mono text-xs">
-                  {MCP_URL}
-                </code>
+                <span className="mt-2 flex items-stretch gap-2">
+                  <code className="tnum flex min-w-0 flex-1 items-center truncate border border-border px-3 font-mono text-xs">
+                    {MCP_URL}
+                  </code>
+                  <CopyButton
+                    value={MCP_URL}
+                    label={t("copyAddress")}
+                    idleText={t("copy")}
+                    copiedText={t("copied")}
+                  />
+                </span>
               </span>
             </li>
             <li className="flex gap-4 border-b border-border py-4">
@@ -388,7 +425,8 @@ export default async function HelloPage() {
         </section>
 
         <section className="mt-12 lg:mt-0">
-          <h3 className="border-b-2 border-foreground pb-2 font-mono text-xs uppercase tracking-wider">
+          <h3 className="flex items-center gap-2 border-b-2 border-foreground pb-2 font-mono text-xs uppercase tracking-wider">
+            <DeviceMobile size={16} aria-hidden />
             {t("installTitle")}
           </h3>
           <p className="border-b border-border py-4 text-sm leading-relaxed text-muted-foreground">
