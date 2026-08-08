@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="ANNOS_", env_file=".env", extra="ignore")
 
     # Runtime connection: the annos_api role, which has no access to Better
-    # Auth's tables. See db/init/01-roles.sql.
+    # Auth's tables. See db/init/01-roles.sh.
     database_url: str = "postgresql+asyncpg://annos_api:annos@localhost:5433/annos"
 
     # Migrations need the owner role, since annos_api cannot create tables.

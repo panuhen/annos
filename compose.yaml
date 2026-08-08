@@ -4,8 +4,13 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: annos
-      POSTGRES_PASSWORD: annos
+      # Owner password. A strong value is injected in prod; `annos` is the
+      # local-dev / test-suite default. The db has no host port in prod (below),
+      # but a real password is the right posture for health data.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-annos}
       POSTGRES_DB: annos
+      # Read by db/init/01-roles.sh to set the restricted annos_api password.
+      ANNOS_API_DB_PASSWORD: ${ANNOS_API_DB_PASSWORD:-annos}
     volumes:
       - annos-pgdata:/var/lib/postgresql/data
       # Runs once on first start: creates the restricted annos_api role.
@@ -19,30 +24,19 @@ services:
     # compose.override.yaml, so production — compose.yaml alone — binds nothing
     # on the host and can share a Coolify box without port clashes.
 
-  # One-shot: migrations run as the owner, since annos_api cannot create tables.
-  # Shares the api image explicitly — without a pinned `image:` compose builds a
-  # separate annos-migrate, and `docker compose build api` then leaves this one
-  # stale, so migrations silently run old code. On Coolify this runs on every
-  # deploy, so `alembic upgrade head` auto-migrates.
-  migrate:
-    build: ./api
-    image: annos-api:latest
-    command: ["uv", "run", "alembic", "upgrade", "head"]
-    environment:
-      ANNOS_MIGRATION_DATABASE_URL: postgresql+asyncpg://annos:annos@db:5432/annos
-      ANNOS_DATABASE_URL: postgresql+asyncpg://annos:annos@db:5432/annos
-    depends_on:
-      db:
-        condition: service_healthy
-
   api:
     build: ./api
     image: annos-api:latest
     restart: unless-stopped
     environment:
       # Runtime role: no access to Better Auth's tables. That grant is the
-      # email quarantine — see db/init/01-roles.sql.
-      ANNOS_DATABASE_URL: postgresql+asyncpg://annos_api:annos@db:5432/annos
+      # email quarantine — see db/init/01-roles.sh.
+      ANNOS_DATABASE_URL: postgresql+asyncpg://annos_api:${ANNOS_API_DB_PASSWORD:-annos}@db:5432/annos
+      # Owner role, used only by the startup `alembic upgrade head` +
+      # apply_grants (the api image's CMD) — never by the running app. There is
+      # no separate migrate container: the platform forces restart on every
+      # service, so a one-shot would loop; migrating on startup is the pattern.
+      ANNOS_MIGRATION_DATABASE_URL: postgresql+asyncpg://annos:${POSTGRES_PASSWORD:-annos}@db:5432/annos
       ANNOS_AUTH_BASE_URL: http://web:3000/api/auth
       # The issuer/audience Better Auth stamps into JWTs is its browser-facing
       # origin, not the URL the API fetches it by — so it is configured, not
@@ -64,8 +58,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
 
   # Better Auth lives here: identity system and OAuth 2.1 authorization server.
   # If this is down, MCP clients can neither authenticate nor call tools.
@@ -89,7 +81,7 @@ services:
       ANNOS_API_URL: http://api:8000
       # Owner role: Better Auth migrates and owns its tables; annos_api has
       # no SELECT on them — that grant is the email quarantine.
-      DATABASE_URL: postgres://annos:annos@db:5432/annos
+      DATABASE_URL: postgres://annos:${POSTGRES_PASSWORD:-annos}@db:5432/annos
       # Resend lives here, not in the API — email leaves the system only from
       # the identity layer that already holds it. Sourced from the repo-root
       # .env (untracked); blank in dev makes the senders log the link instead.
