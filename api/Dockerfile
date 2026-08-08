@@ -32,4 +32,8 @@ EXPOSE 8000
 # apply_grants all use the owner role (ANNOS_MIGRATION_DATABASE_URL); the server
 # then connects as the restricted annos_api role (ANNOS_DATABASE_URL). `exec`
 # makes uvicorn PID 1 for signals.
-CMD ["sh", "-c", "uv run python -m annos.ensure_roles && uv run alembic upgrade head && uv run python -m annos.apply_grants && exec uv run uvicorn annos.app:app --host 0.0.0.0 --port 8000"]
+# --forwarded-allow-ips '*': uvicorn only honours X-Forwarded-Proto from
+# 127.0.0.1 by default, so behind Traefik every generated absolute URL (e.g. a
+# redirect Location) downgraded to http://. The container port is only
+# reachable over the compose network, so trusting all peers is safe here.
+CMD ["sh", "-c", "uv run python -m annos.ensure_roles && uv run alembic upgrade head && uv run python -m annos.apply_grants && exec uv run uvicorn annos.app:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'"]

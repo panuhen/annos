@@ -63,6 +63,18 @@ async def test_no_token_gets_401_with_discovery_pointer(http):
     assert f"{settings.public_base_url}/.well-known/oauth-protected-resource/mcp/" in challenge
 
 
+async def test_the_bare_mcp_path_serves_instead_of_redirecting(http):
+    """Claude.ai normalises the connector URL to /mcp without the slash and
+    treats the mount's 307 as "not a valid MCP server" — the two spellings must
+    be the same request, with no Location round-trip."""
+    response = await http.post("/mcp", json=INITIALIZE, headers=MCP_HEADERS)
+
+    assert response.status_code == 401
+    assert "location" not in response.headers
+    challenge = response.headers.get("www-authenticate", "")
+    assert challenge.startswith("Bearer")
+
+
 async def test_a_rejected_token_gets_401_not_a_tool_error(http, monkeypatch):
     """Before this layer existed, a bad token produced a JSON-RPC tool error
     over HTTP 200 — and a remote client had nothing to hang discovery on."""

@@ -35,6 +35,30 @@ app = FastAPI(
 app.include_router(rest_router, prefix="/api")
 app.mount("/mcp", mcp_app)
 
+
+class McpPathNormalizer:
+    """Serves /mcp and /mcp/ identically, without a redirect.
+
+    The Streamable HTTP endpoint lives at /mcp/ (a mount), so the bare /mcp
+    would otherwise answer 307. MCP clients don't reliably re-POST across
+    redirects — Claude.ai normalises the connector URL to the no-slash form and
+    then treats the redirect as "not a valid MCP server" — and behind the proxy
+    the generated Location even downgrades to http://. Rewriting the ASGI scope
+    in place makes the two spellings the same request; no Location header is
+    ever produced.
+    """
+
+    def __init__(self, app):  # noqa: ANN001 — ASGI app, typed loosely on purpose
+        self.app = app
+
+    async def __call__(self, scope, receive, send):  # noqa: ANN001
+        if scope["type"] == "http" and scope["path"] == "/mcp":
+            scope = dict(scope, path="/mcp/", raw_path=b"/mcp/")
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(McpPathNormalizer)
+
 # RFC 9728: the metadata for the resource {public_base_url}/mcp/ lives at
 # /.well-known/oauth-protected-resource/mcp/ on the ORIGIN — the exact URL the
 # 401's WWW-Authenticate advertises, not inside the /mcp mount where no client
