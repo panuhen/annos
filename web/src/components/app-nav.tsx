@@ -23,7 +23,7 @@ export function AppNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-foreground bg-background pb-[env(safe-area-inset-bottom)] pl-[max(env(safe-area-inset-left),1rem)] pr-[max(env(safe-area-inset-right),1rem)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-foreground bg-background pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pl-[max(env(safe-area-inset-left),1rem)] pr-[max(env(safe-area-inset-right),1rem)] lg:hidden"
     >
       <div className="mx-auto flex max-w-md">
         {TABS.map(({ href, key, icon: Icon }) => {
