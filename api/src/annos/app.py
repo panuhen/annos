@@ -10,8 +10,7 @@ import logging
 
 import structlog
 from fastapi import FastAPI
-from mcp.server.auth.routes import create_protected_resource_routes
-from pydantic import AnyHttpUrl
+from fastapi.responses import JSONResponse
 
 from annos.adapters.mcp import mcp
 from annos.adapters.rest import router as rest_router
@@ -37,16 +36,30 @@ app.include_router(rest_router, prefix="/api")
 app.mount("/mcp", mcp_app)
 
 # RFC 9728: the metadata for the resource {public_base_url}/mcp/ lives at
-# /.well-known/oauth-protected-resource/mcp/ on the ORIGIN. Registered on the
-# outer app — inside the /mcp mount it would serve at the wrong path, and the
-# URL here must be exactly the one the 401's WWW-Authenticate advertises.
-app.router.routes.extend(
-    create_protected_resource_routes(
-        resource_url=AnyHttpUrl(f"{settings.public_base_url}/mcp/"),
-        authorization_servers=[AnyHttpUrl(settings.auth_jwt_issuer)],
-        resource_name="annos",
+# /.well-known/oauth-protected-resource/mcp/ on the ORIGIN — the exact URL the
+# 401's WWW-Authenticate advertises, not inside the /mcp mount where no client
+# would look for it.
+#
+# Hand-rolled rather than the MCP SDK's create_protected_resource_routes: that
+# helper types authorization_servers as list[AnyHttpUrl], and Pydantic
+# normalises a bare authority by appending a slash — so the issuer would be
+# advertised as https://annos.app/ while Better Auth's own
+# oauth-authorization-server metadata, and every JWT `iss`, says
+# https://annos.app. RFC 8414 requires the two byte-identical; a strict client
+# (Claude.ai among them) rejects the authorization server on the slash mismatch
+# and the MCP connect dies at "couldn't register". Emitting auth_jwt_issuer
+# verbatim keeps them equal — the same string identity.py validates tokens
+# against.
+@app.get("/.well-known/oauth-protected-resource/mcp/", include_in_schema=False)
+async def protected_resource_metadata() -> JSONResponse:
+    return JSONResponse(
+        {
+            "resource": f"{settings.public_base_url}/mcp/",
+            "authorization_servers": [settings.auth_jwt_issuer],
+            "bearer_methods_supported": ["header"],
+            "resource_name": "annos",
+        }
     )
-)
 
 
 @app.get("/health")

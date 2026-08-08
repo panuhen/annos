@@ -89,9 +89,12 @@ async def test_the_metadata_names_better_auth(http):
 
     assert response.status_code == 200
     metadata = response.json()
-    assert metadata["resource"].rstrip("/") == f"{settings.public_base_url}/mcp"
-    servers = [url.rstrip("/") for url in metadata["authorization_servers"]]
-    assert servers == [settings.auth_jwt_issuer]
+    assert metadata["resource"] == f"{settings.public_base_url}/mcp/"
+    # Byte-exact, no rstrip: the advertised authorization server must match
+    # Better Auth's oauth-authorization-server `issuer` and every JWT `iss`
+    # character for character, or a strict MCP client (Claude.ai) rejects the
+    # server at discovery. A trailing slash here is the bug this guards.
+    assert metadata["authorization_servers"] == [settings.auth_jwt_issuer]
 
 
 async def test_a_valid_token_reaches_the_server(http, monkeypatch):
