@@ -8,6 +8,14 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* are inlined into the client bundle at build time, so they must
+# be present now, not just at runtime. Defaults keep a plain `docker build`
+# working for local use; Coolify passes the production values as build args
+# (see compose.yaml web.build.args).
+ARG NEXT_PUBLIC_MCP_URL=http://localhost:8000/mcp/
+ARG NEXT_PUBLIC_GOOGLE_ENABLED=false
+ENV NEXT_PUBLIC_MCP_URL=${NEXT_PUBLIC_MCP_URL} \
+    NEXT_PUBLIC_GOOGLE_ENABLED=${NEXT_PUBLIC_GOOGLE_ENABLED}
 RUN npm run build
 
 FROM node:24-alpine AS run

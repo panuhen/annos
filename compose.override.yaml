@@ -6,9 +6,24 @@
 # node_modules and .next live in named volumes: the image's are alpine/musl
 # builds that must not mix with anything built on the (glibc) host, and
 # `npm install` on start keeps the volume in sync when package.json changes.
+#
+# The host port publishing also lives here, not in compose.yaml: it is what
+# lets the host reach the app (localhost:3000), the API and MCP (localhost:8000),
+# and Postgres/the test suite (localhost:5433). Production runs compose.yaml
+# alone, so it binds nothing and shares the Coolify box without clashes.
 services:
+  db:
+    ports:
+      - "5433:5432"
+
+  api:
+    ports:
+      - "8000:8000"
+
   web:
     image: annos-web:dev
+    ports:
+      - "3000:3000"
     build:
       context: ./web
       target: deps

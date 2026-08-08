@@ -1,13 +1,11 @@
 services:
   db:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: annos
       POSTGRES_PASSWORD: annos
       POSTGRES_DB: annos
-    ports:
-      # 5433, not 5432, so a Postgres already running on the host doesn't clash.
-      - "5433:5432"
     volumes:
       - annos-pgdata:/var/lib/postgresql/data
       # Runs once on first start: creates the restricted annos_api role.
@@ -17,11 +15,15 @@ services:
       interval: 2s
       timeout: 3s
       retries: 20
+    # The host port (5433, for psql and the test suite) lives in
+    # compose.override.yaml, so production — compose.yaml alone — binds nothing
+    # on the host and can share a Coolify box without port clashes.
 
   # One-shot: migrations run as the owner, since annos_api cannot create tables.
   # Shares the api image explicitly — without a pinned `image:` compose builds a
   # separate annos-migrate, and `docker compose build api` then leaves this one
-  # stale, so migrations silently run old code.
+  # stale, so migrations silently run old code. On Coolify this runs on every
+  # deploy, so `alembic upgrade head` auto-migrates.
   migrate:
     build: ./api
     image: annos-api:latest
@@ -36,6 +38,7 @@ services:
   api:
     build: ./api
     image: annos-api:latest
+    restart: unless-stopped
     environment:
       # Runtime role: no access to Better Auth's tables. That grant is the
       # email quarantine — see db/init/01-roles.sql.
@@ -43,14 +46,21 @@ services:
       ANNOS_AUTH_BASE_URL: http://web:3000/api/auth
       # The issuer/audience Better Auth stamps into JWTs is its browser-facing
       # origin, not the URL the API fetches it by — so it is configured, not
-      # derived.
-      ANNOS_AUTH_JWT_ISSUER: http://localhost:3000
-      ANNOS_AUTH_JWT_AUDIENCE: http://localhost:3000
-      # This API's public origin, advertised in the OAuth discovery handshake
-      # (401 → WWW-Authenticate → /.well-known/oauth-protected-resource/mcp/).
-      ANNOS_PUBLIC_BASE_URL: http://localhost:8000
-    ports:
-      - "8000:8000"
+      # derived. Dev default is localhost; prod is the public web origin.
+      ANNOS_AUTH_JWT_ISSUER: ${ANNOS_AUTH_JWT_ISSUER:-http://localhost:3000}
+      ANNOS_AUTH_JWT_AUDIENCE: ${ANNOS_AUTH_JWT_AUDIENCE:-http://localhost:3000}
+      # This API's own public origin, advertised in the OAuth discovery
+      # handshake (401 → WWW-Authenticate → /.well-known/...) and shown to MCP
+      # clients. Its own subdomain in prod: https://mcp.annos.app.
+      ANNOS_PUBLIC_BASE_URL: ${ANNOS_PUBLIC_BASE_URL:-http://localhost:8000}
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
     depends_on:
       db:
         condition: service_healthy
@@ -60,11 +70,20 @@ services:
   # Better Auth lives here: identity system and OAuth 2.1 authorization server.
   # If this is down, MCP clients can neither authenticate nor call tools.
   web:
-    build: ./web
+    build:
+      context: ./web
+      # NEXT_PUBLIC_* are inlined at `next build`, so they must be present as
+      # build args, not merely runtime env — Coolify passes the prod values
+      # here. They are ALSO set as runtime env below, which is what the
+      # override's `next dev` reads.
+      args:
+        NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:-http://localhost:8000/mcp/}
+        NEXT_PUBLIC_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_ENABLED:-false}
     image: annos-web:latest
+    restart: unless-stopped
     environment:
-      BETTER_AUTH_SECRET: dev-only-secret-change-in-production-0000
-      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-change-in-production-0000}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       # Where the /annos/* rewrite proxies API calls — the browser itself
       # only ever talks to this origin.
       ANNOS_API_URL: http://api:8000
@@ -77,13 +96,19 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
       # Google sign-in. Enabled only when the credentials are present; the
-      # public flag gates the button in the browser. Annos keeps neither the
-      # name nor the photo Google returns — only the quarantined email.
+      # public flag gates the button in the browser.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       NEXT_PUBLIC_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_ENABLED:-false}
-    ports:
-      - "3000:3000"
+      NEXT_PUBLIC_MCP_URL: ${NEXT_PUBLIC_MCP_URL:-http://localhost:8000/mcp/}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/sign-in', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
     depends_on:
       db:
         condition: service_healthy
