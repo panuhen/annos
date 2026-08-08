@@ -202,12 +202,15 @@ export default function ProfilePage() {
   );
 }
 
-/** The other GDPR verb, sitting right above deletion — the natural "export
- * before you delete" order. The generated client doesn't do binary, so this
+/** The other GDPR verb, stacked right above deletion as a matching
+ * disclosure row — the two account-data actions read as one quiet group at
+ * the foot, off the sheet until asked, and export-before-delete is the
+ * natural top-down order. The generated client doesn't do binary, so this
  * is the one hand-written fetch: same bearer header, blob out, a click on a
  * synthesized anchor hands the zip to the browser's own download UI. */
 function ExportData() {
   const t = useTranslations("profile");
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function download() {
@@ -235,20 +238,35 @@ function ExportData() {
   }
 
   return (
-    <div className="mt-8 border-t border-border pt-2 pb-1">
-      <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-        {t("exportTitle")}
-      </h2>
-      <p className="mt-1.5 text-xs text-muted-foreground">{t("exportNote")}</p>
+    <div className="mt-8 border-t border-border pt-1 pb-1">
       <button
         type="button"
-        onClick={download}
-        disabled={busy}
-        className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 border border-input font-bold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex min-h-11 items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
       >
-        <DownloadSimple aria-hidden className="size-4.5" />
-        {busy ? t("exporting") : t("exportButton")}
+        {open ? (
+          <CaretDown aria-hidden className="size-3.5" />
+        ) : (
+          <CaretRight aria-hidden className="size-3.5" />
+        )}
+        {t("exportTitle")}
       </button>
+
+      {open && (
+        <div className="mt-1 space-y-3">
+          <p className="text-xs text-muted-foreground">{t("exportNote")}</p>
+          <button
+            type="button"
+            onClick={download}
+            disabled={busy}
+            className="flex min-h-12 w-full items-center justify-center gap-2 border border-input font-bold hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <DownloadSimple aria-hidden className="size-4.5" />
+            {busy ? t("exporting") : t("exportButton")}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -319,7 +337,7 @@ function DeleteAccount() {
   }
 
   return (
-    <div className="mt-8 border-t border-border pt-1 pb-2">
+    <div className="border-t border-border pt-1 pb-2">
       <button
         type="button"
         aria-expanded={open}
