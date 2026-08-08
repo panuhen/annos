@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { jwt, mcp } from "better-auth/plugins";
-import { Pool } from "pg";
 
+import { pool } from "@/lib/db";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/emails";
 
 /**
@@ -33,7 +33,7 @@ const socialProviders =
     : undefined;
 
 export const auth = betterAuth({
-  database: new Pool({ connectionString: process.env.DATABASE_URL }),
+  database: pool,
   socialProviders,
   emailAndPassword: {
     enabled: true,
@@ -123,6 +123,13 @@ export const auth = betterAuth({
       loginPage: "/sign-in",
       oidcConfig: {
         loginPage: "/sign-in",
+        // The branded interstitial the connecting client (Claude.ai among
+        // them) is sent to after sign-in. Without it Better Auth auto-approves
+        // silently; with it the user sees the Annos mark and names the app
+        // they're about to connect — and it is this page's origin, favicon and
+        // mark that Claude.ai shows for the connector. Better Auth redirects
+        // here with consent_code / client_id / scope in the query.
+        consentPage: "/consent",
         // Remote MCP clients (Claude.ai among them) self-register via
         // RFC 7591; without this the whole MCP surface is unreachable.
         allowDynamicClientRegistration: true,

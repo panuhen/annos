@@ -360,7 +360,20 @@
     "or": "eller",
     "termsLink": "Villkor",
     "privacyLink": "Integritet",
-    "agree": "Genom att fortsätta godkänner du <terms>villkoren</terms> och <privacy>integritetspolicyn</privacy>."
+    "agree": "Genom att fortsätta godkänner du <terms>villkoren</terms> och <privacy>integritetspolicyn</privacy>.",
+    "consentTitle": "Ge åtkomst",
+    "consentIntro": "<strong>{client}</strong> vill ansluta till ditt Annos-konto.",
+    "consentApp": "En applikation",
+    "consentGrants": "När den är ansluten kan den läsa och logga din mat, träning och vikt — samma saker som du själv kan göra.",
+    "consentEmail": "Din e-post delas aldrig med spårningsappen.",
+    "allow": "Tillåt",
+    "deny": "Neka",
+    "authorizing": "Ger åtkomst…",
+    "consentError": "Något gick fel. Försök igen."
+  },
+  "notFound": {
+    "message": "Den här sidan finns inte på menyn.",
+    "home": "Tillbaka till idag"
   },
   "templates": {
     "title": "Mallar",

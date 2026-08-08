@@ -360,7 +360,20 @@
     "or": "tai",
     "termsLink": "Käyttöehdot",
     "privacyLink": "Tietosuoja",
-    "agree": "Jatkamalla hyväksyt <terms>käyttöehdot</terms> ja <privacy>tietosuojakäytännön</privacy>."
+    "agree": "Jatkamalla hyväksyt <terms>käyttöehdot</terms> ja <privacy>tietosuojakäytännön</privacy>.",
+    "consentTitle": "Myönnä pääsy",
+    "consentIntro": "<strong>{client}</strong> haluaa yhdistää Annos-tiliisi.",
+    "consentApp": "Sovellus",
+    "consentGrants": "Yhdistettynä se voi lukea ja kirjata ruokasi, liikuntasi ja painosi — samat asiat, jotka voit tehdä itse.",
+    "consentEmail": "Sähköpostiasi ei koskaan jaeta seurantasovellukselle.",
+    "allow": "Salli",
+    "deny": "Estä",
+    "authorizing": "Myönnetään…",
+    "consentError": "Jokin meni pieleen. Yritä uudelleen."
+  },
+  "notFound": {
+    "message": "Tätä sivua ei ole ruokalistalla.",
+    "home": "Takaisin tähän päivään"
   },
   "templates": {
     "title": "Pohjat",

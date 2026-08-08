@@ -360,7 +360,20 @@
     "or": "or",
     "termsLink": "Terms",
     "privacyLink": "Privacy",
-    "agree": "By continuing you agree to the <terms>Terms</terms> and <privacy>Privacy Policy</privacy>."
+    "agree": "By continuing you agree to the <terms>Terms</terms> and <privacy>Privacy Policy</privacy>.",
+    "consentTitle": "Authorize access",
+    "consentIntro": "<strong>{client}</strong> wants to connect to your Annos account.",
+    "consentApp": "An application",
+    "consentGrants": "Once connected, it can read and log your food, exercise and weight — the same things you can do yourself.",
+    "consentEmail": "Your email is never shared with the tracker.",
+    "allow": "Allow",
+    "deny": "Deny",
+    "authorizing": "Authorizing…",
+    "consentError": "Something went wrong. Please try again."
+  },
+  "notFound": {
+    "message": "This page isn't on the menu.",
+    "home": "Back to today"
   },
   "templates": {
     "title": "Templates",

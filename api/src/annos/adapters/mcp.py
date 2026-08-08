@@ -8,13 +8,17 @@ No tool accepts a user id. Identity is resolved from the request's bearer token,
 so a confused client cannot reach another user's data.
 """
 
+from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
 from fastmcp.server.auth import RemoteAuthProvider, TokenVerifier
 from fastmcp.server.auth.auth import AccessToken
 from fastmcp.server.dependencies import get_http_headers
+from mcp.types import Icon
 from pydantic import AnyHttpUrl
+from starlette.requests import Request
+from starlette.responses import FileResponse
 
 from annos import servertime
 from annos.config import settings
@@ -63,9 +67,26 @@ auth_provider = RemoteAuthProvider(
     resource_name="annos",
 )
 
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+# The mark advertised to MCP clients in the server handshake (MCP's own `icons`
+# field), served by the custom routes below. Both sit under the /mcp mount, so
+# their public URLs are {origin}/mcp/…. The theme-adaptive SVG is listed first
+# (a client that renders it gets the mark correct on light or dark chrome); the
+# paper-white PNG is a raster fallback for clients that don't. Claude.ai today
+# brands the connector from the OAuth authorization server's own page and
+# favicon (the Next.js /consent route) rather than this field — this is the
+# spec-correct mechanism regardless, for clients that read it.
+_icon_base = f"{settings.public_base_url.rstrip('/')}/mcp"
+MCP_ICONS = [
+    Icon(src=f"{_icon_base}/favicon.svg", mimeType="image/svg+xml"),
+    Icon(src=f"{_icon_base}/icon-128.png", mimeType="image/png", sizes=["128x128"]),
+]
+
 mcp: FastMCP = FastMCP(
     name="annos",
     auth=auth_provider,
+    icons=MCP_ICONS,
     instructions=(
         "Annos logs meals, training, and bodyweight. Portions are in grams. "
         "Resolve foods with find_food before logging anything, and ask before "
@@ -78,6 +99,18 @@ mcp: FastMCP = FastMCP(
         "from the 2024 Adult Compendium of Physical Activities."
     ),
 )
+
+
+@mcp.custom_route("/favicon.svg", methods=["GET"])
+async def favicon_svg(_request: Request) -> FileResponse:
+    """The theme-adaptive Annos mark advertised in the MCP handshake."""
+    return FileResponse(STATIC_DIR / "favicon.svg", media_type="image/svg+xml")
+
+
+@mcp.custom_route("/icon-128.png", methods=["GET"])
+async def icon_png(_request: Request) -> FileResponse:
+    """Raster (128px) fallback of the mark for clients that don't render SVG."""
+    return FileResponse(STATIC_DIR / "icon-128.png", media_type="image/png")
 
 
 async def _caller() -> Caller:
