@@ -15,7 +15,7 @@ Registration and account deletion are web-only on purpose, so a hallucinating cl
 
 ## Privacy stance
 
-What you track here is health data, so Annos is built to know as little as it can. You are a generated nickname, never a real name. Your email lives only in the sign-in system and is walled off from everything you log by a database permission — not just a promise. There is no analytics, tracking, or advertising anywhere in the app. See the in-app privacy policy for the full account.
+What you track here is wellbeing data, so Annos is built to know as little as it can. You are a generated nickname, never a real name. Your email lives only in the sign-in system and is walled off from everything you log by a database permission — not just a promise. There is no analytics, tracking, or advertising anywhere in the app. See the in-app privacy policy for the full account.
 
 ## Running it
 
