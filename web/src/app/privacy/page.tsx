@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <h2>2. The short version: as little as possible</h2>
         <p>
           Annos is built to know as little about you as it can, precisely because what you track
-          here is health data. It never asks for your real name — inside the app you are only a
+          here is wellbeing data. It never asks for your real name — inside the app you are only a
           nickname the system generates for you. It runs no analytics and no tracking, shows ads
           to no one, and never sells or shares your data. It gives no advice: it returns your own
           numbers back to you, and nothing more.

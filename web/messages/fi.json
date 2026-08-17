@@ -299,7 +299,7 @@
     "exporting": "Kootaan…",
     "exportFailed": "Vienti epäonnistui",
     "deleteTitle": "Poista tili",
-    "deleteWarning": "Pysyvä ja välitön: kaikki kirjaukset, painot, tavoitejaksot, pohjat ja omat ruoat poistetaan, kirjautuminen poistetaan ja kytketyt AI-asiakkaat menettävät pääsyn. Ei varoaikaa. Poistettu tieto säilyy vain salatuissa varmuuskopioissa, jotka kiertyvät pois 30 päivässä.",
+    "deleteWarning": "Pysyvä ja välitön: kaikki kirjaukset, painot, tavoitejaksot ja pohjat poistetaan, kirjautuminen poistetaan ja kytketyt AI-asiakkaat menettävät pääsyn. Ei varoaikaa. Poistettu tieto säilyy vain salatuissa varmuuskopioissa, jotka kiertyvät pois 30 päivässä.",
     "deleteNicknameLabel": "Vahvista kirjoittamalla nimimerkkisi",
     "deletePasswordLabel": "Salasana",
     "deleteConfirm": "Poista kaikki",

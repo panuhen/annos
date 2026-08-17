@@ -299,7 +299,7 @@
     "exporting": "Sammanställs…",
     "exportFailed": "Exporten misslyckades",
     "deleteTitle": "Radera kontot",
-    "deleteWarning": "Permanent och omedelbart: alla loggar, vikter, målfaser, mallar och egna livsmedel raderas, inloggningen tas bort och anslutna AI-klienter förlorar åtkomst. Ingen ångerfrist. Raderade data finns kvar endast i krypterade säkerhetskopior som roteras ut inom 30 dagar.",
+    "deleteWarning": "Permanent och omedelbart: alla loggar, vikter, målfaser och mallar raderas, inloggningen tas bort och anslutna AI-klienter förlorar åtkomst. Ingen ångerfrist. Raderade data finns kvar endast i krypterade säkerhetskopior som roteras ut inom 30 dagar.",
     "deleteNicknameLabel": "Bekräfta genom att skriva ditt smeknamn",
     "deletePasswordLabel": "Lösenord",
     "deleteConfirm": "Radera allt",

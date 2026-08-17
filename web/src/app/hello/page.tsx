@@ -238,9 +238,9 @@ export default function HelloPage() {
                 style={{ animationDelay: "700ms" }}
               />
               <Dish
-                name={t("specimenButter")}
-                portion="5 g"
-                kcal={36}
+                name={t("specimenCoffee")}
+                portion="2 dl"
+                kcal={4}
                 className="stamp-in"
                 style={{ animationDelay: "1000ms" }}
               />
@@ -250,7 +250,7 @@ export default function HelloPage() {
               style={{ animationDelay: "1300ms" }}
             >
               <span className="text-sm font-bold">{t("specimenTotal")}</span>
-              <span className="tnum font-mono text-sm">293 kcal</span>
+              <span className="tnum font-mono text-sm">261 kcal</span>
             </div>
           </div>
         </figure>
@@ -263,11 +263,11 @@ export default function HelloPage() {
           time="11:45"
           tagline={t("specimenExample")}
           totalLabel={t("specimenTotal")}
-          totalValue="812 kcal"
+          totalValue="750 kcal"
           stampOnView
         >
           <Dish name={t("specimenSoup")} portion="300 g" kcal={246} />
-          <Dish name={t("specimenBread")} portion="35 g" kcal={86} />
+          <Dish name={t("specimenSalad")} portion="150 g" kcal={24} />
           <Dish name={t("specimenWok")} tag="AI" portion="350 g" kcal={480} />
         </Entry>
       </Beat>
@@ -362,7 +362,7 @@ export default function HelloPage() {
           {t("privacyLabel")}
         </h2>
         <p className="mt-3 text-base leading-relaxed lg:text-lg">
-          What you track here is health data, so Annos is built to know as little about you as it
+          What you track here is wellbeing data, so Annos is built to know as little about you as it
           can. Inside the app you&apos;re a generated nickname, your email never touches what you
           log, and nothing is tracked or sold.{" "}
           <Link
